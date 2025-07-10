@@ -2,28 +2,31 @@
 
 import { Request, Response } from 'express';
 import { Empleado } from '../models/empleado';
+import { pool } from "../config/db";
 
 export const crearEmpleado = (req: Request, res: Response): void => {
   try {
     const {
-      id,
-      nombreUsuario,
+      DNI,
+      username,
       nombreCompleto,
-      email,
+      correo,
       telefono,
       password,
       rol,
+      visibilidad,
     } = req.body;
 
     // Validación básica de campos obligatorios
     if (
-      id === undefined ||
-      !nombreUsuario ||
+      DNI === undefined ||
+      !username ||
       !nombreCompleto ||
-      !email ||
+      !correo ||
       !telefono ||
       !password ||
-      !rol
+      !rol ||
+      !visibilidad
     ) {
       res.status(400).json({ error: 'Faltan campos obligatorios' });
       return;
@@ -31,13 +34,14 @@ export const crearEmpleado = (req: Request, res: Response): void => {
 
     // Crear nuevo empleado con reglas de negocio en el constructor
     const nuevoEmpleado = new Empleado(
-      id,
-      nombreUsuario,
+      DNI,
+      username,
       nombreCompleto,
-      email,
+      correo,
       telefono,
       password,
-      rol
+      rol,
+      visibilidad
     );
 
     // Guardar en la base de datos
@@ -47,15 +51,28 @@ export const crearEmpleado = (req: Request, res: Response): void => {
     res.status(201).json({
       mensaje: 'Empleado creado exitosamente',
       empleado: {
-        id: nuevoEmpleado.id,
-        nombreUsuario: nuevoEmpleado.nombreUsuario,
+        DNI: nuevoEmpleado.DNI,
+        username: nuevoEmpleado.username,
         nombreCompleto: nuevoEmpleado.nombreCompleto,
-        email: nuevoEmpleado.email,
+        correo: nuevoEmpleado.correo,
         telefono: nuevoEmpleado.telefono,
         rol: nuevoEmpleado.rol,
+        visibilidad: nuevoEmpleado.visibilidad,
       },
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
+  }
+};
+
+export const getEmpleados = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await pool.query<Empleado>("SELECT * FROM empleados");
+    const empleados = result.rows;
+
+    res.status(200).json(empleados);
+  } catch (error) {
+    console.error("❌ Error al obtener empleados:", error);
+    res.status(500).json({ message: "Error al obtener empleados" });
   }
 };

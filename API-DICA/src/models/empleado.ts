@@ -1,14 +1,15 @@
 export class Empleado {
   constructor(
-    public id: number,
-    public nombreUsuario: string,
+    public  DNI: number,
+    public   username: string,
     public nombreCompleto: string,
-    public email: string,
+    public correo: string,
     public telefono: string,
     public password: string,
     public rol: string,
+    public visibilidad: boolean,
   ) {
-    if (!nombreUsuario || nombreUsuario.trim() === "") {
+    if (!username || username.trim() === "") {
       throw new Error("Nombre de usuario no puede estar vacío");
     }
 
