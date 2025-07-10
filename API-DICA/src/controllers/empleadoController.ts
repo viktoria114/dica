@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import { Empleado } from '../models/empleado';
 import { pool } from "../config/db";
 
-export const crearEmpleado = (req: Request, res: Response): void => {
+export const crearEmpleado = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       DNI,
@@ -17,7 +17,6 @@ export const crearEmpleado = (req: Request, res: Response): void => {
       visibilidad,
     } = req.body;
 
-    // Validación básica de campos obligatorios
     if (
       DNI === undefined ||
       !username ||
@@ -32,7 +31,6 @@ export const crearEmpleado = (req: Request, res: Response): void => {
       return;
     }
 
-    // Crear nuevo empleado con reglas de negocio en el constructor
     const nuevoEmpleado = new Empleado(
       DNI,
       username,
@@ -44,24 +42,35 @@ export const crearEmpleado = (req: Request, res: Response): void => {
       visibilidad
     );
 
-    // Guardar en la base de datos
+    const query = `
+      INSERT INTO empleados 
+        (dni, username, nombre_completo, correo, telefono, password, rol, visibilidad) 
+      VALUES 
+        ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;
+    `;
 
-    //
-    // Respuesta exitosa
+    const values = [
+      nuevoEmpleado.DNI,
+      nuevoEmpleado.username,
+      nuevoEmpleado.nombreCompleto,
+      nuevoEmpleado.correo,
+      nuevoEmpleado.telefono,
+      nuevoEmpleado.password,
+      nuevoEmpleado.rol,
+      nuevoEmpleado.visibilidad,
+    ];
+
+    const resultado = await pool.query(query, values);
+    const empleadoCreado = resultado.rows[0];
+
     res.status(201).json({
       mensaje: 'Empleado creado exitosamente',
-      empleado: {
-        DNI: nuevoEmpleado.DNI,
-        username: nuevoEmpleado.username,
-        nombreCompleto: nuevoEmpleado.nombreCompleto,
-        correo: nuevoEmpleado.correo,
-        telefono: nuevoEmpleado.telefono,
-        rol: nuevoEmpleado.rol,
-        visibilidad: nuevoEmpleado.visibilidad,
-      },
+      empleado: empleadoCreado,
     });
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    console.error('Error al crear empleado:', error);
+    res.status(500).json({ error: 'Error al crear el empleado' });
   }
 };
 

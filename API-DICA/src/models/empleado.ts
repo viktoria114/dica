@@ -4,7 +4,7 @@ export class Empleado {
     public   username: string,
     public nombreCompleto: string,
     public correo: string,
-    public telefono: string,
+    public telefono: number,
     public password: string,
     public rol: string,
     public visibilidad: boolean,
@@ -17,10 +17,9 @@ export class Empleado {
       throw new Error("Nombre completo no puede estar vacío");
     }
 
-    if (rol != "admin" || "cajero" || "repartidor"){
-        throw new Error("Nombre de rol invalido")
+    if (rol !== "admin" && rol !== "cajero" && rol !== "repartidor") {
+      throw new Error("Nombre de rol inválido");
     }
-
   }
 
   // Método para cambiar la contraseña
