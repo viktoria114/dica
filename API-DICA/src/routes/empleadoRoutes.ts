@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { crearEmpleado, getEmpleados } from '../controllers/empleadoController';
+import { checkRole } from '../middlewares/authHandler';
 const router = Router();
 
 //aqui se importan los Controllers para cada ruta
 
-router.get('/', getEmpleados); //getEmpleados
+router.get('/', /*checkRole(['admin']), */ getEmpleados); //getEmpleados
 //router.get('/:id', ); //getEmpleadoByID
 router.post('/', crearEmpleado);//createEmpleado
 //router.put('/:id', ); //cambiarPassword
