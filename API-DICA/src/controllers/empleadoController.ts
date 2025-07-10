@@ -3,6 +3,7 @@
 import { Request, Response } from 'express';
 import { Empleado } from '../models/empleado';
 import { pool } from "../config/db";
+import { OkPacket } from 'mysql2';
 
 export const crearEmpleado = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -83,5 +84,28 @@ export const getEmpleados = async (req: Request, res: Response): Promise<void> =
   } catch (error) {
     console.error("❌ Error al obtener empleados:", error);
     res.status(500).json({ message: "Error al obtener empleados" });
+  }
+};
+
+export const actualizarEmpleado = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const { username, nombre_completo, correo, telefono, password, rol, visibilidad } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE empleados 
+       SET username = $1, nombre_completo = $2, correo = $3, telefono = $4, password = $5, rol = $6, visibilidad = $7
+       WHERE dni = $8`,
+      [username, nombre_completo, correo, telefono, password, rol, visibilidad, id]
+    );
+
+    if (result.rowCount === 1) {
+      res.json({ message: "Registro actualizado" });
+    } else {
+      res.status(404).json({ message: "Registro inexistente" });
+    }
+  } catch (error) {
+    console.error("❌ Error al actualizar empleado:", error);
+    res.status(500).json({ message: "Error al actualizar empleado" });
   }
 };
