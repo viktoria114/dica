@@ -3,6 +3,7 @@
 import { Request, Response } from 'express';
 import { Empleado } from '../models/empleado';
 import { pool } from "../config/db";
+import bcrypt from 'bcryptjs';
 
 export const crearEmpleado = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -42,6 +43,8 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       visibilidad
     );
 
+    const contraseñaHasheada = await bcrypt.hash(nuevoEmpleado.password, 10);
+
     const query = `
       INSERT INTO empleados 
         (dni, username, nombre_completo, correo, telefono, password, rol, visibilidad) 
@@ -56,7 +59,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       nuevoEmpleado.nombreCompleto,
       nuevoEmpleado.correo,
       nuevoEmpleado.telefono,
-      nuevoEmpleado.password,
+      contraseñaHasheada,
       nuevoEmpleado.rol,
       nuevoEmpleado.visibilidad,
     ];
