@@ -121,3 +121,48 @@ export const actualizarEmpleado = async (req: Request, res: Response): Promise<v
     res.status(500).json({ message: "Error al actualizar empleado" });
   }
 };
+
+export const eliminarEmpleado = async (req: Request, res: Response): Promise<void> => {
+  try {
+      const { id } = req.params;
+  
+      if (!id) {
+        res.status(400).json({ error: 'DNI requerido' });
+        return;
+      }
+  
+      // Buscar empleado actual
+      const consulta = await pool.query(`SELECT * FROM empleados WHERE dni = $1`, [id]);
+      const actual = consulta.rows[0];
+  
+      if (!actual) {
+        res.status(404).json({ error: 'Empleado no encontrado' });
+        return;
+      }
+  
+      const empleado = new Empleado(
+        actual.dni,
+        actual.username,
+        actual.nombre_completo,
+        actual.correo,
+        actual.telefono,
+        actual.password,
+        actual.rol,
+        actual.visibilidad
+      );
+      empleado.desactivar();
+  
+      const resultado = await pool.query(
+        `UPDATE empleados SET visibilidad = false WHERE dni = $1 RETURNING *;`,
+        [empleado.DNI]
+      );
+  
+      res.status(200).json({
+        mensaje: 'Empleado eliminado correctamente (soft delete)',
+        empleado: resultado.rows[0],
+      });
+    } catch (error: any) {
+      console.error('Error al eliminar empleado:', error.message);
+      res.status(400).json({ error: error.message });
+    }
+}
