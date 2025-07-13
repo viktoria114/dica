@@ -7,6 +7,7 @@ export class Empleado {
     public telefono: number,
     public password: string,
     public rol: string,
+    public agentSessionID: string | null,
     public visibilidad: boolean = true,
   ) {
     if (!username || username.trim() === "") {
