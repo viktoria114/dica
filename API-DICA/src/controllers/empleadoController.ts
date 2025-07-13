@@ -166,3 +166,28 @@ export const eliminarEmpleado = async (req: Request, res: Response): Promise<voi
       res.status(400).json({ error: error.message });
     }
 }
+
+export const getEmpleadoPorTelefono = async (req:Request, res: Response): Promise<void>=> {
+  try{
+    const { tel } = req.params;
+
+    if (!tel) {
+      res.status(400).json({ error: 'TEL requerido' });
+      return;
+    }
+
+    // Buscar empleado actual
+    const consulta = await pool.query(`SELECT * FROM empleados WHERE telefono = $1`, [tel]);
+    const actual = consulta.rows[0];
+
+    if (!actual) {
+      res.status(404).json({ error: 'Empleado no encontrado' });
+      return;
+    }
+
+    res.status(200).json({mensaje:"Empleado obtenido correctamente", empleado:actual})
+  }catch(error: any){
+    console.error('Error al obtener el empleado por telefono', error)
+    res.status(400).json({error: error.message});
+  }
+}
