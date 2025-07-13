@@ -44,9 +44,9 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
 
     const query = `
       INSERT INTO empleados 
-        (dni, username, nombre_completo, correo, telefono, password, rol, visibilidad) 
+        (dni, username, nombre_completo, correo, telefono, password, rol, visibilidad, agent_session_id) 
       VALUES 
-        ($1, $2, $3, $4, $5, $6, $7, $8)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *;
     `;
 
@@ -58,6 +58,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       nuevoEmpleado.telefono,
       nuevoEmpleado.password,
       nuevoEmpleado.rol,
+      nuevoEmpleado.agentSessionID,
       nuevoEmpleado.visibilidad,
     ];
 
@@ -88,7 +89,7 @@ export const getEmpleados = async (req: Request, res: Response): Promise<void> =
 
 export const actualizarEmpleado = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { username, nombre_completo, correo, telefono, password, rol, visibilidad } = req.body;
+  const { username, nombre_completo, correo, telefono, password, rol, session, visibilidad } = req.body;
 
   const DNI :number = +id
   
@@ -100,6 +101,7 @@ export const actualizarEmpleado = async (req: Request, res: Response): Promise<v
         telefono,
         password,
         rol,
+        session,
         visibilidad
       );
     try {
@@ -148,6 +150,7 @@ export const eliminarEmpleado = async (req: Request, res: Response): Promise<voi
         actual.telefono,
         actual.password,
         actual.rol,
+        actual.agent_session_id,
         actual.visibilidad
       );
       empleado.desactivar();

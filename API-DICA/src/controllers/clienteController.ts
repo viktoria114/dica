@@ -8,11 +8,11 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
   try {
     const {nombre, telefono, preferencia } = req.body;
 
-    const nuevoCliente = new Cliente(null, nombre, telefono, preferencia);
+    const nuevoCliente = new Cliente(null, nombre, telefono, preferencia,null);
 
     const query = `
-      INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
 
@@ -22,6 +22,7 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
       nuevoCliente.preferencia,
       nuevoCliente.ultimaCompra,
       nuevoCliente.visibilidad,
+      nuevoCliente.agentSessionID
     ];
 
     const resultado = await pool.query(query, values);
@@ -42,7 +43,7 @@ export const actualizarCliente = async (req: Request, res: Response): Promise<vo
     const { id } = req.params;
 
     const clientID: number = +id
-    const { nombre, telefono, preferencia, visibilidad } = req.body;
+    const { nombre, telefono, preferencia, session, visibilidad } = req.body;
 
     if (!id) {
       res.status(400).json({ error: 'ID requerido' });
@@ -63,6 +64,7 @@ export const actualizarCliente = async (req: Request, res: Response): Promise<vo
       nombre,
       telefono,
       preferencia,
+      session,
       new Date(actual.ultima_compra), // mantener la fecha original
       visibilidad ?? actual.visibilidad
     );
@@ -131,6 +133,7 @@ export const eliminarCliente = async (req: Request, res: Response): Promise<void
       actual.nombre,
       actual.telefono,
       actual.preferencia,
+      actual.agent_session_id,
       new Date(actual.ultima_compra),
       actual.visibilidad,
     );
