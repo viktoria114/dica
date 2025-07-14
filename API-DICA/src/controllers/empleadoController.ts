@@ -40,6 +40,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       telefono,
       password,
       rol,
+      null,
       visibilidad
     );
 
@@ -61,8 +62,8 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       nuevoEmpleado.telefono,
       contraseñaHasheada,
       nuevoEmpleado.rol,
-      nuevoEmpleado.agentSessionID,
       nuevoEmpleado.visibilidad,
+      nuevoEmpleado.agentSessionID,
     ];
 
     const resultado = await pool.query(query, values);
