@@ -3,6 +3,7 @@
 import { Request, Response } from 'express';
 import { Empleado } from '../models/empleado';
 import { pool } from "../config/db";
+import bcrypt from 'bcryptjs';
 
 export const crearEmpleado = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -39,8 +40,11 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       telefono,
       password,
       rol,
+      null,
       visibilidad
     );
+
+     const contraseñaHasheada = await bcrypt.hash(nuevoEmpleado.password, 10);
 
     const query = `
       INSERT INTO empleados 
@@ -56,10 +60,10 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       nuevoEmpleado.nombreCompleto,
       nuevoEmpleado.correo,
       nuevoEmpleado.telefono,
-      nuevoEmpleado.password,
+      contraseñaHasheada,
       nuevoEmpleado.rol,
-      nuevoEmpleado.agentSessionID,
       nuevoEmpleado.visibilidad,
+      nuevoEmpleado.agentSessionID,
     ];
 
     const resultado = await pool.query(query, values);
@@ -75,9 +79,21 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const getEmpleados = async (req: Request, res: Response): Promise<void> => {
+export const getEmpleadosVisibles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query<Empleado>("SELECT * FROM empleados");
+    const result = await pool.query<Empleado>("SELECT * FROM empleados WHERE visibilidad = TRUE");
+    const empleados = result.rows;
+
+    res.status(200).json(empleados);
+  } catch (error) {
+    console.error("❌ Error al obtener empleados:", error);
+    res.status(500).json({ message: "Error al obtener empleados" });
+  }
+};
+
+export const getEmpleadosInvisibles = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await pool.query<Empleado>("SELECT * FROM empleados WHERE visibilidad = FALSE");
     const empleados = result.rows;
 
     res.status(200).json(empleados);
@@ -104,13 +120,14 @@ export const actualizarEmpleado = async (req: Request, res: Response): Promise<v
         session,
         visibilidad
       );
+      const contraseñaHasheada = await bcrypt.hash(nuevoEmpleado.password, 10);
     try {
       const result = await pool.query(
       `UPDATE empleados 
        SET username = $1, nombre_completo = $2, correo = $3, telefono = $4, password = $5, rol = $6, visibilidad = $7
        WHERE dni = $8`,
       [nuevoEmpleado.username, nuevoEmpleado.nombreCompleto, nuevoEmpleado.correo, 
-        nuevoEmpleado.telefono, nuevoEmpleado.password, nuevoEmpleado.rol, nuevoEmpleado.visibilidad, nuevoEmpleado.DNI]
+        nuevoEmpleado.telefono, contraseñaHasheada, nuevoEmpleado.rol, nuevoEmpleado.visibilidad, nuevoEmpleado.DNI]
     );
 
     if (result.rowCount === 1) {
@@ -170,6 +187,53 @@ export const eliminarEmpleado = async (req: Request, res: Response): Promise<voi
     }
 }
 
+export const restaurarEmpleado = async (req:Request, res:Response): Promise<void> =>{
+try {
+      const { id } = req.params;
+  
+      if (!id) {
+        res.status(400).json({ error: 'DNI requerido' });
+        return;
+      }
+  
+      // Buscar empleado actual
+      const consulta = await pool.query(`SELECT * FROM empleados WHERE dni = $1`, [id]);
+      const actual = consulta.rows[0];
+  
+      if (!actual) {
+        res.status(404).json({ error: 'Empleado no encontrado' });
+        return;
+      }
+  
+      const empleado = new Empleado(
+        actual.dni,
+        actual.username,
+        actual.nombre_completo,
+        actual.correo,
+        actual.telefono,
+        actual.password,
+        actual.rol,
+        actual.agent_session_id,
+        actual.visibilidad
+      );
+      empleado.reactivar();
+  
+      const resultado = await pool.query(
+        `UPDATE empleados SET visibilidad = true WHERE dni = $1 RETURNING *;`,
+        [empleado.DNI]
+      );
+  
+      res.status(200).json({
+        mensaje: 'Empleado restaurado correctamente',
+        empleado: resultado.rows[0],
+      });
+    } catch (error: any) {
+      console.error('Error al restaurar el empleado:', error.message);
+      res.status(400).json({ error: error.message });
+    }
+}
+
+
 export const getEmpleadoPorTelefono = async (req:Request, res: Response): Promise<void>=> {
   try{
     const { tel } = req.params;
@@ -191,6 +255,31 @@ export const getEmpleadoPorTelefono = async (req:Request, res: Response): Promis
     res.status(200).json({mensaje:"Empleado obtenido correctamente", empleado:actual})
   }catch(error: any){
     console.error('Error al obtener el empleado por telefono', error)
+    res.status(400).json({error: error.message});
+  }
+}
+
+export const getEmpleadoPorDNI = async (req:Request, res: Response): Promise<void>=> {
+  try{
+    const {id} = req.params;
+
+    if (!id) {
+      res.status(400).json({ error: 'DNI requerido' });
+      return;
+    }
+
+    // Buscar empleado actual
+    const consulta = await pool.query(`SELECT * FROM empleados WHERE dni = $1`, [id]);
+    const actual = consulta.rows[0];
+
+    if (!actual) {
+      res.status(404).json({ error: 'Empleado no encontrado' });
+      return;
+    }
+
+    res.status(200).json({mensaje:"Empleado obtenido correctamente", empleado:actual})
+  }catch(error: any){
+    console.error('Error al obtener el empleado por DNI', error)
     res.status(400).json({error: error.message});
   }
 }

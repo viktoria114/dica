@@ -1,8 +1,10 @@
 import express from 'express';
 import empleadoRoutes from './routes/empleadoRoutes';
+import authRoutes from "./routes/authRoutes";
 import clienteRoutes from './routes/clienteRoutes'
 import agenteRoutes from './routes/agenteRoutes'
 import { errorHandler } from './middlewares/errorHandler';
+
 
 const app = express();
 
@@ -10,6 +12,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api/empleados', empleadoRoutes);
+app.use('/api/clientes', clienteRoutes);
+app.use("/api/auth", authRoutes);
 app.use('/api/clientes', clienteRoutes)
 app.use('/api/agente', agenteRoutes);
 

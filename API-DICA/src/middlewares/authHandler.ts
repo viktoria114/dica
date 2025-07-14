@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 
 // extendemos Request para incluir los datos del usuario
 interface AuthenticatedRequest extends Request {
-  DNI?: number;
+  dni?: number;
   rol?: string;
+  username?: string;
 }
 
 export const verifyToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
@@ -19,12 +20,14 @@ export const verifyToken = (req: AuthenticatedRequest, res: Response, next: Next
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
-      DNI: number;
-      rol: string;
-    };
+    dni: number;
+    rol: string;
+    username: string;
+  };
 
-    req.DNI = decoded.DNI;
+    req.dni = decoded.dni;
     req.rol = decoded.rol;
+    req.username = decoded.username;
 
     next();
   } catch (error) {
