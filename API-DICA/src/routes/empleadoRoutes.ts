@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { crearEmpleado, getEmpleados, actualizarEmpleado, eliminarEmpleado, getEmpleadoPorTelefono} from '../controllers/empleadoController';
+import { crearEmpleado, getEmpleados, actualizarEmpleado, eliminarEmpleado, getEmpleadoPorTelefono, restaurarEmpleado} from '../controllers/empleadoController';
 import { checkRole } from '../middlewares/authHandler';
 const router = Router();
 
@@ -9,6 +9,7 @@ router.get('/', /*checkRole(['admin']), */ getEmpleados); //getEmpleados
 router.get('/:tel', getEmpleadoPorTelefono); //getEmpleadoByTel
 router.post('/', crearEmpleado);//createEmpleado
 router.put('/:id', actualizarEmpleado); // actualizarEmpleado
+router.put('/restaurar/:id', restaurarEmpleado ) //restaurarEmpleado
 router.delete('/:id', eliminarEmpleado ); //eliminarEmpleado
 
 export default router;
