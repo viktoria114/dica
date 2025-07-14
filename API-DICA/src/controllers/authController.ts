@@ -1,19 +1,19 @@
 import { Request, Response } from 'express';
-import { pool } from '../config/db'; // asegúrate que exportás correctamente el pool desde PostgreSQL
+import { pool } from '../config/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 interface Usuario {
-  uid: string;
+  dni: string;
   username: string;
   password: string;
-  // Agregá más campos si hay otros en tu tabla
+  rol: string; // ✅ Asegurate de que este campo exista en tu tabla empleados
 }
 
 // Función para buscar usuario por username
 const findByUsername = async (username: string): Promise<Usuario | null> => {
   const result = await pool.query<Usuario>(
-    "SELECT * FROM usuario WHERE username = $1",
+    "SELECT dni, username, password, rol FROM empleados WHERE username = $1",
     [username]
   );
 
@@ -41,10 +41,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // ✅ Generamos el token incluyendo dni, username y rol
     const token = jwt.sign(
-      { uid: usuario.uid, username: usuario.username },
-      process.env.JWT_SECRET || "secreto", // por si no está seteada
-      { expiresIn: "1h" }
+      {
+        dni: usuario.dni,
+        rol: usuario.rol,
+        username: usuario.username,
+      },
+      process.env.JWT_SECRET || "secreto", // Usá variable de entorno si está definida
+      { expiresIn: "6h" }
     );
 
     res.json({ token });
