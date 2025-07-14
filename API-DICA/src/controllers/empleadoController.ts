@@ -3,6 +3,7 @@
 import { Request, Response } from 'express';
 import { Empleado } from '../models/empleado';
 import { pool } from "../config/db";
+import bcrypt from 'bcryptjs';
 
 export const crearEmpleado = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -42,6 +43,8 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       visibilidad
     );
 
+     const contraseñaHasheada = await bcrypt.hash(nuevoEmpleado.password, 10);
+
     const query = `
       INSERT INTO empleados 
         (dni, username, nombre_completo, correo, telefono, password, rol, visibilidad, agent_session_id) 
@@ -56,7 +59,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       nuevoEmpleado.nombreCompleto,
       nuevoEmpleado.correo,
       nuevoEmpleado.telefono,
-      nuevoEmpleado.password,
+      contraseñaHasheada,
       nuevoEmpleado.rol,
       nuevoEmpleado.agentSessionID,
       nuevoEmpleado.visibilidad,
@@ -104,13 +107,14 @@ export const actualizarEmpleado = async (req: Request, res: Response): Promise<v
         session,
         visibilidad
       );
+      const contraseñaHasheada = await bcrypt.hash(nuevoEmpleado.password, 10);
     try {
       const result = await pool.query(
       `UPDATE empleados 
        SET username = $1, nombre_completo = $2, correo = $3, telefono = $4, password = $5, rol = $6, visibilidad = $7
        WHERE dni = $8`,
       [nuevoEmpleado.username, nuevoEmpleado.nombreCompleto, nuevoEmpleado.correo, 
-        nuevoEmpleado.telefono, nuevoEmpleado.password, nuevoEmpleado.rol, nuevoEmpleado.visibilidad, nuevoEmpleado.DNI]
+        nuevoEmpleado.telefono, contraseñaHasheada, nuevoEmpleado.rol, nuevoEmpleado.visibilidad, nuevoEmpleado.DNI]
     );
 
     if (result.rowCount === 1) {

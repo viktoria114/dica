@@ -1,12 +1,13 @@
 import { Router } from 'express';
+import {verifyToken, checkRole } from '../middlewares/authHandler';
 import { crearEmpleado, getEmpleados, actualizarEmpleado, eliminarEmpleado, getEmpleadoPorTelefono, restaurarEmpleado} from '../controllers/empleadoController';
-import { checkRole } from '../middlewares/authHandler';
 const router = Router();
 
 //aqui se importan los Controllers para cada ruta
 
-router.get('/', /*checkRole(['admin']), */ getEmpleados); //getEmpleados
 router.get('/:tel', getEmpleadoPorTelefono); //getEmpleadoByTel
+router.get('/', verifyToken,checkRole(['admin']),getEmpleados); //getEmpleados
+//router.get('/:id', ); //getEmpleadoByID
 router.post('/', crearEmpleado);//createEmpleado
 router.put('/:id', actualizarEmpleado); // actualizarEmpleado
 router.put('/restaurar/:id', restaurarEmpleado ) //restaurarEmpleado
