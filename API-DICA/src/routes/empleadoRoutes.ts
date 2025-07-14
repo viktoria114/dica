@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { crearEmpleado, getEmpleadosVisibles, actualizarEmpleado, eliminarEmpleado, getEmpleadoPorTelefono, getEmpleadoPorDNI, getEmpleadosInvisibles} from '../controllers/empleadoController';
+import { crearEmpleado, getEmpleadosVisibles, actualizarEmpleado, eliminarEmpleado, getEmpleadoPorTelefono, getEmpleadoPorDNI, getEmpleadosInvisibles, restaurarEmpleado} from '../controllers/empleadoController';
 import {verifyToken, checkRole } from '../middlewares/authHandler';
 const router = Router();
 
