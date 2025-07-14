@@ -25,17 +25,9 @@ export const verifyToken = (req: AuthenticatedRequest, res: Response, next: Next
     username: string;
   };
 
-  console.log("✅ TOKEN DECODIFICADO:", decoded);
-
     req.dni = decoded.dni;
     req.rol = decoded.rol;
     req.username = decoded.username;
-
-    console.log("🔍 VALORES EN req:", {
-  dni: req.dni,
-  rol: req.rol,
-  username: req.username
-});
 
     next();
   } catch (error) {
