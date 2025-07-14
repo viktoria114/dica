@@ -1,7 +1,7 @@
 import express from 'express';
 import empleadoRoutes from './routes/empleadoRoutes';
 import clienteRoutes from './routes/clienteRoutes';
-import authRoutes from "./routes/authroutes";
+import authRoutes from "./routes/authRoutes";
 import { errorHandler } from './middlewares/errorHandler';
 
 
