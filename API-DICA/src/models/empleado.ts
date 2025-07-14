@@ -7,7 +7,8 @@ export class Empleado {
     public telefono: number,
     public password: string,
     public rol: string,
-    public visibilidad: boolean,
+    public agentSessionID: string | null,
+    public visibilidad: boolean = true,
   ) {
     if (!username || username.trim() === "") {
       throw new Error("Nombre de usuario no puede estar vacío");
@@ -45,5 +46,20 @@ export class Empleado {
   // Método para verificar la contraseña actual (opcional si necesitas autenticación)
   public verificarPassword(passwordIngresada: string): boolean {
     return this.password === passwordIngresada;
+  }
+
+  //para soft delete
+  public desactivar(): void {
+    if (!this.visibilidad) {
+      throw new Error("El empleado ya está desactivado");
+    }
+    this.visibilidad = false;
+  }
+
+  public reactivar(): void {
+    if (this.visibilidad) {
+      throw new Error("El empleado ya está activo");
+    }
+    this.visibilidad = true;
   }
 }

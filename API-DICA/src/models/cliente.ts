@@ -6,6 +6,7 @@ export class Cliente {
     public nombre: string,
     public telefono: string,
     public preferencia: string,
+    public agentSessionID: string | null,
     public ultimaCompra: Date = new Date(),
     public visibilidad: boolean = true,
   ) {
