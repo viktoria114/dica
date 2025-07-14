@@ -79,9 +79,21 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const getEmpleados = async (req: Request, res: Response): Promise<void> => {
+export const getEmpleadosVisibles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query<Empleado>("SELECT * FROM empleados");
+    const result = await pool.query<Empleado>("SELECT * FROM empleados WHERE visibilidad = TRUE");
+    const empleados = result.rows;
+
+    res.status(200).json(empleados);
+  } catch (error) {
+    console.error("❌ Error al obtener empleados:", error);
+    res.status(500).json({ message: "Error al obtener empleados" });
+  }
+};
+
+export const getEmpleadosInvisibles = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await pool.query<Empleado>("SELECT * FROM empleados WHERE visibilidad = FALSE");
     const empleados = result.rows;
 
     res.status(200).json(empleados);
@@ -243,6 +255,31 @@ export const getEmpleadoPorTelefono = async (req:Request, res: Response): Promis
     res.status(200).json({mensaje:"Empleado obtenido correctamente", empleado:actual})
   }catch(error: any){
     console.error('Error al obtener el empleado por telefono', error)
+    res.status(400).json({error: error.message});
+  }
+}
+
+export const getEmpleadoPorDNI = async (req:Request, res: Response): Promise<void>=> {
+  try{
+    const {id} = req.params;
+
+    if (!id) {
+      res.status(400).json({ error: 'DNI requerido' });
+      return;
+    }
+
+    // Buscar empleado actual
+    const consulta = await pool.query(`SELECT * FROM empleados WHERE dni = $1`, [id]);
+    const actual = consulta.rows[0];
+
+    if (!actual) {
+      res.status(404).json({ error: 'Empleado no encontrado' });
+      return;
+    }
+
+    res.status(200).json({mensaje:"Empleado obtenido correctamente", empleado:actual})
+  }catch(error: any){
+    console.error('Error al obtener el empleado por DNI', error)
     res.status(400).json({error: error.message});
   }
 }
