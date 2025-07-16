@@ -1,5 +1,9 @@
 from google.adk.agents import Agent
 from agente_dica.agents import client_assistant_agent, employee_assistant_agent
+from agente_dica.tools import obtener_token, get_employee_list
+
+print("🔐 TOKEN:", obtener_token())
+print("👥 EMPLEADOS:", get_employee_list())
 
 root_agent = Agent(
     name="Coordinator",

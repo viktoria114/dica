@@ -1,4 +1,8 @@
 import logging 
+import requests
+import os
+from .auth import obtener_token
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +25,36 @@ def get_client_information(tel: int) -> str:
 
     return  '{"id": "1", "tel":123123, "name": "Bob"}'
 
+
 def get_employee_list() -> str:
-
     """
-    Obtiene informacion sobre los empleados que trabajan en el negocio
+    Obtiene información sobre los empleados que trabajan en el negocio desde la API.
 
-    Args: 
-        None
     Returns:
-        str: Un string de json con la informacion obtenida de la base de datos
-
-    Example:
-        >>> get_employee_list()
-        [{"dni":"39323523", "nombre_completo":"FooBar", "rol":"cajero", "visibilidad":"true"}]
+        str: Un string JSON con la información obtenida desde la base de datos a través de la API.
     """
-    return  '[{"dni":"39323523", "nombre_completo":"FooBar", "rol":"cajero", "visibilidad":"true"}]'
+    api_url = os.getenv("API_DICA_URL", "http://localhost:3000")
+    empleados_url = f"{api_url}/api/empleados"
+
+    print("🔄 Iniciando solicitud para obtener empleados...")
+
+    token = obtener_token()
+    if not token:
+        print("❌ No se pudo obtener token.")
+        return "[]"
+
+    print(f"✅ Token recibido: {token[:20]}...")
+
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(empleados_url, headers=headers)
+
+        print(f"✅ Empleados status: {response.status_code}")
+        print(f"📦 Respuesta empleados: {response.text}")
+
+        response.raise_for_status()
+        return response.text
+
+    except requests.RequestException as e:
+        print(f"❌ Error al obtener empleados: {e}")
+        return "[]"

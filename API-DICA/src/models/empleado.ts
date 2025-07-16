@@ -18,7 +18,7 @@ export class Empleado {
       throw new Error("Nombre completo no puede estar vacío");
     }
 
-    if (rol !== "admin" && rol !== "cajero" && rol !== "repartidor") {
+    if (rol !== "agente" && rol !== "admin" && rol !== "cajero" && rol !== "repartidor") {
       throw new Error("Nombre de rol inválido");
     }
   }

@@ -5,7 +5,7 @@ const router = Router();
 
 //aqui se importan los Controllers para cada ruta
 
-router.get('/', verifyToken, checkRole(['admin']), getEmpleadosVisibles); //getEmpleados
+router.get('/', verifyToken, checkRole(['admin', 'agente']), getEmpleadosVisibles); //getEmpleados
 router.get('/invisibles', /*checkRole(['admin']), */ getEmpleadosInvisibles); //getEmpleados
 router.get('/tel/:tel', getEmpleadoPorTelefono); //getEmpleadoByTel
 router.get('/dni/:id', getEmpleadoPorDNI); //getEmpleadoByDNI
