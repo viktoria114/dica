@@ -155,6 +155,51 @@ export const eliminarCliente = async (req: Request, res: Response): Promise<void
   }
 };
 
+export const restaurarCliente = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res.status(400).json({ error: 'ID requerido' });
+      return;
+    }
+
+    // Buscar cliente actual
+    const consulta = await pool.query(`SELECT * FROM clientes WHERE id = $1`, [id]);
+    const actual = consulta.rows[0];
+
+    if (!actual) {
+      res.status(404).json({ error: 'Cliente no encontrado' });
+      return;
+    }
+
+    const cliente = new Cliente(
+      actual.id,
+      actual.nombre,
+      actual.telefono,
+      actual.preferencia,
+      actual.agent_session_id,
+      new Date(actual.ultima_compra),
+      actual.visibilidad,
+    );
+
+    cliente.reactivar();
+
+    const resultado = await pool.query(
+      `UPDATE clientes SET visibilidad = true WHERE id = $1 RETURNING *;`,
+      [cliente.id]
+    );
+
+    res.status(200).json({
+      mensaje: 'Cliente restaurado correctamente',
+      cliente: resultado.rows[0],
+    });
+  } catch (error: any) {
+    console.error('Error al restaurar cliente:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+};
+
 export const obtenerClientePorTelefono = async (req: Request, res: Response): Promise<void> => {
   try {
     const { telefono } = req.params;
