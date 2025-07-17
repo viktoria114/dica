@@ -72,7 +72,7 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
 
           if (consultaEmpleados.rows.length > 0){
             const empleado = consultaEmpleados.rows[0]
-            const respADK = await enviarMensajeAdk(mensajeTexto,empleado.telefono, empleado.agent_session_id)
+            const respADK = await enviarMensajeAdk(mensajeTexto,empleado.telefono, empleado.agent_session_id, false)
             mensajeADK = respADK.texto
             agenteAutor = respADK.autor
           }
@@ -100,7 +100,7 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
           }
 
           // Enviar mensaje ADK con la sesión correspondiente
-          const respADK = await enviarMensajeAdk(mensajeTexto, numeroEntrada, cliente.agent_session_id);
+          const respADK = await enviarMensajeAdk(mensajeTexto, numeroEntrada,cliente.agent_session_id, true);
 
           mensajeADK = respADK.texto;
           agenteAutor = respADK.autor;
@@ -218,6 +218,7 @@ export const enviarMensajeAdk = async (
   mensaje: string,
   telefono: string,
   agentSessionID: string,
+  esCliente: boolean,
   intento: number = 1
 ): Promise<any> => {
   const messagePayload = {
@@ -249,11 +250,11 @@ export const enviarMensajeAdk = async (
         const errorJson = JSON.parse(errorText);
 
         if (errorJson.detail === "Session not found" && intento < 2) {
-          const nuevaSesion = await crearSessionAdk(telefono, false);
+          const nuevaSesion = await crearSessionAdk(telefono, esCliente);
           if (!nuevaSesion){
             throw error("faltas campos obligatorios")
           }
-          return await enviarMensajeAdk(mensaje, telefono, nuevaSesion, intento + 1);
+          return await enviarMensajeAdk(mensaje, telefono, nuevaSesion, esCliente, intento + 1);
         }
 
         console.error(`Error al mandar un mensaje a ADK (HTTP ${response.status}):`, errorText);
