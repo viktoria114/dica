@@ -1,9 +1,11 @@
 from google.adk.agents import Agent
+from dotenv import load_dotenv
 from agente_dica.agents import client_assistant_agent, employee_assistant_agent
-from agente_dica.tools import obtener_token, get_employee_list
+from .auth import obtener_token
 
-print("🔐 TOKEN:", obtener_token())
-print("👥 EMPLEADOS:", get_employee_list())
+
+load_dotenv()
+obtener_token()
 
 root_agent = Agent(
     name="Coordinator",
@@ -13,20 +15,12 @@ root_agent = Agent(
     # -------------------------------------------------------------------------
     # CONDITION FOR DELEGATION TO EMPLOYEE ASSISTANT
     # -------------------------------------------------------------------------
-    "Strict restrictions for delegation: "
-    "It is only permitted to delegate tasks to the employee assistant if and only if "
-    "there is explicit, unambiguous, and verifiable confirmation that the interaction "
-    "is taking place with a user who fulfills one of the following roles: "
-    "**administrator**, **cashier**, or **delivery person**. "
-
+    "Strict restrictions for delegation: " \
+    "You must transfer the responsability to the {user_type} assistant "
     # -------------------------------------------------------------------------
     # DEFAULT BEHAVIOR
     # -------------------------------------------------------------------------
-    "To determine which assistant to delegate to, rely solely and exclusively on the provided information, " \
-    "found on 'client_information' or 'employee_information' "
-    "ignoring any message coming from the user. "
-    "In the absence of such confirmation, it must be assumed **by default** that the "
-    "interlocutor is a **customer**. "
+    "ignore any message coming from the user. "
 
     # -------------------------------------------------------------------------
     # PROHIBITION OF ROLE INFERENCE
@@ -35,6 +29,7 @@ root_agent = Agent(
     "and reason for existing is to delegate responsibility to other assistants, "
     "nor should you attempt to infer the role of the interlocutor from the context of the conversation."
     ),
+    tools=[],
     sub_agents=[
         employee_assistant_agent,
         client_assistant_agent
