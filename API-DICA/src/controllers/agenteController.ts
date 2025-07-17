@@ -68,40 +68,44 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
             numeroEntrada = numeroEntrada.replace("549380", "5438015");
           }
 
-          //TODO:
-          //1. Consulta a DB empleado por TEL.
           const consultaEmpleados = await pool.query(`SELECT * FROM empleados WHERE telefono = $1`, [numeroEntrada]);
 
-          //2. Si no existe, buscar cliente por tel
-          if (consultaEmpleados.rows.length === 0){
-            const consultaClientes = await pool.query(`SELECT * FROM clientes WHERE telefono = $1`, [numeroEntrada]);
+          if (consultaEmpleados.rows.length > 0){
+            const empleado = consultaEmpleados.rows[0]
+            const respADK = await enviarMensajeAdk(mensajeTexto,empleado.telefono, empleado.agent_session_id)
+            mensajeADK = respADK.texto
+            agenteAutor = respADK.autor
+          }
+          else{
 
-          //si tampoco existe. Crear un nuevo cliente y mandar el sessionState para que el agente sepa que es nuevo
-            if (consultaClientes.rows.length === 0){
+          const existeC = await pool.query('SELECT * FROM Clientes WHERE telefono = $1;', [numeroEntrada]);
 
-                const respADK = await enviarPrimerMensajeAdk(numeroEntrada, mensajeTexto)
-                  mensajeADK = respADK.texto
-                  agenteAutor = respADK.autor
-                //si existe, envia un POST a adk especificando los datos en el sessionState
-                }else{
-                  //resultado cliente de la consulta
-                  const res = consultaClientes.rows[0]
+          let cliente = existeC.rows[0];
 
-                  const cliente = new Cliente(
-                    res.id,
-                    res.nombre,
-                    res.telefono,
-                    res.preferencia,
-                    res.agent_session_id
-                  ) 
+          if (!cliente) {
+            const sesionCliente = await crearSessionAdk(numeroEntrada, true);
 
-                  const respADK = await enviarMensajeAdk(mensajeTexto, cliente)
-                  mensajeADK = respADK.texto
-                  agenteAutor = respADK.autor
-                }
+            const crearCliente = await pool.query(
+              `INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
+              VALUES ($1, $2, $3, $4, $5, $6)
+              RETURNING *;`,
+              ["sin asignar", numeroEntrada, "sin asignar", new Date(), true, sesionCliente]
+            );
+
+            if (crearCliente.rows.length === 0) {
+              throw new Error("Error al crear el cliente");
             }
+
+            cliente = crearCliente.rows[0];
+          }
+
+          // Enviar mensaje ADK con la sesión correspondiente
+          const respADK = await enviarMensajeAdk(mensajeTexto, numeroEntrada, cliente.agent_session_id);
+
+          mensajeADK = respADK.texto;
+          agenteAutor = respADK.autor;
+        }
           if (numeroEntrada && mensajeTexto) {
-            //para testeo se hace un echo
             console.log(`Mensaje recibido de ${numeroEntrada}: ${mensajeTexto}`);
             await enviarMensajeWhatsApp(numeroEntrada, mensajeADK);
           }
@@ -149,39 +153,30 @@ export const enviarMensajeWhatsApp = async (to: string, mensaje: string): Promis
   }
 
 export const crearSessionAdk = async (
-    cliente: Cliente,
-    clienteNuevo: boolean
-  ): Promise<void> => {
+    telefono: string,
+    esCliente: boolean
+  ): Promise<string | undefined> => {
 
     const sessionID: string = crypto.randomUUID();
-    cliente.agentSessionID = sessionID
 
     var statePayload
 
-    if (clienteNuevo){
+    if (esCliente){
       statePayload = {
           "state":{
-            "client_information":{
-              "nombre":cliente.nombre,
-              "telefono": cliente.telefono,
-              "preferencia":cliente.preferencia,
-              "tipo":"cliente nuevo",
-            }
+            "user_type":"client",
+            "phone_number":`${telefono}`,
           }
         }
       }else{
       statePayload = {
-          "state":{
-            "client_information":{
-              "nombre":cliente.nombre,
-              "telefono": cliente.telefono,
-              "preferencia":cliente.preferencia,
-              "tipo":"cliente regular",
+            "state":{
+              "user_type":"employee",
+              "phone_number":`${telefono}`,
             }
-          }
         }
       }
-  const url = `http://localhost:8000/apps/agente_dica/users/${cliente.telefono}/sessions/${sessionID}`;
+  const url = `http://localhost:8000/apps/agente_dica/users/${telefono}/sessions/${sessionID}`;
 
     try {
       const response = await fetch(url, {
@@ -197,22 +192,20 @@ export const crearSessionAdk = async (
         console.error(`Error al crear la sesión en ADK (HTTP ${response.status}):`, errorText);
         return undefined;
       }
-      
-      const query = `
-        UPDATE clientes 
-        SET agent_session_id = $1
-        WHERE id = $2;
-      `
 
-      const valores = [sessionID, cliente.id]
-      const r = await pool.query(query, valores);
+      else{
+        const agregarSession = await pool.query(
+          'UPDATE Clientes SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]
+        )
 
-      if (r && r.rowCount && r.rowCount > 0) {
-        console.log("agent_session_id updated successfully");
-      } else {
-        console.log("sessionID:", sessionID)
-        console.log("clientID:", cliente.id)
-        throw error("error al actualizar la agent_session_id en la base de datos")
+        if (agregarSession && agregarSession.rowCount && agregarSession.rowCount > 0) {
+          console.log("agent_session_id updated successfully");
+          return sessionID
+        } else {
+          console.log("sessionID:", sessionID)
+          console.log("para el telefono: ", telefono)
+          throw error("error al actualizar la agent_session_id en la base de datos")
+        }
       }
 
     } catch (err) {
@@ -223,13 +216,14 @@ export const crearSessionAdk = async (
 
 export const enviarMensajeAdk = async (
   mensaje: string,
-  cliente: Cliente,
+  telefono: string,
+  agentSessionID: string,
   intento: number = 1
 ): Promise<any> => {
   const messagePayload = {
     appName: "agente_dica",
-    userId: `${cliente.telefono}`,
-    sessionId: `${cliente.agentSessionID}`,
+    userId: `${telefono}`,
+    sessionId: `${agentSessionID}`,
     newMessage: {
       role: "user",
       parts: [{
@@ -255,8 +249,11 @@ export const enviarMensajeAdk = async (
         const errorJson = JSON.parse(errorText);
 
         if (errorJson.detail === "Session not found" && intento < 2) {
-          await crearSessionAdk(cliente, false);
-          return await enviarMensajeAdk(mensaje, cliente, intento + 1);
+          const nuevaSesion = await crearSessionAdk(telefono, false);
+          if (!nuevaSesion){
+            throw error("faltas campos obligatorios")
+          }
+          return await enviarMensajeAdk(mensaje, telefono, nuevaSesion, intento + 1);
         }
 
         console.error(`Error al mandar un mensaje a ADK (HTTP ${response.status}):`, errorText);
@@ -288,42 +285,5 @@ export const enviarMensajeAdk = async (
   } catch (err) {
     console.error('Error de red al intentar enviar el mensaje:', err);
     return undefined;
-  }
-};
-
-export const enviarPrimerMensajeAdk = async (tel: string, mensaje: string): Promise<any> => {
-  try {
-    const nuevoCliente = new Cliente(null, "none", tel, "none", null);
-
-    const query = `
-      INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
-      VALUES ($1, $2, $3, $4, $5, $6);
-    `
-
-    const values = [
-      nuevoCliente.nombre,
-      nuevoCliente.telefono,
-      nuevoCliente.preferencia,
-      nuevoCliente.ultimaCompra,
-      nuevoCliente.visibilidad,
-      nuevoCliente.agentSessionID
-    ];
-
-    const resultado = await pool.query(query, values);
-
-    if (resultado && resultado.rowCount && resultado.rowCount > 0) {
-      console.log("Nuevo cliente creado exitosamente en la DB");
-    } else {
-      console.log("fallo al crear al nuevo cliente en la base de datos");
-      return
-    }
-    await crearSessionAdk(nuevoCliente, true);
-    
-    const r = await enviarMensajeAdk(mensaje, nuevoCliente);
-
-    return r
-
-  } catch (error: any) {
-    console.error("Error en enviarPrimerMensajeAdk:", error.message || error);
   }
 };
