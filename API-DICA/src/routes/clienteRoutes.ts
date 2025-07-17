@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { checkRole } from '../middlewares/authHandler';
-import { actualizarCliente, crearCliente, eliminarCliente, obtenerClientePorTelefono } from '../controllers/clienteController';
+import { actualizarCliente, crearCliente, eliminarCliente, restaurarCliente, obtenerClientePorTelefono } from '../controllers/clienteController';
 const router = Router();
 
 //aqui se importan los Controllers para cada ruta
@@ -8,6 +8,7 @@ const router = Router();
 router.get('/:telefono', obtenerClientePorTelefono);
 router.post('/', crearCliente);
 router.put('/:id', actualizarCliente)
+router.put('/restaurar/:id', restaurarCliente) //restaurarCliente
 router.delete('/:id', eliminarCliente)
 
 export default router;
