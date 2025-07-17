@@ -40,17 +40,16 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
 export const actualizarCliente = async (req: Request, res: Response): Promise<void> => {
 
   try {
-    const { id } = req.params;
+    const { tel } = req.params;
 
-    const clientID: number = +id
-    const { nombre, telefono, preferencia, session, visibilidad } = req.body;
+    const { nombre, preferencia, session, visibilidad } = req.body;
 
-    if (!id) {
+    if (!tel) {
       res.status(400).json({ error: 'ID requerido' });
       return;
     }
 
-    const resultadoActual = await pool.query(`SELECT * FROM clientes WHERE id = $1`, [id]);
+    const resultadoActual = await pool.query(`SELECT * FROM clientes WHERE telefono = $1`, [tel]);
 
     if (resultadoActual.rows.length === 0) {
       res.status(404).json({ error: 'Cliente no encontrado' });
@@ -60,9 +59,9 @@ export const actualizarCliente = async (req: Request, res: Response): Promise<vo
     const actual = resultadoActual.rows[0];
 
     const clienteNuevo = new Cliente(
-      clientID,
+      null,
       nombre,
-      telefono,
+      tel,
       preferencia,
       session,
       new Date(actual.ultima_compra), // mantener la fecha original
@@ -85,17 +84,16 @@ export const actualizarCliente = async (req: Request, res: Response): Promise<vo
 
     const query = `
       UPDATE clientes 
-      SET nombre = $1, telefono = $2, preferencia = $3, visibilidad = $4
-      WHERE id = $5
+      SET nombre = $1, preferencia = $2, visibilidad = $3
+      WHERE telefono = $4
       RETURNING *;
     `;
 
     const valores = [
       clienteNuevo.nombre,
-      clienteNuevo.telefono,
       clienteNuevo.preferencia,
       clienteNuevo.visibilidad,
-      clienteNuevo.id,
+      clienteNuevo.telefono,
     ];
 
     const resultado = await pool.query(query, valores);

@@ -7,7 +7,7 @@ const router = Router();
 
 router.get('/:telefono', obtenerClientePorTelefono);
 router.post('/', crearCliente);
-router.put('/:id', actualizarCliente)
+router.put('/:tel', actualizarCliente)
 router.put('/restaurar/:id', restaurarCliente) //restaurarCliente
 router.delete('/:id', eliminarCliente)
 

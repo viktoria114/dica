@@ -57,57 +57,68 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
         if (!Array.isArray(messages)) continue;
 
         for (const message of messages) {
-            
           var numeroEntrada = message.from;
           const mensajeTexto = message.text?.body;
 
-          var mensajeADK, agenteAutor
+          let mensajeADK: string | undefined;
+          let agenteAutor: string | undefined;
 
-          //conflicto con el numero shiojano
+          // Ajuste por número shiojano
           if (numeroEntrada.startsWith("549380")) {
             numeroEntrada = numeroEntrada.replace("549380", "5438015");
           }
 
+          if (!numeroEntrada || !mensajeTexto) {
+            console.warn("Número o mensaje de texto no definido.");
+            throw error("numero de entrada o mensaje indefinido")
+          }
+
+          // Verificar si es un empleado
           const consultaEmpleados = await pool.query(`SELECT * FROM empleados WHERE telefono = $1`, [numeroEntrada]);
 
-          if (consultaEmpleados.rows.length > 0){
-            const empleado = consultaEmpleados.rows[0]
-            const respADK = await enviarMensajeAdk(mensajeTexto,empleado.telefono, empleado.agent_session_id, false)
-            mensajeADK = respADK.texto
-            agenteAutor = respADK.autor
-          }
-          else{
+          if (consultaEmpleados.rows.length > 0) {
+            const empleado = consultaEmpleados.rows[0];
 
-          const existeC = await pool.query('SELECT * FROM Clientes WHERE telefono = $1;', [numeroEntrada]);
+            const respADK = await enviarMensajeAdk(mensajeTexto, empleado.telefono, empleado.agent_session_id, false);
 
-          let cliente = existeC.rows[0];
+            mensajeADK = respADK.texto;
+            agenteAutor = respADK.autor;
+          } else {
+            // Verificar si ya es cliente
+            const existeC = await pool.query('SELECT * FROM Clientes WHERE telefono = $1;', [numeroEntrada]);
+            let cliente = existeC.rows[0];
 
-          if (!cliente) {
-            const sesionCliente = await crearSessionAdk(numeroEntrada, true);
+            if (!cliente) {
+              // Crear nuevo cliente
+              const sesionCliente = await crearSessionAdk(numeroEntrada, true);
 
-            const crearCliente = await pool.query(
-              `INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
-              VALUES ($1, $2, $3, $4, $5, $6)
-              RETURNING *;`,
-              ["sin asignar", numeroEntrada, "sin asignar", new Date(), true, sesionCliente]
-            );
+              const crearCliente = await pool.query(
+                `INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *;`,
+                ["sin asignar", numeroEntrada, "sin asignar", new Date(), true, sesionCliente]
+              );
 
-            if (crearCliente.rows.length === 0) {
-              throw new Error("Error al crear el cliente");
+              if (crearCliente.rows.length === 0) {
+                throw new Error("Error al crear el cliente");
+              }
+
+              cliente = crearCliente.rows[0];
             }
 
-            cliente = crearCliente.rows[0];
+            // Enviar mensaje como cliente (nuevo o existente)
+            const respADK = await enviarMensajeAdk(mensajeTexto, numeroEntrada, cliente.agent_session_id, true);
+
+            mensajeADK = respADK.texto;
+            agenteAutor = respADK.autor;
           }
 
-          // Enviar mensaje ADK con la sesión correspondiente
-          const respADK = await enviarMensajeAdk(mensajeTexto, numeroEntrada,cliente.agent_session_id, true);
-
-          mensajeADK = respADK.texto;
-          agenteAutor = respADK.autor;
-        }
-          if (numeroEntrada && mensajeTexto) {
+          // Enviar respuesta por WhatsApp
+          if (mensajeADK) {
             console.log(`Mensaje recibido de ${numeroEntrada}: ${mensajeTexto}`);
             await enviarMensajeWhatsApp(numeroEntrada, mensajeADK);
+          } else {
+            console.warn(`No se generó respuesta para el número ${numeroEntrada}`);
           }
         }
       }
@@ -163,17 +174,13 @@ export const crearSessionAdk = async (
 
     if (esCliente){
       statePayload = {
-          "state":{
             "user_type":"client",
             "phone_number":`${telefono}`,
-          }
         }
       }else{
       statePayload = {
-            "state":{
               "user_type":"employee",
               "phone_number":`${telefono}`,
-            }
         }
       }
   const url = `http://localhost:8000/apps/agente_dica/users/${telefono}/sessions/${sessionID}`;
@@ -194,9 +201,18 @@ export const crearSessionAdk = async (
       }
 
       else{
-        const agregarSession = await pool.query(
-          'UPDATE Clientes SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]
-        )
+        var agregarSession
+
+        if (esCliente){
+          agregarSession = await pool.query(
+          'UPDATE clientes SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]
+          )
+        }
+        else{
+          agregarSession = await pool.query(
+          'UPDATE empleados SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]
+          )
+        }
 
         if (agregarSession && agregarSession.rowCount && agregarSession.rowCount > 0) {
           console.log("agent_session_id updated successfully");
@@ -277,9 +293,6 @@ export const enviarMensajeAdk = async (
     const ultimoElemento = result[result.length - 1];
     const texto = ultimoElemento.content.parts[0]?.text ?? '';
     const autor = ultimoElemento.author;
-
-    console.log(texto)
-    console.log(autor)
 
     return {texto, autor};
 
