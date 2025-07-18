@@ -113,3 +113,27 @@ def get_employee_role(tel: str) -> str:
     except Exception as e:
         print(f"Error inesperado: {e}")
         return "error inesperado al obtener empleado por telefono"
+
+def create_suggestion(tel: str, descripcion: str)->str:
+    """
+    Mediante esta herramienta, los clientes pueden dejar sus sugerencias despues de realizar su pedido
+
+    Args:
+        tel(str): numero de telefono del cliente
+        descripcion(str): descripcion de la sugerencia
+    Returns:
+        str: Un string con la devolucion de la solicitud
+    """
+
+    create_suggestion_url = f"{api_url}/api/sugerencias/{tel}"
+    body = {
+        "descripcion":descripcion
+    }
+    try:
+        resultado = solicitud_con_token(create_suggestion_url, "POST", body)
+    except requests.RequestException as e:
+        print(f"Error al intentar crear la sugerencia: {e}")
+        return "error al intentar crear la sugerencia"
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        return "error inesperado al intentar crear la sugerencia"
