@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { tokenBlacklist } from "../utils/blacklist";
 
 // extendemos Request para incluir los datos del usuario
 interface AuthenticatedRequest extends Request {
@@ -17,6 +18,11 @@ export const verifyToken = (req: AuthenticatedRequest, res: Response, next: Next
   }
 
   const token = authHeader.split(" ")[1];
+
+  if (tokenBlacklist.has(token)) {
+    res.status(401).json({ message: "Token revocado. Iniciá sesión nuevamente." })
+    return ;
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
