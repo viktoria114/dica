@@ -48,6 +48,7 @@ CLIENT_INSTRUCTION = (
     'Available tools:'
     '    - get_employee_role: helps getting information about the employee in order to transfer to another agent \n'
     '    - update_client_info: updates the clients information to provide better interactions \n'
+    '    - create_suggestion: allows customers to suggest before they place an order using the number: {phone_number} \n'
 
     # -------------------------------------------------------------------------
     # BEHAVIORAL RESTRICTIONS
