@@ -5,12 +5,12 @@ import sugerenciaRoutes from './routes/sugerenciaRoutes'
 import authRoutes from "./routes/authRoutes";
 import agenteRoutes from './routes/agenteRoutes'
 import { errorHandler } from './middlewares/errorHandler';
-
+import cors from 'cors'
 
 const app = express();
 
 app.use(express.json());
-
+app.use(cors());
 // Routes
 app.use('/api/empleados', empleadoRoutes);
 app.use('/api/clientes', clienteRoutes);
