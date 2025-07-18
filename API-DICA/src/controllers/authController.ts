@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { pool } from '../config/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { tokenBlacklist } from '../utils/blacklist';
 
 interface Usuario {
   dni: string;
@@ -57,4 +58,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     console.error("❌ Error en login:", error);
     res.status(500).json({ message: "Error en el servidor", error: error.message });
   }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(400).json({ message: "Token no proporcionado" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  tokenBlacklist.add(token);
+
+  res.json({ message: "Sesión cerrada correctamente" });
 };
