@@ -244,7 +244,7 @@ export const getEmpleadoPorTelefono = async (req:Request, res: Response): Promis
     }
 
     // Buscar empleado actual
-    const consulta = await pool.query(`SELECT * FROM empleados WHERE telefono = $1`, [tel]);
+    const consulta = await pool.query(`SELECT * FROM empleados WHERE telefono = $1 AND visibilidad = TRUE`, [tel]);
     const actual = consulta.rows[0];
 
     if (!actual) {

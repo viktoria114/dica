@@ -74,7 +74,7 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
           }
 
           // Verificar si es un empleado
-          const consultaEmpleados = await pool.query(`SELECT * FROM empleados WHERE telefono = $1`, [numeroEntrada]);
+          const consultaEmpleados = await pool.query(`SELECT * FROM empleados WHERE telefono = $1 AND visibilidad = TRUE`, [numeroEntrada]);
 
           if (consultaEmpleados.rows.length > 0) {
             const empleado = consultaEmpleados.rows[0];
