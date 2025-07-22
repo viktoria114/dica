@@ -26,8 +26,8 @@ def get_client_info(tel: int) -> str:
         return resultado
 
     except requests.RequestException as e:
-        print(f"Error al obtener el cliente por tel: {e}")
-        return "error al obtener cliente por telefono"
+        msg = e.response.text
+        return msg
 
     except Exception as e:
         print(f"Error inesperado: {e}")
@@ -107,8 +107,9 @@ def get_employee_role(tel: str) -> str:
         return resultado
 
     except requests.RequestException as e:
+        txt = e.response.text
         print(f"Error al obtener el empleado por tel: {e}")
-        return "error al obtener empleado por telefono"
+        return txt
 
     except Exception as e:
         print(f"Error inesperado: {e}")
