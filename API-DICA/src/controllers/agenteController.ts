@@ -170,20 +170,14 @@ export const crearSessionAdk = async (
 
     const sessionID: string = crypto.randomUUID();
 
-    var statePayload
+    const statePayload = {"phone_number":`${telefono}`}
+    var url
 
     if (esCliente){
-      statePayload = {
-            "user_type":"client",
-            "phone_number":`${telefono}`,
-        }
-      }else{
-      statePayload = {
-              "user_type":"employee",
-              "phone_number":`${telefono}`,
-        }
-      }
-  const url = `http://localhost:8000/apps/agente_dica/users/${telefono}/sessions/${sessionID}`;
+      url = `http://localhost:8000/apps/agente_clientes/users/${telefono}/sessions/${sessionID}`;
+    }else{
+      url = `http://localhost:8000/apps/agente_empleados/users/${telefono}/sessions/${sessionID}`;
+    }
 
     try {
       const response = await fetch(url, {
@@ -237,8 +231,18 @@ export const enviarMensajeAdk = async (
   esCliente: boolean,
   intento: number = 1
 ): Promise<any> => {
+
+  var appName
+
+  if (esCliente){
+    appName = "agente_clientes"
+  }
+  else{
+    appName = "agente_empleados"
+  }
+
   const messagePayload = {
-    appName: "agente_dica",
+    appName: appName,
     userId: `${telefono}`,
     sessionId: `${agentSessionID}`,
     newMessage: {

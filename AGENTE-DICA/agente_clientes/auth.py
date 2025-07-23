@@ -12,8 +12,8 @@ def obtener_token():
     """
     api_url = os.getenv("API_DICA_URL", "http://localhost:3000")
     login_url = f"{api_url}/api/auth/login"
-    username = os.getenv("AGENTE_USERNAME", "agente_ia")
-    password = os.getenv("AGENTE_PASSWORD", "agente123")
+    username = os.getenv("AGENTE_CLIENTES_USERNAME", "agente_clientes")
+    password = os.getenv("AGENTE_CLIENTES_PASSWORD", "agente123")
 
     print("Realizando login desde auth.py...")
     try:
