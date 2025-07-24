@@ -1,4 +1,12 @@
-import { Button, InputAdornment, Paper, TextField, Typography, IconButton } from "@mui/material";
+import {
+  Button,
+  InputAdornment,
+  Paper,
+  TextField,
+  Typography,
+  IconButton,
+  Box,
+} from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -42,7 +50,6 @@ const Login = () => {
 
       navigate("/inicio");
       localStorage.setItem("token", data.token);
-
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -59,93 +66,117 @@ const Login = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2, bgcolor: "background.default" }}>
-        <Typography variant="h5" align="center" sx={{ color: "black", fontWeight: "750", mb: "24px" }}>
-          INICIO DE SESIÓN
-        </Typography>
-
-        <TextField
-          label="Usuario o correo"
-          fullWidth
-          margin="dense"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          variant="outlined"
-          sx={{
-            color: "black",
-            backgroundColor: "#FAFAFA",
-            borderRadius: 1,
-            "& .MuiInputLabel-root": {
-              color: "#000",
-            },
-            "& .MuiInputLabel-root.Mui-focused": {
-              color: "#000",
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <AccountCircle />
-              </InputAdornment>
-            ),
-          }}
-        />
-
-        <TextField
-          label="Contraseña"
-          type={showPassword ? "text" : "password"}
-          fullWidth
-          margin="dense"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          variant="outlined"
-          sx={{
-            color: "black",
-            backgroundColor: "#FAFAFA",
-            borderRadius: 1,
-            "& .MuiInputLabel-root": {
-              color: "#000",
-            },
-            "& .MuiInputLabel-root.Mui-focused": {
-              color: "#000",
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockIcon />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton onClick={handleClickShowPassword} edge="end">
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-
-        <Typography sx={{ color: error ? "error.main" : "#FAFAFA", mt: 1 }}>
-          {error || '.'}
-        </Typography>
-
-        <Button
-          variant="contained"
-          fullWidth
-          sx={{
-            color: "black",
-            bgcolor: "#F4CE14",
-            mt: 2,
-            p: 2,
-            "&:hover": { bgcolor: "#c2a61cff" },
-          }}
-          onClick={handleSubmit}
-          loading={loading}
+      <Box
+        sx={{
+          position: "fixed", // este cambio es clave
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          bgcolor: "#495E57",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 0,
+        }}
+      >
+        <Paper
+          elevation={3}
+          sx={{ p: 4, borderRadius: 2, bgcolor: "background.default" }}
         >
-          INGRESAR
-        </Button>
-      </Paper>
+          <Typography
+            variant="h5"
+            align="center"
+            sx={{ color: "black", fontWeight: "750", mb: "24px" }}
+          >
+            INICIO DE SESIÓN
+          </Typography>
+
+          <TextField
+            label="Usuario o correo"
+            fullWidth
+            margin="dense"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            variant="outlined"
+            sx={{
+              color: "black",
+              backgroundColor: "#FAFAFA",
+              borderRadius: 1,
+              "& .MuiInputLabel-root": {
+                color: "#000",
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#000",
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <AccountCircle />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <TextField
+            label="Contraseña"
+            type={showPassword ? "text" : "password"}
+            fullWidth
+            margin="dense"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            variant="outlined"
+            sx={{
+              color: "black",
+              backgroundColor: "#FAFAFA",
+              borderRadius: 1,
+              "& .MuiInputLabel-root": {
+                color: "#000",
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#000",
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LockIcon />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={handleClickShowPassword} edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <Typography sx={{ color: error ? "error.main" : "#FAFAFA", mt: 1, display: "flex",
+          justifyContent: "center",
+          alignItems: "center" }}>
+            {error || "."}
+          </Typography>
+
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{
+              color: "black",
+              bgcolor: "#F4CE14",
+              mt: 2,
+              p: 2,
+              "&:hover": { bgcolor: "#c2a61cff" },
+            }}
+            onClick={handleSubmit}
+            loading={loading}
+          >
+            INGRESAR
+          </Button>
+        </Paper>
+      </Box>
     </ThemeProvider>
   );
 };

@@ -2,7 +2,7 @@ import { createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
   typography: {
-    fontFamily: "Jost",
+    fontFamily: `'Jost', sans-serif`,
   },
   palette: {
     primary: {
