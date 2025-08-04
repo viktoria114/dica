@@ -2,6 +2,7 @@ import express from 'express';
 import empleadoRoutes from './routes/empleadoRoutes';
 import clienteRoutes from './routes/clienteRoutes';
 import sugerenciaRoutes from './routes/sugerenciaRoutes'
+import stockRoutes from './routes/stockRoutes'
 import authRoutes from "./routes/authRoutes";
 import agenteRoutes from './routes/agenteRoutes'
 import { errorHandler } from './middlewares/errorHandler';
@@ -15,6 +16,7 @@ app.use(cors());
 app.use('/api/empleados', empleadoRoutes);
 app.use('/api/clientes', clienteRoutes);
 app.use('/api/sugerencias', sugerenciaRoutes)
+app.use('/api/stock', stockRoutes)
 app.use("/api/auth", authRoutes);
 app.use('/api/agente', agenteRoutes);
 
