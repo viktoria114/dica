@@ -58,3 +58,23 @@ export const getStockNoVisible = async (req: Request, res: Response): Promise<vo
         res.status(500).json({message: "Error al obtener los productos"});
     }
 };
+
+//frontend must send a request after login to check the stock
+export const validateLowStock = async (req: Request, res: Response) : Promise <void>=>{
+    try{
+        const query = 'SELECT * FROM stock WHERE stock_actual < stock_minimo'
+
+        const result = await pool.query(query)
+
+        if (result.rows.length > 0){
+            const rows = result.rows
+            res.status(200).json(rows)
+        }else{
+            res.status(200).json([])
+        }
+    
+    } catch(error: any){
+        console.error("error tratando de validar stock: ", error);
+        res.status(500).json({message:"Error al validar stock disponible"})
+    }
+}
