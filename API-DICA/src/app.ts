@@ -4,6 +4,7 @@ import clienteRoutes from './routes/clienteRoutes';
 import sugerenciaRoutes from './routes/sugerenciaRoutes'
 import authRoutes from "./routes/authRoutes";
 import agenteRoutes from './routes/agenteRoutes'
+import menuRoutes from './routes/menuRoutes'
 import { errorHandler } from './middlewares/errorHandler';
 import cors from 'cors'
 
@@ -21,6 +22,7 @@ app.use('/api/clientes', clienteRoutes);
 app.use('/api/sugerencias', sugerenciaRoutes)
 app.use("/api/auth", authRoutes);
 app.use('/api/agente', agenteRoutes);
+app.use('/api/menu', menuRoutes);
 
 app.get('/', (req, res) => {
     res.send('¡Bienvenido a mi API: DICA');

@@ -6,12 +6,13 @@ const router = Router();
 //aqui se importan los Controllers para cada ruta
 
 router.get('/', verifyToken, checkRole(['admin', 'agente']), getEmpleadosVisibles); //getEmpleados
-router.get('/invisibles', /*checkRole(['admin']), */ getEmpleadosInvisibles); //getEmpleados
-router.get('/tel/:tel', getEmpleadoPorTelefono); //getEmpleadoByTel
-router.get('/dni/:id', getEmpleadoPorDNI); //getEmpleadoByDNI
-router.post('/', crearEmpleado);//createEmpleado
-router.put('/:id', actualizarEmpleado); // actualizarEmpleado
-router.put('/restaurar/:id', restaurarEmpleado ) //restaurarEmpleado
-router.delete('/:id', eliminarEmpleado ); //eliminarEmpleado
+router.get('/invisibles',verifyToken, checkRole(['admin']), getEmpleadosInvisibles); //getEmpleados
+router.get('/tel/:tel', verifyToken, checkRole(['admin', 'agente']),getEmpleadoPorTelefono); //getEmpleadoByTel
+router.get('/dni/:id',verifyToken, checkRole(['admin']), getEmpleadoPorDNI); //getEmpleadoByDNI
+router.post('/',verifyToken, checkRole(['admin']), crearEmpleado);//createEmpleado
+router.put('/:id',verifyToken, checkRole(['admin']), actualizarEmpleado); // actualizarEmpleado
+//router.put('/',verifyToken, actualizarEmpleado_POVEmpledo); // actualizarEmpleado_POVEmpled
+router.put('/restaurar/:id',verifyToken, checkRole(['admin']), restaurarEmpleado ) //restaurarEmpleado
+router.delete('/:id',verifyToken, checkRole(['admin']), eliminarEmpleado ); //eliminarEmpleado
 
 export default router;
