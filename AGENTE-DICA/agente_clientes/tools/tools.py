@@ -89,3 +89,24 @@ def create_suggestion(tel: str, descripcion: str)->str:
     except Exception as e:
         print(f"Error inesperado: {e}")
         return "error inesperado al intentar crear la sugerencia"
+
+def get_menu():
+    """
+    Obtiene una lista completa del menu disponible
+    Args: none
+    Returns:
+        Mensaje de respuesta de la base de datos
+    """
+
+    get_menu_url = f"{api_url}/api/menu"
+
+    try:
+        resultado = solicitud_con_token(get_menu_url, "GET")
+    except requests.RequestException as e:
+        print(f"Error al obtener la lista del menu: {e}")
+        return e
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        return "error inesperado al intentar crear la sugerencia"
+
+       
