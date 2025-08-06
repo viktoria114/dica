@@ -6,13 +6,13 @@ import {pool} from '../config/db';
 
 export const crearStock = async (req: Request, res: Response): Promise<void> => {
     try{
-        const {nombre, stock_actual,vencimiento, tipo, stock_minimo} = req.body;
+        const {nombre, vencimiento, tipo, stock_minimo, medida} = req.body;
 
-        const nuevoStock = new Stock(null, nombre, stock_actual, vencimiento, tipo, stock_minimo)
+        const nuevoStock = new Stock(null,nombre,0 , vencimiento, tipo, stock_minimo, medida)
 
         const query = `
-            INSERT INTO stock (nombre, stock_actual, vencimiento, tipo, stock_minimo, visibilidad)
-            VALUES  ($1, $2, $3, $4, $5, $6)
+            INSERT INTO stock (nombre, stock_actual, vencimiento, tipo, stock_minimo, visibilidad, medida)
+            VALUES  ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *;
         `;
 
@@ -22,7 +22,8 @@ export const crearStock = async (req: Request, res: Response): Promise<void> => 
             nuevoStock.vencimiento,
             nuevoStock.tipo,
             nuevoStock.stock_minimo,
-            nuevoStock.visibilidad
+            nuevoStock.visibilidad,
+            nuevoStock.medida,
         ];
 
         const resultado = await pool.query(query, values)
