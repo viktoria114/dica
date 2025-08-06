@@ -102,6 +102,7 @@ def get_menu():
 
     try:
         resultado = solicitud_con_token(get_menu_url, "GET")
+        return resultado
     except requests.RequestException as e:
         print(f"Error al obtener la lista del menu: {e}")
         return e

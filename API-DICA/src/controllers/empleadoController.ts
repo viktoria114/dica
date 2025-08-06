@@ -81,7 +81,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
 
 export const getEmpleadosVisibles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query<Empleado>("SELECT * FROM empleados WHERE visibilidad = TRUE");
+    const result = await pool.query<Empleado>("SELECT * FROM empleados WHERE visibilidad = TRUE AND rol != 'agente'");
     const empleados = result.rows;
 
     res.status(200).json(empleados);
