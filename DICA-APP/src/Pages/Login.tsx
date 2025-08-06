@@ -154,9 +154,15 @@ const Login = () => {
             }}
           />
 
-          <Typography sx={{ color: error ? "error.main" : "#FAFAFA", mt: 1, display: "flex",
-          justifyContent: "center",
-          alignItems: "center" }}>
+          <Typography
+            sx={{
+              color: error ? "error.main" : "#FAFAFA",
+              mt: 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             {error || "."}
           </Typography>
 
