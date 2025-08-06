@@ -6,13 +6,13 @@ import {pool} from '../config/db';
 
 export const crearStock = async (req: Request, res: Response): Promise<void> => {
     try{
-        const {nombre, stock_actual,vencimiento, tipo, stock_minimo} = req.body;
+        const {nombre, vencimiento, tipo, stock_minimo, medida} = req.body;
 
-        const nuevoStock = new Stock(null, nombre, stock_actual, vencimiento, tipo, stock_minimo)
+        const nuevoStock = new Stock(null,nombre,0 , vencimiento, tipo, stock_minimo, medida)
 
         const query = `
-            INSERT INTO stock (nombre, stock_actual, vencimiento, tipo, stock_minimo, visibilidad)
-            VALUES  ($1, $2, $3, $4, $5, $6)
+            INSERT INTO stock (nombre, stock_actual, vencimiento, tipo, stock_minimo, visibilidad, medida)
+            VALUES  ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *;
         `;
 
@@ -22,7 +22,8 @@ export const crearStock = async (req: Request, res: Response): Promise<void> => 
             nuevoStock.vencimiento,
             nuevoStock.tipo,
             nuevoStock.stock_minimo,
-            nuevoStock.visibilidad
+            nuevoStock.visibilidad,
+            nuevoStock.medida,
         ];
 
         const resultado = await pool.query(query, values)
@@ -85,11 +86,11 @@ export const CrearRegistroStock = async (req: Request, res: Response): Promise<v
     const { cantidad } = req.body;
 
     try {
-        const nuevoRegistro = new RegistroStock(null, cantidad, stockId);
+        const nuevoRegistro = new RegistroStock(null, cantidad, stockId, false);
 
         var query = `
-            INSERT INTO registro_stock (cantidad, fk_id_stock, fk_fecha)
-            VALUES ($1, $2, $3)
+            INSERT INTO registro_stock (cantidad, fk_id_stock, fk_fecha, vencido)
+            VALUES ($1, $2, $3, $4)
             RETURNING id
         `;
 
@@ -188,3 +189,60 @@ export const eliminarRegistroStock = async (req: Request, res: Response): Promis
         res.status(500).json({ error: error.message });
     }
 };
+
+export const checkVencimientoStock = async(req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const today = new Date();
+
+    await client.query("BEGIN");
+
+    // 1. Obtener todos los productos perecederos
+    const { rows: stockRows } = await client.query(`
+      SELECT id, stock_actual, vencimiento
+      FROM stock
+      WHERE tipo = 'PERECEDERO' AND visibilidad = true
+    `);
+
+    for (const stock of stockRows) {
+      // 2. Obtener registros de stock no vencidos
+      const { rows: registros } = await client.query(`
+        SELECT id, cantidad, fk_fecha, vencido
+        FROM registro_stock
+        WHERE fk_id_stock = $1 AND vencido = false
+      `, [stock.id]);
+
+      for (const reg of registros) {
+        const fechaCompra = new Date(reg.fk_fecha);
+        const diffDays = Math.floor((today.getTime() - fechaCompra.getTime()) / (1000 * 60 * 60 * 24));
+
+        // 3. Si está vencido
+        if (diffDays > stock.vencimiento) {
+          // Marcar como vencido
+          await client.query(`
+            UPDATE registro_stock
+            SET vencido = true
+            WHERE id = $1
+          `, [reg.id]);
+
+          // Descontar del stock_actual
+          await client.query(`
+            UPDATE stock
+            SET stock_actual = stock_actual::numeric - $1
+            WHERE id = $2
+          `, [reg.cantidad, stock.id]);
+        }
+      }
+    }
+
+    await client.query("COMMIT");
+    res.status(200).json({ message: "Stock vencido actualizado correctamente." });
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error(error);
+    res.status(500).json({ error: "Error al actualizar stock vencido" });
+  } finally {
+    client.release();
+  }
+}

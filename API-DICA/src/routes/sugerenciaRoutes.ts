@@ -5,7 +5,7 @@ const router = Router();
 
 //Aquí se importan los controles para cada ruta
 
-router.post('/:telefono', crearSugerencia); //postSugerencia
-router.get('/', obtenerSugerencias); //getSugerencias
+router.post('/:telefono',verifyToken, checkRole(['admin', 'agente']), crearSugerencia); //postSugerencia
+router.get('/', verifyToken, checkRole(['admin']),obtenerSugerencias); //getSugerencias
 
 export default router;
