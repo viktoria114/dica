@@ -4,7 +4,7 @@ export class Pedido {
 
     constructor(
         public id: number | null,
-        public fk_fecha: Date = new Date(),
+        public fk_fecha: Date | null = new Date(),
         hora: string | null = null,
         estado: string | null = null,
         public fk_empleado: number | null,
