@@ -41,8 +41,8 @@ function reiniciarTemporizadorYEncolar(numero: string, texto: string): void {
 
         // Drenar la cola: obtenemos los mensajes y la vaciamos inmediatamente.
         const mensajesParaProcesar = messageQueues.get(numero) || [];
-        messageQueues.delete(numero); // Limpiamos la cola para este usuario.
-        userTimers.delete(numero);    // Limpiamos el temporizador que acaba de ejecutarse.
+        messageQueues.delete(numero); 
+        userTimers.delete(numero); 
 
         if (mensajesParaProcesar.length === 0) {
             return; // No hacer nada si no hay mensajes (caso borde poco probable).
@@ -66,7 +66,6 @@ function reiniciarTemporizadorYEncolar(numero: string, texto: string): void {
 
 async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Promise<void> {
     try {
-        // Mantener la misma lógica original: ver si es empleado, si no cliente, crear cliente, enviar a ADK
         let mensajeADK: string | undefined;
         let agenteAutor: string | undefined;
 
@@ -119,7 +118,6 @@ async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Pro
         }
     } catch (err) {
         console.error('Error en procesarMensaje:', err);
-        // No vuelvas a lanzar para no romper el flujo de procesamiento de otros mensajes
     }
 }
 // ----------------------- Endpoint principal -----------------------
