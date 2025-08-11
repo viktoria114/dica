@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 export const crearEmpleado = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
-      DNI,
+      dni,
       username,
       nombre_completo,
       correo,
@@ -19,7 +19,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
     } = req.body;
 
     if (
-      DNI === undefined ||
+      dni === undefined ||
       !username ||
       !nombre_completo ||
       !correo ||
@@ -33,7 +33,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
     }
 
     const nuevoEmpleado = new Empleado(
-      DNI,
+      dni,
       username,
       nombre_completo,
       correo,
@@ -55,7 +55,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
     `;
 
     const values = [
-      nuevoEmpleado.DNI,
+      nuevoEmpleado.dni,
       nuevoEmpleado.username,
       nuevoEmpleado.nombre_completo,
       nuevoEmpleado.correo,
@@ -107,10 +107,10 @@ export const actualizarEmpleado = async (req: Request, res: Response): Promise<v
   const { id } = req.params;
   const { username, nombre_completo, correo, telefono, password, rol, session, visibilidad } = req.body;
 
-  const DNI :number = +id
+  const dni :number = +id
   
   const nuevoEmpleado = new Empleado(
-        DNI,
+        dni,
         username,
         nombre_completo,
         correo,
@@ -127,7 +127,7 @@ export const actualizarEmpleado = async (req: Request, res: Response): Promise<v
        SET username = $1, nombre_completo = $2, correo = $3, telefono = $4, password = $5, rol = $6, visibilidad = $7
        WHERE dni = $8`,
       [nuevoEmpleado.username, nuevoEmpleado.nombre_completo, nuevoEmpleado.correo, 
-        nuevoEmpleado.telefono, contraseñaHasheada, nuevoEmpleado.rol, nuevoEmpleado.visibilidad, nuevoEmpleado.DNI]
+        nuevoEmpleado.telefono, contraseñaHasheada, nuevoEmpleado.rol, nuevoEmpleado.visibilidad, nuevoEmpleado.dni]
     );
 
     if (result.rowCount === 1) {
@@ -146,7 +146,7 @@ export const eliminarEmpleado = async (req: Request, res: Response): Promise<voi
       const { id } = req.params;
   
       if (!id) {
-        res.status(400).json({ error: 'DNI requerido' });
+        res.status(400).json({ error: 'dni requerido' });
         return;
       }
   
@@ -174,7 +174,7 @@ export const eliminarEmpleado = async (req: Request, res: Response): Promise<voi
   
       const resultado = await pool.query(
         `UPDATE empleados SET visibilidad = false WHERE dni = $1 RETURNING *;`,
-        [empleado.DNI]
+        [empleado.dni]
       );
   
       res.status(200).json({
@@ -192,7 +192,7 @@ try {
       const { id } = req.params;
   
       if (!id) {
-        res.status(400).json({ error: 'DNI requerido' });
+        res.status(400).json({ error: 'dni requerido' });
         return;
       }
   
@@ -220,7 +220,7 @@ try {
   
       const resultado = await pool.query(
         `UPDATE empleados SET visibilidad = true WHERE dni = $1 RETURNING *;`,
-        [empleado.DNI]
+        [empleado.dni]
       );
   
       res.status(200).json({
@@ -259,12 +259,12 @@ export const getEmpleadoPorTelefono = async (req:Request, res: Response): Promis
   }
 }
 
-export const getEmpleadoPorDNI = async (req:Request, res: Response): Promise<void>=> {
+export const getEmpleadoPordni = async (req:Request, res: Response): Promise<void>=> {
   try{
     const {id} = req.params;
 
     if (!id) {
-      res.status(400).json({ error: 'DNI requerido' });
+      res.status(400).json({ error: 'dni requerido' });
       return;
     }
 
@@ -279,7 +279,7 @@ export const getEmpleadoPorDNI = async (req:Request, res: Response): Promise<voi
 
     res.status(200).json({mensaje:"Empleado obtenido correctamente", empleado:actual})
   }catch(error: any){
-    console.error('Error al obtener el empleado por DNI', error)
+    console.error('Error al obtener el empleado por dni', error)
     res.status(400).json({error: error.message});
   }
 }

@@ -1,6 +1,6 @@
 export class Empleado {
   constructor(
-    public  DNI: number,
+    public  dni: number,
     public   username: string,
     public nombre_completo: string,
     public correo: string,
