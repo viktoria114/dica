@@ -11,6 +11,7 @@ export class Pedido {
         public fk_cliente: number | null,
         public ubicacion: string,
         public observacion: string,
+        public visibilidad: boolean = true,
     ) {
         // Hora por defecto
         this.hora = hora ?? Pedido.obtenerHoraActual();
@@ -46,6 +47,9 @@ export class Pedido {
         // Validación de observación
         if (observacion && observacion.length > 500) {
             throw new Error("La observación no puede superar los 500 caracteres.");
+        }
+        if (typeof visibilidad !== "boolean") {
+            throw new Error("La visibilidad debe ser un valor booleano.");
         }
     }
 

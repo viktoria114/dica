@@ -1,10 +1,10 @@
 import { Router } from "express"
-import {crearPedido, actualizarPedido} from "../controllers/pedidoController"
+import {crearPedido, actualizarPedido, getListaPedidos} from "../controllers/pedidoController"
 const router = Router()
 
 router.post('/', crearPedido)
 router.put('/:id', actualizarPedido)
-//router.get('/', getListaPedido)
+router.get('/', getListaPedidos)
 //router.get('/invisibles', getListaCompletaPedido)
 //router.delete('/:id', eliminarPedido)
 //router.post('/restaurar/:id', restaurarPedido)

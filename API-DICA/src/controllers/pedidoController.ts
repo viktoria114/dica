@@ -20,12 +20,13 @@ export const crearPedido = async (req: Request, res: Response) => {
       fk_cliente,
       ubicacion,
       observacion,
+      true,
     );
 
     // Insertar el pedido
     const pedidoQuery = `
-            INSERT INTO pedidos (fecha, hora, estado, dni_empleado, id_cliente, ubicacion, observaciones)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO pedidos (fecha, hora, estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id;
         `;
     const { rows: pedidoRows } = await client.query(pedidoQuery, [
@@ -36,6 +37,7 @@ export const crearPedido = async (req: Request, res: Response) => {
       pedido.fk_cliente,
       pedido.ubicacion,
       pedido.observacion,
+      pedido.visibilidad
     ]);
 
     const pedidoId = pedidoRows[0].id;
@@ -97,6 +99,7 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       pedido.fk_cliente,
       pedido.ubicacion,
       pedido.observacion,
+
       id
         ]);
         if (rows.length === 0) {
@@ -107,5 +110,16 @@ export const actualizarPedido = async (req: Request, res: Response) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Error al actualizar el Pedido" });
+    }
+};
+
+export const getListaPedidos = async (_req: Request, res: Response) => {
+    try {
+        const query = `SELECT * FROM pedidos WHERE visibilidad = true ORDER BY id ASC;`;
+        const { rows } = await pool.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al obtener los Pedidos visible" });
     }
 };
