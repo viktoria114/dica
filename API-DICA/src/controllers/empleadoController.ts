@@ -74,6 +74,9 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
       empleado: empleadoCreado,
     });
   } catch (error: any) {
+    if (error.code === "23505") {
+      console.error("Error: DNI ya registrado");
+    }
     console.error('Error al crear empleado:', error);
     res.status(500).json({ error: 'Error al crear el empleado' });
   }
