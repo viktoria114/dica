@@ -10,7 +10,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
     const {
       DNI,
       username,
-      nombreCompleto,
+      nombre_completo,
       correo,
       telefono,
       password,
@@ -21,7 +21,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
     if (
       DNI === undefined ||
       !username ||
-      !nombreCompleto ||
+      !nombre_completo ||
       !correo ||
       !telefono ||
       !password ||
@@ -35,7 +35,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
     const nuevoEmpleado = new Empleado(
       DNI,
       username,
-      nombreCompleto,
+      nombre_completo,
       correo,
       telefono,
       password,
@@ -57,7 +57,7 @@ export const crearEmpleado = async (req: Request, res: Response): Promise<void> 
     const values = [
       nuevoEmpleado.DNI,
       nuevoEmpleado.username,
-      nuevoEmpleado.nombreCompleto,
+      nuevoEmpleado.nombre_completo,
       nuevoEmpleado.correo,
       nuevoEmpleado.telefono,
       contraseñaHasheada,
@@ -126,7 +126,7 @@ export const actualizarEmpleado = async (req: Request, res: Response): Promise<v
       `UPDATE empleados 
        SET username = $1, nombre_completo = $2, correo = $3, telefono = $4, password = $5, rol = $6, visibilidad = $7
        WHERE dni = $8`,
-      [nuevoEmpleado.username, nuevoEmpleado.nombreCompleto, nuevoEmpleado.correo, 
+      [nuevoEmpleado.username, nuevoEmpleado.nombre_completo, nuevoEmpleado.correo, 
         nuevoEmpleado.telefono, contraseñaHasheada, nuevoEmpleado.rol, nuevoEmpleado.visibilidad, nuevoEmpleado.DNI]
     );
 

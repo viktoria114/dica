@@ -2,7 +2,7 @@ export class Empleado {
   constructor(
     public  DNI: number,
     public   username: string,
-    public nombreCompleto: string,
+    public nombre_completo: string,
     public correo: string,
     public telefono: number,
     public password: string,
@@ -14,7 +14,7 @@ export class Empleado {
       throw new Error("Nombre de usuario no puede estar vacío");
     }
 
-    if (!nombreCompleto || nombreCompleto.trim() === "") {
+    if (!nombre_completo || nombre_completo.trim() === "") {
       throw new Error("Nombre completo no puede estar vacío");
     }
 
