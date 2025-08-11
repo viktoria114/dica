@@ -67,3 +67,45 @@ export const crearPedido = async (req: Request, res: Response) => {
     client.release();
   }
 };
+
+export const actualizarPedido = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { fk_empleado, fk_cliente, ubicacion, observacion, estado } = req.body;
+
+        const query = `
+            UPDATE pedidos
+            SET estado = $1, dni_empleado = $2, id_cliente = $3, ubicacion = $4, observaciones = $5
+            WHERE id = $6
+            RETURNING *;
+        `;
+
+        const pedido = new Pedido(
+      null,
+      null,
+      null,
+      estado,
+      fk_empleado,
+      fk_cliente,
+      ubicacion,
+      observacion,
+    );
+
+        const { rows } = await pool.query(query, [
+      pedido.estado,
+      pedido.fk_empleado,
+      pedido.fk_cliente,
+      pedido.ubicacion,
+      pedido.observacion,
+      id
+        ]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al actualizar el Pedido" });
+    }
+};
