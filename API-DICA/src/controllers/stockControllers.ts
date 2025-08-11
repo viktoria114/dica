@@ -86,7 +86,7 @@ export const CrearRegistroStock = async (req: Request, res: Response): Promise<v
     const { cantidad } = req.body;
 
     try {
-        const nuevoRegistro = new RegistroStock(null, cantidad, stockId, false);
+        const nuevoRegistro = new RegistroStock(null, cantidad, stockId, "disponible");
 
         var query = `
             INSERT INTO registro_stock (cantidad, fk_id_stock, fk_fecha, vencido)
