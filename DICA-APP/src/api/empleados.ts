@@ -3,7 +3,6 @@ import type { Empleado } from "../types";
 const API_URL = import.meta.env.VITE_API_URL;
 const EMPLEADOS_URL = import.meta.env.VITE_EMPLEADOS;
 
-
 const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem("token");
   return {
@@ -14,6 +13,7 @@ const getAuthHeaders = (): HeadersInit => {
 
 // GET empleados
 export const fetchEmpleados = async (): Promise<Empleado[]> => {
+  // 📌 FUTURO: migrar este fetch a Axios (ejemplo: axios.get(`${API_URL}${EMPLEADOS_URL}`, { headers: getAuthHeaders() }))
   const res = await fetch(`${API_URL}${EMPLEADOS_URL}`, {
     method: "GET",
     headers: getAuthHeaders(),
@@ -29,6 +29,7 @@ export const fetchEmpleados = async (): Promise<Empleado[]> => {
 
 // PUT empleado
 export const fetchActualizarEmpleado = async (empleado: Empleado) => {
+  // 📌 FUTURO: cambiar a axios.put(...)
   const res = await fetch(`${API_URL}${EMPLEADOS_URL}/${empleado.dni}`, {
     method: "PUT",
     headers: getAuthHeaders(),
@@ -40,11 +41,12 @@ export const fetchActualizarEmpleado = async (empleado: Empleado) => {
     throw new Error(data.message || "Error al actualizar el empleado");
   }
 
-  return await res.json(); // { message: "Registro actualizado" }
+  return await res.json();
 };
 
 // DELETE empleado
 export const fetchBorrarEmpleado = async (dni: string) => {
+  // 📌 FUTURO: cambiar a axios.delete(...)
   const res = await fetch(`${API_URL}${EMPLEADOS_URL}/${dni}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
@@ -55,5 +57,5 @@ export const fetchBorrarEmpleado = async (dni: string) => {
     throw new Error(data.message || "Error al borrar el empleado");
   }
 
-  return await res.json(); // { message: "Empleado eliminado" }
+  return await res.json();
 };

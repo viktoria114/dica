@@ -6,6 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import type { Empleado } from "../../types";
 import EmpleadoForm from "./FormEmpleado";
 import { useBorrarEmpleado } from "../../hooks/useBorrarEmpleado";
+import { useGetEmpleados } from "../../hooks/useGetEmpleados";
 
 const style = {
   position: "absolute" as const,
@@ -34,6 +35,8 @@ export const ModalDetalles: React.FC<ModalDetallesProps> = ({
 }) => {
   const [isEditMode, setIsEditMode] = useState(false);
 
+  const { refetchEmpleados } = useGetEmpleados();
+
   const handleEditar = () => {
     setIsEditMode(true);
   };
@@ -43,7 +46,7 @@ export const ModalDetalles: React.FC<ModalDetallesProps> = ({
   };
 
   const { borrarEmpleado, isDeleting } = useBorrarEmpleado(() => {
-    //refetchEmpleados?.();
+    refetchEmpleados?.();
     handleClose();
   });
 
@@ -67,7 +70,7 @@ export const ModalDetalles: React.FC<ModalDetallesProps> = ({
                 modo="editar"
                 initialValues={empleado}
                 onSuccess={() => {
-                  // refetchEmpleados?.();
+                  refetchEmpleados?.();
                   setIsEditMode(false);
                 }}
                 onCancel={handleCancelarEdicion}
@@ -79,7 +82,7 @@ export const ModalDetalles: React.FC<ModalDetallesProps> = ({
                 </Typography>
                 <Typography variant="h6">● DNI: {empleado.dni}</Typography>
                 <Typography variant="h6">
-                  ● Username: {empleado.username}
+                  ● Usuario: {empleado.username}
                 </Typography>
                 <Typography variant="h6">
                   ● Correo: {empleado.correo || "-"}

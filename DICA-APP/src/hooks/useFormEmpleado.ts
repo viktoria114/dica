@@ -24,7 +24,7 @@ export const useEmpleadoForm = (
 
     // Validaciones obligatorias
     if (!editValues.username.trim()) {
-      nuevosErrores.username = "El username es obligatorio";
+      nuevosErrores.username = "El usuario es obligatorio";
     }
 
     if (!editValues.nombre_completo.trim()) {
