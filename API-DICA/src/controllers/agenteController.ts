@@ -1,307 +1,381 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import { pool } from '../config/db';
-import { Cliente } from '../models/cliente';
-import { error } from 'console';
+// Ajusta o habilita las importaciones reales según tu proyecto (pool, fetch, etc.).
+// import pool from './db';
 
-export const gestionarVerificacion = async (req: Request, res: Response): Promise<Response> => {
-  try {
-    const query = req.query as {
-      'hub.mode': string;
-      'hub.verify_token': string;
-      'hub.challenge': string;
-    };
+// ---- Configurables ----
+const BUFFER_WINDOW_MS = parseInt(process.env.BUFFER_WINDOW_MS || '5000', 10);
+const MAX_WORDS = 50;
+const MAX_CHARS = Math.ceil(4.4 * MAX_WORDS);
 
-    const mode = query['hub.mode'];
-    const token = query['hub.verify_token'];
-    const challenge = query['hub.challenge'];
+// Mapa para la cola de mensajes de cada usuario.
+const messageQueues: Map<string, string[]> = new Map();
 
-    if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-      return res.status(200).send(challenge);
-    } else {
-      return res.status(403).send('Token inválido');
-    }
-  } catch (error) {
-    console.error('Error en verificación del webhook:', error);
-    return res.status(500).send('Error interno del servidor');
-  }
-};
+// Mapa para guardar la referencia del temporizador de cada usuario.
+const userTimers: Map<string, NodeJS.Timeout> = new Map();
 
-export const gestionarMensajes = async (req: Request, res: Response): Promise<Response> => {
-  try {
-    const body = req.body;
+/**
+ * Agrega un mensaje a la cola y reinicia el temporizador de procesamiento.
+ * Si el temporizador se completa, todos los mensajes agrupados para ese usuario son procesados.
+ * @param numero El número de teléfono del cliente.
+ * @param texto El mensaje recibido.
+ */
+function reiniciarTemporizadorYEncolar(numero: string, texto: string): void {
+    // 1. Agregar el mensaje a la cola del usuario.
+    const cola = messageQueues.get(numero) || [];
+    cola.push(texto);
+    messageQueues.set(numero, cola);
+    console.log(`Mensaje encolado para ${numero}. Cola actual: ${cola.length} mensajes.`);
 
-    if (body?.object !== 'whatsapp_business_account') {
-      return res.sendStatus(404);
-    }
-
-    const entries = body.entry;
-    if (!Array.isArray(entries)) {
-      console.warn('Formato inesperado en entry');
-      return res.sendStatus(400);
+    // 2. Si ya existe un temporizador para este usuario, lo cancelamos.
+    // Esta es la clave para "reiniciar" el contador.
+    if (userTimers.has(numero)) {
+        clearTimeout(userTimers.get(numero)!);
+        console.log(`Temporizador reiniciado para ${numero}.`);
     }
 
-    for (const entry of entries) {
-      if (!Array.isArray(entry.changes)) continue;
+    // 3. Creamos un nuevo temporizador.
+    const nuevoTemporizador = setTimeout(async () => {
+        // --- El siguiente código se ejecuta SOLO cuando el temporizador finalmente se cumple ---
 
-      for (const change of entry.changes) {
-        const messages = change?.value?.messages;
-        const contacts = change?.value?.Contacts;
+        // Drenar la cola: obtenemos los mensajes y la vaciamos inmediatamente.
+        const mensajesParaProcesar = messageQueues.get(numero) || [];
+        messageQueues.delete(numero); 
+        userTimers.delete(numero); 
 
-        if (Array.isArray(contacts)) {
-          for (const contact of contacts) {
-              const profileName = contact.Profile?.Name;
-              console.log(profileName);
-          }
+        if (mensajesParaProcesar.length === 0) {
+            return; // No hacer nada si no hay mensajes (caso borde poco probable).
         }
 
-        if (!Array.isArray(messages)) continue;
+        const textoCombinado = mensajesParaProcesar.join(' ');
 
-        for (const message of messages) {
-          var numeroEntrada = message.from;
-          const mensajeTexto = message.text?.body;
+        try {
+            console.log(`Temporizador cumplido para ${numero}. Procesando lote: "${textoCombinado}"`);
+            await procesarMensaje(numero, textoCombinado);
+        } catch (err) {
+            console.error(`Error al procesar el lote de mensajes para ${numero}:`, err);
+        }
 
-          let mensajeADK: string | undefined;
-          let agenteAutor: string | undefined;
+    }, BUFFER_WINDOW_MS);
 
-          // Ajuste por número shiojano
-          if (numeroEntrada.startsWith("549380")) {
-            numeroEntrada = numeroEntrada.replace("549380", "5438015");
-          }
+    // 4. Guardamos la referencia al nuevo temporizador para poder cancelarlo si llega otro mensaje.
+    userTimers.set(numero, nuevoTemporizador);
+}
 
-          if (!numeroEntrada || !mensajeTexto) {
-            console.warn("Número o mensaje de texto no definido.");
-            throw error("numero de entrada o mensaje indefinido")
-          }
 
-          // Verificar si es un empleado
-          const consultaEmpleados = await pool.query(`SELECT * FROM empleados WHERE telefono = $1 AND visibilidad = TRUE`, [numeroEntrada]);
+async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Promise<void> {
+    try {
+        let mensajeADK: string | undefined;
+        let agenteAutor: string | undefined;
 
-          if (consultaEmpleados.rows.length > 0) {
+        // Verificar si es un empleado
+        const consultaEmpleados = await pool.query(`SELECT * FROM empleados WHERE telefono = $1 AND visibilidad = TRUE`, [numeroEntrada]);
+
+        if (consultaEmpleados.rows.length > 0) {
             const empleado = consultaEmpleados.rows[0];
 
             const respADK = await enviarMensajeAdk(mensajeTexto, empleado.telefono, empleado.agent_session_id, false);
 
-            mensajeADK = respADK.texto;
-            agenteAutor = respADK.autor;
-          } else {
+            mensajeADK = respADK?.texto;
+            agenteAutor = respADK?.autor;
+        } else {
             // Verificar si ya es cliente
             const existeC = await pool.query('SELECT * FROM Clientes WHERE telefono = $1;', [numeroEntrada]);
             let cliente = existeC.rows[0];
 
             if (!cliente) {
-              // Crear nuevo cliente
-              const sesionCliente = await crearSessionAdk(numeroEntrada, true);
+                // Crear nuevo cliente
+                const sesionCliente = await crearSessionAdk(numeroEntrada, true);
 
-              const crearCliente = await pool.query(
-                `INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING *;`,
-                ["sin asignar", numeroEntrada, "sin asignar", new Date(), true, sesionCliente]
-              );
+                const crearCliente = await pool.query(
+                    `INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    RETURNING *;`,
+                    ["sin asignar", numeroEntrada, "sin asignar", new Date(), true, sesionCliente]
+                );
 
-              if (crearCliente.rows.length === 0) {
-                throw new Error("Error al crear el cliente");
-              }
+                if (crearCliente.rows.length === 0) {
+                    throw new Error('Error al crear el cliente');
+                }
 
-              cliente = crearCliente.rows[0];
+                cliente = crearCliente.rows[0];
             }
 
             // Enviar mensaje como cliente (nuevo o existente)
             const respADK = await enviarMensajeAdk(mensajeTexto, numeroEntrada, cliente.agent_session_id, true);
 
-            mensajeADK = respADK.texto;
-            agenteAutor = respADK.autor;
-          }
-
-          // Enviar respuesta por WhatsApp
-          if (mensajeADK) {
-            console.log(`Mensaje recibido de ${numeroEntrada}: ${mensajeTexto}`);
-            await enviarMensajeWhatsApp(numeroEntrada, mensajeADK);
-          } else {
-            console.warn(`No se generó respuesta para el número ${numeroEntrada}`);
-          }
+            mensajeADK = respADK?.texto;
+            agenteAutor = respADK?.autor;
         }
-      }
-    }
 
-    return res.sendStatus(200);
-  } catch (error) {
-    console.error('Error en gestionar el mensaje al agente:', error);
-    return res.status(500).send('Error interno del servidor');
-  }
+        // Enviar respuesta por WhatsApp
+        if (mensajeADK) {
+            console.log(`Mensaje procesado para ${numeroEntrada}. Respuesta ADK: ${mensajeADK}`);
+            await enviarMensajeWhatsApp(numeroEntrada, mensajeADK);
+        } else {
+            console.warn(`No se generó respuesta ADK para el número ${numeroEntrada}`);
+        }
+    } catch (err) {
+        console.error('Error en procesarMensaje:', err);
+    }
+}
+// ----------------------- Endpoint principal -----------------------
+export const gestionarMensajes = async (req: Request, res: Response): Promise<Response> => {
+    try {
+        const body = req.body;
+        if (body?.object !== 'whatsapp_business_account') {
+            return res.sendStatus(404);
+        }
+
+        const entries = body.entry;
+        if (!Array.isArray(entries)) {
+            return res.sendStatus(400);
+        }
+
+        for (const entry of entries) {
+            if (!Array.isArray(entry.changes)) continue;
+
+            for (const change of entry.changes) {
+                const messages = change?.value?.messages;
+                if (!Array.isArray(messages)) continue;
+
+                for (const message of messages) {
+                    try {
+
+                        const ahora = Math.floor(Date.now() / 1000);
+                        const timestampStr = message.timestamp; // normalmente es string en segundos
+                        if (timestampStr) {
+                            const ts = parseInt(timestampStr, 10);
+                            if (!isNaN(ts) && (ahora - ts) > 60) {
+                                console.warn(`Mensaje descartado por retraso (${ahora - ts}s) de ${message.from}`);
+                                continue; // pasar al siguiente mensaje
+                            }
+                        }
+
+                        let numeroEntrada = message.from as string;
+                        const mensajeTexto = message.text?.body as string | undefined;
+
+                        // Ajuste por número shiojano
+                        if (numeroEntrada && numeroEntrada.startsWith('549380')) {
+                            numeroEntrada = numeroEntrada.replace('549380', '5438015');
+                        }
+
+                        if (!numeroEntrada || !mensajeTexto) {
+                            console.warn('Número o mensaje de texto no definido. Se omite.');
+                            continue;
+                        }
+                        const palabras = countWords(mensajeTexto);
+                        const caracteres = mensajeTexto.length;
+
+                        if (palabras > MAX_WORDS || caracteres > MAX_CHARS) {
+                            console.warn(`Mensaje individual descartado por exceder límites (${palabras} palabras, ${caracteres} caracteres) de ${numeroEntrada}`);
+                            // Notificar al usuario que su mensaje fue descartado por longitud
+                            try {
+                                await enviarMensajeWhatsApp(numeroEntrada, 'Su mensaje excede el límite de 50 palabras (≈220 caracteres) y no fue procesado. Por favor envíe un texto más corto.');
+                            } catch (notifyErr) {
+                                console.error('Error al notificar al usuario sobre límite de longitud:', notifyErr);
+                            }
+                            continue;
+                        }
+
+                        reiniciarTemporizadorYEncolar(numeroEntrada, mensajeTexto);
+                    } catch (innerErr) {
+                        console.error('Error interno procesando un mensaje:', innerErr);
+                    }
+                }
+            }
+        }
+
+        return res.sendStatus(200);
+    } catch (error) {
+        console.error('Error en gestionar el mensaje al agente:', error);
+        return res.status(500).send('Error interno del servidor');
+    }
+};
+
+export const gestionarVerificacion = async (req: Request, res: Response): Promise<Response> => {
+    try {
+        const query = req.query as {
+            'hub.mode': string;
+            'hub.verify_token': string;
+            'hub.challenge': string;
+        };
+
+        const mode = query['hub.mode'];
+        const token = query['hub.verify_token'];
+        const challenge = query['hub.challenge'];
+
+        if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
+            return res.status(200).send(challenge);
+        } else {
+            return res.status(403).send('Token inválido');
+        }
+    } catch (error) {
+        console.error('Error en verificación del webhook:', error);
+        return res.status(500).send('Error interno del servidor');
+    }
 };
 
 export const enviarMensajeWhatsApp = async (to: string, mensaje: string): Promise<void> => {
-  const url = `https://graph.facebook.com/v22.0/${process.env.PHONE_NUMBER_ID}/messages`;
-  const payload = {
-      messaging_product: 'whatsapp',
-      to: to,
-      type: 'text',
-      text: {
-        body: mensaje
-      }
+    const url = `https://graph.facebook.com/v22.0/${process.env.PHONE_NUMBER_ID}/messages`;
+    const payload = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'text',
+        text: {
+            body: mensaje,
+        },
     };
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error al enviar el mensaje (HTTP ${response.status}):`, errorText);
-      } else {
-        console.log(`Mensaje: ${mensaje}. Enviado a ${to}`);
-      }
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error al enviar el mensaje (HTTP ${response.status}):`, errorText);
+        }
     } catch (err) {
-      console.error('Error de red al intentar enviar el mensaje:', err);
+        console.error('Error de red al intentar enviar el mensaje:', err);
     }
-  }
+};
 
-export const crearSessionAdk = async (
-    telefono: string,
-    esCliente: boolean
-  ): Promise<string | undefined> => {
-
+export const crearSessionAdk = async (telefono: string, esCliente: boolean): Promise<string | undefined> => {
     const sessionID: string = crypto.randomUUID();
+    const statePayload = { phone_number: `${telefono}` };
+    let url: string;
 
-    const statePayload = {"phone_number":`${telefono}`}
-    var url
-
-    if (esCliente){
-      url = `http://localhost:8000/apps/agente_clientes/users/${telefono}/sessions/${sessionID}`;
-    }else{
-      url = `http://localhost:8000/apps/agente_empleados/users/${telefono}/sessions/${sessionID}`;
+    if (esCliente) {
+        url = `http://localhost:8000/apps/agente_clientes/users/${telefono}/sessions/${sessionID}`;
+    } else {
+        url = `http://localhost:8000/apps/agente_empleados/users/${telefono}/sessions/${sessionID}`;
     }
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(statePayload)
-      });
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(statePayload),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error al crear la sesión en ADK (HTTP ${response.status}):`, errorText);
-        return undefined;
-      }
-
-      else{
-        var agregarSession
-
-        if (esCliente){
-          agregarSession = await pool.query(
-          'UPDATE clientes SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]
-          )
-        }
-        else{
-          agregarSession = await pool.query(
-          'UPDATE empleados SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]
-          )
-        }
-
-        if (agregarSession && agregarSession.rowCount && agregarSession.rowCount > 0) {
-          console.log("agent_session_id updated successfully");
-          return sessionID
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error al crear la sesión en ADK (HTTP ${response.status}):`, errorText);
+            return undefined;
         } else {
-          console.log("sessionID:", sessionID)
-          console.log("para el telefono: ", telefono)
-          throw error("error al actualizar la agent_session_id en la base de datos")
-        }
-      }
+            let agregarSession;
 
+            if (esCliente) {
+                agregarSession = await pool.query('UPDATE clientes SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]);
+            } else {
+                agregarSession = await pool.query('UPDATE empleados SET agent_session_id = $1 WHERE telefono = $2;', [sessionID, telefono]);
+            }
+
+            if (agregarSession && agregarSession.rowCount && agregarSession.rowCount > 0) {
+                console.log('agent_session_id updated successfully');
+                return sessionID;
+            } else {
+                console.log('sessionID:', sessionID);
+                console.log('para el telefono: ', telefono);
+                throw new Error('error al actualizar la agent_session_id en la base de datos');
+            }
+        }
     } catch (err) {
-      console.error('Error de red al intentar crear la sesión:', err);
-      return undefined;
+        console.error('Error de red al intentar crear la sesión:', err);
+        return undefined;
     }
 };
 
 export const enviarMensajeAdk = async (
-  mensaje: string,
-  telefono: string,
-  agentSessionID: string,
-  esCliente: boolean,
-  intento: number = 1
+    mensaje: string,
+    telefono: string,
+    agentSessionID: string,
+    esCliente: boolean,
+    intento: number = 1
 ): Promise<any> => {
+    let appName: string;
 
-  var appName
-
-  if (esCliente){
-    appName = "agente_clientes"
-  }
-  else{
-    appName = "agente_empleados"
-  }
-
-  const messagePayload = {
-    appName: appName,
-    userId: `${telefono}`,
-    sessionId: `${agentSessionID}`,
-    newMessage: {
-      role: "user",
-      parts: [{
-        text: `${mensaje}`
-      }]
-    }
-  };
-
-  const url = "http://localhost:8000/run";
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(messagePayload)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      try {
-        const errorJson = JSON.parse(errorText);
-
-        if (errorJson.detail === "Session not found" && intento < 2) {
-          const nuevaSesion = await crearSessionAdk(telefono, esCliente);
-          if (!nuevaSesion){
-            throw error("faltas campos obligatorios")
-          }
-          return await enviarMensajeAdk(mensaje, telefono, nuevaSesion, esCliente, intento + 1);
-        }
-
-        console.error(`Error al mandar un mensaje a ADK (HTTP ${response.status}):`, errorText);
-      } catch (parseError) {
-        console.error('Error al parsear la respuesta de error:', parseError, 'Respuesta:', errorText);
-      }
-      return undefined;
+    if (esCliente) {
+        appName = 'agente_clientes';
+    } else {
+        appName = 'agente_empleados';
     }
 
-    type ResponseElement = {
-      content: {
-      parts: { text: string }[];
-      role: string;
-      };
-      author: string;
+    const messagePayload = {
+        appName: appName,
+        userId: `${telefono}`,
+        sessionId: `${agentSessionID}`,
+        newMessage: {
+            role: 'user',
+            parts: [
+                {
+                    text: `${mensaje}`,
+                },
+            ],
+        },
     };
 
-    const result: ResponseElement[] = await response.json();
+    const url = 'http://localhost:8000/run';
 
-    const ultimoElemento = result[result.length - 1];
-    const texto = ultimoElemento.content.parts[0]?.text ?? '';
-    const autor = ultimoElemento.author;
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(messagePayload),
+        });
 
-    return {texto, autor};
+        if (!response.ok) {
+            const errorText = await response.text();
+            try {
+                const errorJson = JSON.parse(errorText);
 
-  } catch (err) {
-    console.error('Error de red al intentar enviar el mensaje:', err);
-    return undefined;
-  }
+                if (errorJson.detail === 'Session not found' && intento < 2) {
+                    const nuevaSesion = await crearSessionAdk(telefono, esCliente);
+                    if (!nuevaSesion) {
+                        throw new Error('faltan campos obligatorios');
+                    }
+                    return await enviarMensajeAdk(mensaje, telefono, nuevaSesion, esCliente, intento + 1);
+                }
+
+                console.error(`Error al mandar un mensaje a ADK (HTTP ${response.status}):`, errorText);
+            } catch (parseError) {
+                console.error('Error al parsear la respuesta de error:', parseError, 'Respuesta:', errorText);
+            }
+            return undefined;
+        }
+
+        type ResponseElement = {
+            content: {
+                parts: { text: string }[];
+                role: string;
+            };
+            author: string;
+        };
+
+        const result: ResponseElement[] = await response.json();
+
+        const ultimoElemento = result[result.length - 1];
+        const texto = ultimoElemento.content.parts[0]?.text ?? '';
+        const autor = ultimoElemento.author;
+
+        return { texto, autor };
+    } catch (err) {
+        console.error('Error de red al intentar enviar el mensaje:', err);
+        return undefined;
+    }
 };
+
+function countWords(text: string): number {
+    return text.trim().length === 0 ? 0 : text.trim().split(/\s+/).length;
+}

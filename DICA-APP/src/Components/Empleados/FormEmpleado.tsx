@@ -98,7 +98,6 @@ const EmpleadoForm = ({
               helperText={formErrors.rol}
             >
               <MenuItem value="admin">admin</MenuItem>
-              <MenuItem value="agente">agente</MenuItem>
               <MenuItem value="cajero">cajero</MenuItem>
               <MenuItem value="repartidor">repartidor</MenuItem>
             </TextField>

@@ -73,7 +73,7 @@ const Login = () => {
           left: 0,
           width: "100vw",
           height: "100vh",
-          bgcolor: "#495E57",
+          bgcolor: "primary.main",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -163,7 +163,7 @@ const Login = () => {
               alignItems: "center",
             }}
           >
-            {error || "."}
+            {error || ""}
           </Typography>
 
           <Button

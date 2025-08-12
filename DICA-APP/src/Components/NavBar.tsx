@@ -46,7 +46,7 @@ export const NavBar = () => {
     <>
       <ThemeProvider theme={theme}>
         {/* Encabezado fijo */}
-        <Box sx={{ backgroundColor: "#465b56", textAlign: "center", py: 4 }}>
+        <Box sx={{ backgroundColor: "primary.main", textAlign: "center", py: 4 }}>
           <Typography variant="h2" sx={{ color: "white", fontWeight: "800" }}>
             DICA
           </Typography>
@@ -56,7 +56,7 @@ export const NavBar = () => {
         <AppBar
           position="sticky"
           sx={{
-            backgroundColor: "#465b56",
+            backgroundColor: "primary.main",
             borderTop: "4px solid #f0f8ff",
           }}
         >
