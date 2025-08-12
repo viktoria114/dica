@@ -20,12 +20,13 @@ export const crearPedido = async (req: Request, res: Response) => {
       fk_cliente,
       ubicacion,
       observacion,
+      true,
     );
 
     // Insertar el pedido
     const pedidoQuery = `
-            INSERT INTO pedidos (fecha, hora, estado, dni_empleado, id_cliente, ubicacion, observaciones)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO pedidos (fecha, hora, estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id;
         `;
     const { rows: pedidoRows } = await client.query(pedidoQuery, [
@@ -36,6 +37,7 @@ export const crearPedido = async (req: Request, res: Response) => {
       pedido.fk_cliente,
       pedido.ubicacion,
       pedido.observacion,
+      pedido.visibilidad
     ]);
 
     const pedidoId = pedidoRows[0].id;
@@ -66,4 +68,116 @@ export const crearPedido = async (req: Request, res: Response) => {
   } finally {
     client.release();
   }
+};
+
+export const actualizarPedido = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { fk_empleado, fk_cliente, ubicacion, observacion, estado } = req.body;
+
+        const query = `
+            UPDATE pedidos
+            SET estado = $1, dni_empleado = $2, id_cliente = $3, ubicacion = $4, observaciones = $5
+            WHERE id = $6
+            RETURNING *;
+        `;
+
+        const pedido = new Pedido(
+      null,
+      null,
+      null,
+      estado,
+      fk_empleado,
+      fk_cliente,
+      ubicacion,
+      observacion,
+    );
+
+        const { rows } = await pool.query(query, [
+      pedido.estado,
+      pedido.fk_empleado,
+      pedido.fk_cliente,
+      pedido.ubicacion,
+      pedido.observacion,
+
+      id
+        ]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al actualizar el Pedido" });
+    }
+};
+
+export const getListaPedidos = async (_req: Request, res: Response) => {
+    try {
+        const query = `SELECT * FROM pedidos WHERE visibilidad = true ORDER BY id ASC;`;
+        const { rows } = await pool.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al obtener los Pedidos visible" });
+    }
+};
+
+export const eliminarPedido = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const query = `
+            UPDATE pedidos
+            SET visibilidad = false
+            WHERE id = $1
+            RETURNING *;
+        `;
+
+        const { rows } = await pool.query(query, [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        res.json({ message: "Pedido ocultado correctamente", pedido: rows[0] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al ocultar el Pedido" });
+    }
+};
+
+export const getListaCompletaPedidos = async (_req: Request, res: Response) => {
+    try {
+        const query = `SELECT * FROM pedidos ORDER BY id ASC;`;
+        const { rows } = await pool.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al obtener los pedidos" });
+    }
+};
+
+
+export const restaurarPedido = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const query = `
+            UPDATE pedidos
+            SET visibilidad = true
+            WHERE id = $1
+            RETURNING *;
+        `;
+
+        const { rows } = await pool.query(query, [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        res.json({ message: "Pedido restaurado correctamente", menu: rows[0] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al restaurar el Pedido" });
+    }
 };
