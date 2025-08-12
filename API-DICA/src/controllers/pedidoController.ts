@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PoolClient } from 'pg';
 import { pool } from '../config/db';
 import { Pedido } from '../models/pedido';
+import { MessagePort } from 'worker_threads';
 
 export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
@@ -64,7 +65,7 @@ export const crearPedido = async (req: Request, res: Response) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ error: 'Error al crear el pedido' });
+    res.status(500).json({ message: 'Error al crear el pedido' });
   } finally {
     client.release();
   }
@@ -103,13 +104,13 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       id
         ]);
         if (rows.length === 0) {
-            return res.status(404).json({ error: "Pedido no encontrado" });
+            return res.status(404).json({ message: "Pedido no encontrado" });
         }
 
         res.json(rows[0]);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al actualizar el Pedido" });
+        res.status(500).json({ message: "Error al actualizar el Pedido" });
     }
 };
 
@@ -120,7 +121,7 @@ export const getListaPedidos = async (_req: Request, res: Response) => {
         res.json(rows);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al obtener los Pedidos visible" });
+        res.status(500).json({ message: "Error al obtener los Pedidos visible" });
     }
 };
 
@@ -137,13 +138,13 @@ export const eliminarPedido = async (req: Request, res: Response) => {
 
         const { rows } = await pool.query(query, [id]);
         if (rows.length === 0) {
-            return res.status(404).json({ error: "Pedido no encontrado" });
+            return res.status(404).json({ message: "Pedido no encontrado" });
         }
 
         res.json({ message: "Pedido ocultado correctamente", pedido: rows[0] });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al ocultar el Pedido" });
+        res.status(500).json({ message: "Error al ocultar el Pedido" });
     }
 };
 
@@ -154,7 +155,7 @@ export const getListaCompletaPedidos = async (_req: Request, res: Response) => {
         res.json(rows);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al obtener los pedidos" });
+        res.status(500).json({ message: "Error al obtener los pedidos" });
     }
 };
 
@@ -172,12 +173,12 @@ export const restaurarPedido = async (req: Request, res: Response) => {
 
         const { rows } = await pool.query(query, [id]);
         if (rows.length === 0) {
-            return res.status(404).json({ error: "Pedido no encontrado" });
+            return res.status(404).json({ message: "Pedido no encontrado" });
         }
 
         res.json({ message: "Pedido restaurado correctamente", menu: rows[0] });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al restaurar el Pedido" });
+        res.status(500).json({ message: "Error al restaurar el Pedido" });
     }
 };
