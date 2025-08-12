@@ -123,3 +123,26 @@ export const getListaPedidos = async (_req: Request, res: Response) => {
         res.status(500).json({ error: "Error al obtener los Pedidos visible" });
     }
 };
+
+export const eliminarPedido = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const query = `
+            UPDATE pedidos
+            SET visibilidad = false
+            WHERE id = $1
+            RETURNING *;
+        `;
+
+        const { rows } = await pool.query(query, [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        res.json({ message: "Pedido ocultado correctamente", pedido: rows[0] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al ocultar el Pedido" });
+    }
+};
