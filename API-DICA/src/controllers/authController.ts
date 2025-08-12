@@ -14,7 +14,7 @@ interface Usuario {
 // Función para buscar usuario por username
 const findByUsername = async (username: string): Promise<Usuario | null> => {
   const result = await pool.query<Usuario>(
-    "SELECT dni, username, password, rol FROM empleados WHERE username = $1",
+    "SELECT dni, username, password, rol FROM empleados WHERE username = $1 OR correo = $1",
     [username]
   );
 
@@ -31,14 +31,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const usuario = await findByUsername(username);
 
     if (!usuario) {
-      res.status(401).json({ message: "Usuario y/o password son incorrectos" });
+      res.status(401).json({ message: "Usuario y/o contraseña son incorrectos" });
       return;
     }
 
     const isValid = await bcrypt.compare(password, usuario.password);
 
     if (!isValid) {
-      res.status(401).json({ message: "Usuario y/o password son incorrectos" });
+      res.status(401).json({ message: "Usuario y/o contraseña son incorrectos" });
       return;
     }
 

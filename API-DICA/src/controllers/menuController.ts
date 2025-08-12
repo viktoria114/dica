@@ -16,7 +16,7 @@ export const crearMenu = async (req: Request, res: Response) => {
          */
 
         if (!Array.isArray(stocks) || stocks.length === 0) {
-            return res.status(400).json({ error: "Se requiere al menos un stock asociado" });
+            return res.status(400).json({ message: "Se requiere al menos un stock asociado" });
         }
 
         await client.query("BEGIN");
@@ -58,7 +58,7 @@ export const crearMenu = async (req: Request, res: Response) => {
     } catch (error) {
         await client.query("ROLLBACK");
         console.error(error);
-        res.status(500).json({ error: "Error al crear el menú con stocks" });
+        res.status(500).json({ message: "Error al crear el menú con stocks" });
     } finally {
         client.release();
     }
@@ -86,13 +86,13 @@ export const actualizarMenu = async (req: Request, res: Response) => {
             id
         ]);
         if (rows.length === 0) {
-            return res.status(404).json({ error: "Menú no encontrado" });
+            return res.status(404).json({ message: "Menú no encontrado" });
         }
 
         res.json(rows[0]);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al actualizar el menú" });
+        res.status(500).json({ message: "Error al actualizar el menú" });
     }
 };
 
@@ -103,7 +103,7 @@ export const getListaMenu = async (_req: Request, res: Response) => {
         res.json(rows);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al obtener el menú visible" });
+        res.status(500).json({ message: "Error al obtener el menú visible" });
     }
 };
 
@@ -114,7 +114,7 @@ export const getListaCompletaMenu = async (_req: Request, res: Response) => {
         res.json(rows);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al obtener el menú completo" });
+        res.status(500).json({ message: "Error al obtener el menú completo" });
     }
 };
 
@@ -131,13 +131,13 @@ export const eliminarMenu = async (req: Request, res: Response) => {
 
         const { rows } = await pool.query(query, [id]);
         if (rows.length === 0) {
-            return res.status(404).json({ error: "Menú no encontrado" });
+            return res.status(404).json({ message: "Menú no encontrado" });
         }
 
         res.json({ message: "Menú ocultado correctamente", menu: rows[0] });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al ocultar el menú" });
+        res.status(500).json({ message: "Error al ocultar el menú" });
     }
 };
 
@@ -154,12 +154,12 @@ export const restaurarMenu = async (req: Request, res: Response) => {
 
         const { rows } = await pool.query(query, [id]);
         if (rows.length === 0) {
-            return res.status(404).json({ error: "Menú no encontrado" });
+            return res.status(404).json({ message: "Menú no encontrado" });
         }
 
         res.json({ message: "Menú restaurado correctamente", menu: rows[0] });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Error al restaurar el menú" });
+        res.status(500).json({ message: "Error al restaurar el menú" });
     }
 };
