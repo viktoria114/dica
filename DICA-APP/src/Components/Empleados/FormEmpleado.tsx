@@ -7,6 +7,7 @@ import {
   Button,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
 import { useEmpleadoForm } from "../../hooks/useFormEmpleado";
 import type { Empleado } from "../../types";
 
@@ -26,6 +27,13 @@ const EmpleadoForm = ({
   const { formErrors, editValues, handleChange, handleGuardar, isSaving } =
     useEmpleadoForm(initialValues, onSuccess, modo);
 
+  const camposTexto = [
+    { name: "nombre_completo", label: "Nombre Completo" },
+    { name: "username", label: "Usuario" },
+    { name: "correo", label: "Correo" },
+    { name: "telefono", label: "Teléfono" },
+  ];
+
   return (
     <Box>
       <Grid container spacing={2} direction="column">
@@ -41,50 +49,51 @@ const EmpleadoForm = ({
 
         <Grid sx={{ ml: { sm: 0, xs: 7 } }}>
           <form onSubmit={handleGuardar}>
-            <TextField
-              fullWidth
-              label="Nombre Completo"
-              value={editValues.nombre_completo}
-              onChange={(e) => handleChange("nombre_completo", e.target.value)}
-              margin="dense"
-              focused
-              variant="standard"
-              error={!!formErrors.nombre_completo}
-              helperText={formErrors.nombre_completo}
-            />
-            <TextField
-              fullWidth
-              label="Username"
-              value={editValues.username}
-              onChange={(e) => handleChange("username", e.target.value)}
-              margin="dense"
-              focused
-              variant="standard"
-              error={!!formErrors.username}
-              helperText={formErrors.username}
-            />
-            <TextField
-              fullWidth
-              label="Correo"
-              value={editValues.correo || ""}
-              onChange={(e) => handleChange("correo", e.target.value)}
-              margin="dense"
-              focused
-              variant="standard"
-              error={!!formErrors.correo}
-              helperText={formErrors.correo}
-            />
-            <TextField
-              fullWidth
-              label="Teléfono"
-              value={editValues.telefono || ""}
-              onChange={(e) => handleChange("telefono", e.target.value)}
-              margin="dense"
-              focused
-              variant="standard"
-              error={!!formErrors.telefono}
-              helperText={formErrors.telefono}
-            />
+            {camposTexto.map(({ name, label }) => (
+              <TextField
+                key={name}
+                fullWidth
+                label={label}
+                value={editValues[name as keyof Empleado] || ""}
+                onChange={(e) => handleChange(name as keyof Empleado, e.target.value)}
+                margin="dense"
+                focused
+                variant="standard"
+                error={!!formErrors[name as keyof Empleado]}
+                helperText={formErrors[name as keyof Empleado]}
+              />
+            ))}
+
+            {/* Campos sólo en modo crear */}
+            {modo === "crear" && (
+              <>
+                <TextField
+                  fullWidth
+                  label="DNI"
+                  value={editValues.dni || ""}
+                  onChange={(e) => handleChange("dni", e.target.value)}
+                  margin="dense"
+                  focused
+                  variant="standard"
+                  error={!!formErrors.dni}
+                  helperText={formErrors.dni}
+                />
+
+                <TextField
+                  fullWidth
+                  label="Contraseña"
+                  type="password"
+                  value={editValues.password || ""}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                  margin="dense"
+                  focused
+                  variant="standard"
+                  error={!!formErrors.password}
+                  helperText={formErrors.password}
+                />
+              </>
+            )}
+
             <TextField
               select
               fullWidth
@@ -97,25 +106,20 @@ const EmpleadoForm = ({
               error={!!formErrors.rol}
               helperText={formErrors.rol}
             >
-              <MenuItem value="admin">admin</MenuItem>
-              <MenuItem value="cajero">cajero</MenuItem>
-              <MenuItem value="repartidor">repartidor</MenuItem>
+              {["admin", "cajero", "repartidor"].map((rol) => (
+                <MenuItem key={rol} value={rol}>
+                  {rol}
+                </MenuItem>
+              ))}
             </TextField>
 
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                mt: 4,
-                gap: 2,
-              }}
-            >
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
               <Button
                 type="submit"
                 variant="contained"
                 color="success"
                 startIcon={<SaveIcon />}
-                loading={isSaving}
+                loading={isSaving} 
                 sx={{ height: 50 }}
               >
                 {modo === "crear" ? "Crear" : "Guardar"}
@@ -125,6 +129,7 @@ const EmpleadoForm = ({
                   variant="outlined"
                   sx={{ height: 50 }}
                   onClick={onCancel}
+                  startIcon={<CloseIcon />}
                 >
                   Cancelar
                 </Button>

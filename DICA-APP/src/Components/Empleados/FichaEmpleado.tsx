@@ -2,15 +2,16 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import CardActionArea from "@mui/material/CardActionArea";
-import { ModalDetalles } from "./ModalEmpleado";
 import { useState } from "react";
 import type { Empleado } from "../../types";
+import { ModalEmpleado } from "./ModalEmpleado";
 
 interface FichaEmpleadoProps {
   empleado: Empleado;
+  modoPapelera?: boolean;
 }
 
-export const FichaEmpleado: React.FC<FichaEmpleadoProps> = ({ empleado }) => {
+export const FichaEmpleado: React.FC<FichaEmpleadoProps> = ({ empleado, modoPapelera }) => {
   const [open, setOpen] = useState(false);
 
   const handleOpen = () => setOpen(true);
@@ -47,10 +48,11 @@ export const FichaEmpleado: React.FC<FichaEmpleadoProps> = ({ empleado }) => {
         </CardActionArea>
       </Card>
 
-      <ModalDetalles
+      <ModalEmpleado
         open={open}
         handleClose={handleClose}
         empleado={empleado}
+        modoPapelera= {modoPapelera}
       />
     </>
   );

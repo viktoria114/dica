@@ -1,135 +1,130 @@
-import React, { useState } from "react";
-import { Box, Button, Grid, Modal, Typography } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { useState } from "react";
+import { Box, Button, Grid, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
-import type { Empleado } from "../../types";
-import EmpleadoForm from "./FormEmpleado";
+import { ModalBase } from "../common/ModalBase";
 import { useBorrarEmpleado } from "../../hooks/useBorrarEmpleado";
 import { useGetEmpleados } from "../../hooks/useGetEmpleados";
+import type { Empleado } from "../../types";
+import EmpleadoForm from "./FormEmpleado";
+import RestoreIcon from '@mui/icons-material/Restore';
 
-const style = {
-  position: "absolute" as const,
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: { sm: 400, xs: "100%" },
-  height: { xs: "100%", sm: "auto" },
-  bgcolor: "background.paper",
-  border: "2px solid #495E57",
-  p: 4,
-  boxShadow: 1,
-  borderRadius: 2,
-};
-
-interface ModalDetallesProps {
+interface ModalEmpleadoProps {
   open: boolean;
   handleClose: () => void;
   empleado: Empleado;
+   modoPapelera?: boolean;
 }
 
-export const ModalDetalles: React.FC<ModalDetallesProps> = ({
+
+
+export const ModalEmpleado = ({
   open,
   handleClose,
   empleado,
-}) => {
+  modoPapelera,
+}: ModalEmpleadoProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
-
   const { refetchEmpleados } = useGetEmpleados();
-
-  const handleEditar = () => {
-    setIsEditMode(true);
-  };
-
-  const handleCancelarEdicion = () => {
-    setIsEditMode(false);
-  };
-
   const { borrarEmpleado, isDeleting } = useBorrarEmpleado(() => {
     refetchEmpleados?.();
     handleClose();
   });
 
+const restaurarEmpleado= (dni: string) => {
+  console.log("ola", dni);
+  
+}
+
   return (
-    <Modal open={open} onClose={handleClose}>
-      <Box sx={style}>
-        <Grid container spacing={2} direction="column">
-          <Grid>
-            <Typography
-              variant="h4"
-              align="center"
-              sx={{ fontWeight: 600, mt: { xs: 5, sm: 0 } }}
-            >
-              {isEditMode ? "" : "Detalles del Empleado"}
-            </Typography>
-          </Grid>
-
-          <Grid sx={{ ml: { sm: 0, xs: 7 } }}>
-            {isEditMode ? (
-              <EmpleadoForm
-                modo="editar"
-                initialValues={empleado}
-                onSuccess={() => {
-                  refetchEmpleados?.();
-                  setIsEditMode(false);
-                }}
-                onCancel={handleCancelarEdicion}
-              />
-            ) : (
-              <>
-                <Typography variant="h6">
-                  ● Nombre Completo: {empleado.nombre_completo}
-                </Typography>
-                <Typography variant="h6">● DNI: {empleado.dni}</Typography>
-                <Typography variant="h6">
-                  ● Usuario: {empleado.username}
-                </Typography>
-                <Typography variant="h6">
-                  ● Correo: {empleado.correo || "-"}
-                </Typography>
-                <Typography variant="h6">
-                  ● Teléfono: {empleado.telefono || "-"}
-                </Typography>
-                <Typography variant="h6">● Rol: {empleado.rol}</Typography>
-              </>
-            )}
-          </Grid>
-        </Grid>
-
+    <ModalBase open={open} onClose={handleClose}>
+      <Grid container spacing={2} direction="column">
         {!isEditMode && (
-          <Box
-            sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}
-          >
-            <Button
-              variant="contained"
-              sx={{ bgcolor: "primary.main", height: 50 }}
-              onClick={handleEditar}
-              startIcon={<EditIcon />}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              sx={{ height: 50 }}
-              onClick={() => borrarEmpleado(empleado.dni)}
-              startIcon={<DeleteIcon />}
-              loading={isDeleting}
-            >
-              Borrar
-            </Button>
-
-            <Button
-              variant="outlined"
-              sx={{ height: 50 }}
-              onClick={handleClose}
-              startIcon={<CloseIcon />}
-            >
-              Cerrar
-            </Button>
-          </Box>
+          <Typography variant="h4" align="center" fontWeight={600}>
+            Detalles del Empleado
+          </Typography>
         )}
-      </Box>
-    </Modal>
+
+        <Box sx={{ ml: { sm: 0, xs: 2 } }}>
+          {isEditMode ? (
+            <EmpleadoForm
+              modo="editar"
+              initialValues={empleado}
+              onSuccess={() => {
+                refetchEmpleados?.();
+                setIsEditMode(false);
+              }}
+              onCancel={() => setIsEditMode(false)}
+            />
+          ) : (
+            <>
+              <Typography>● Nombre Completo: {empleado.nombre_completo}</Typography>
+              <Typography>● DNI: {empleado.dni}</Typography>
+              <Typography>● Usuario: {empleado.username}</Typography>
+              <Typography>● Correo: {empleado.correo || "-"}</Typography>
+              <Typography>● Teléfono: {empleado.telefono || "-"}</Typography>
+              <Typography>● Rol: {empleado.rol}</Typography>
+            </>
+          )}
+        </Box>
+      </Grid>
+
+     {!isEditMode && !modoPapelera && (
+  <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
+    <Button
+      sx={{ height: 50 }}
+      variant="contained"
+      onClick={() => setIsEditMode(true)}
+      startIcon={<EditIcon />}
+    >
+      Editar
+    </Button>
+    <Button
+      sx={{ height: 50 }}
+      variant="contained"
+      color="error"
+      onClick={() => borrarEmpleado(empleado.dni)}
+      startIcon={<DeleteIcon />}
+      loading={isDeleting}
+    >
+      Borrar
+    </Button>
+    <Button
+      sx={{ height: 50 }}
+      variant="outlined"
+      onClick={handleClose}
+      startIcon={<CloseIcon />}
+    >
+      Cerrar
+    </Button>
+  </Box>
+)}
+
+{/* Si está en modo papelera y no en edición */}
+{!isEditMode && modoPapelera && (
+  <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
+    <Button
+      sx={{ height: 50 }}
+      variant="contained"
+      color="success"
+      onClick={() => restaurarEmpleado(empleado.dni)}
+      startIcon={<RestoreIcon />}
+      //loading={isRestoring}
+    >
+      Restaurar
+    </Button>
+    <Button
+      sx={{ height: 50 }}
+      variant="outlined"
+      onClick={handleClose}
+      startIcon={<CloseIcon />}
+    >
+      Cerrar
+    </Button>
+  </Box>
+)}
+
+    </ModalBase>
   );
 };

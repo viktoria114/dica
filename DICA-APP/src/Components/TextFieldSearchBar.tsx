@@ -10,40 +10,49 @@ import {
   ListItemButton,
   ListItemText,
   Typography,
+  Button,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import AddIcon from '@mui/icons-material/Add';
+import AddIcon from "@mui/icons-material/Add";
 import theme from "../services/theme";
 
 interface TextFieldSearchBarProps<T> {
   list: T[];
   getLabel: (item: T) => string;
   onResults?: (results: T[]) => void;
+  onAdd?: () => void; 
+    onShowInvisibles?: () => void; 
+    disableAdd?: boolean; // 🔹 Nuevo
+  papeleraLabel?: string; // 🔹 Nuevo
 }
 
 function TextFieldSearchBarComponent<T>({
   list,
   getLabel,
   onResults,
+  onAdd, 
+   onShowInvisibles,
+   disableAdd,
+   papeleraLabel
 }: TextFieldSearchBarProps<T>): React.ReactElement {
   const [input, setInput] = useState("");
   const [filtered, setFiltered] = useState<T[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Filtrado dinámico mientras se escribe
   useEffect(() => {
-    if (input.trim() === "") {
-      setFiltered([]);
-      onResults?.([]);
-      return;
-    }
+  if (input.trim() === "") {
+    setFiltered([]);
+    onResults?.([]); // sin búsqueda => que el padre muestre baseList
+    return;
+  }
 
-    const coincidencias = list.filter((item) =>
-      getLabel(item).toLowerCase().includes(input.toLowerCase())
-    );
-    setFiltered(coincidencias);
-    onResults?.(coincidencias);
-  }, [input, list, getLabel, onResults]);
+  const coincidencias = list.filter((item) =>
+    getLabel(item).toLowerCase().includes(input.toLowerCase())
+  );
+  setFiltered(coincidencias);
+  onResults?.(coincidencias);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [input, list, getLabel]); // 👈 sacamos onResults para evitar re-disparos innecesarios
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -64,11 +73,11 @@ function TextFieldSearchBarComponent<T>({
           display: "flex",
           flexDirection: "column",
           gap: 1,
-          bgcolor: "primary.main",
+          bgcolor: "secondary.main",
           p: 1.5,
           borderRadius: 2,
           m: 2.5,
-          position: "relative", // para que la lista se posicione correctamente
+          position: "relative",
         }}
       >
         <form
@@ -89,12 +98,8 @@ function TextFieldSearchBarComponent<T>({
               borderRadius: 1,
             }}
           />
-          <IconButton  sx={{
-              ml: 2,
-              bgcolor: "background.paper",
-              "&:hover": { bgcolor: "grey.200" },
-            }}><AddIcon sx={{ color: "primary.main" }}/></IconButton>
-          
+
+          {/* Botón búsqueda */}
           <IconButton
             type="submit"
             sx={{
@@ -103,8 +108,42 @@ function TextFieldSearchBarComponent<T>({
               "&:hover": { bgcolor: "grey.200" },
             }}
           >
-            <SearchIcon sx={{ color: "primary.main" }} />
+            <SearchIcon sx={{ color: "secondary.main" }} />
           </IconButton>
+
+          {/* Botón + */}
+<IconButton
+  onClick={onAdd}
+  disabled={disableAdd}
+  sx={{
+    ml: 2,
+    bgcolor: "background.paper",
+    "&.Mui-disabled": {
+      bgcolor: "#969696ff", // Fondo gris
+    },
+    "&:hover": disableAdd ? {} : { bgcolor: "grey.200" }
+  }}
+>
+<AddIcon
+  sx={{
+    color: disableAdd ? "#e6e6e6ff" : "secondary.main"
+  }}
+/>
+
+          </IconButton>
+
+          <Button
+            sx={{
+              ml: 2,
+              gap: 1,
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "grey.200" },
+            }}
+             onClick={onShowInvisibles}
+
+          >
+            {papeleraLabel || "Papelera"} {/* 👈 Cambia según modo */}
+          </Button>
         </form>
 
         {/* Lista de sugerencias */}

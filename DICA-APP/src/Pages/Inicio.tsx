@@ -1,5 +1,4 @@
 import { ThemeProvider } from "@emotion/react";
-import { ListaEmpleados } from "../Components/Empleados/ListaEmpleados";
 import theme from "../services/theme";
 
 export const Inicio = () => {
@@ -14,7 +13,7 @@ export const Inicio = () => {
   }}
     */
       >
-        <ListaEmpleados></ListaEmpleados>
+     
         <h1>a</h1>
         <br></br>
         <br></br>
