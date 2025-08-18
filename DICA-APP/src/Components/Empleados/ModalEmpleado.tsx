@@ -9,6 +9,7 @@ import { useGetEmpleados } from "../../hooks/useGetEmpleados";
 import type { Empleado } from "../../types";
 import EmpleadoForm from "./FormEmpleado";
 import RestoreIcon from '@mui/icons-material/Restore';
+import { fetchRestaurarEmpleado } from "../../api/empleados";
 
 interface ModalEmpleadoProps {
   open: boolean;
@@ -32,10 +33,26 @@ export const ModalEmpleado = ({
     handleClose();
   });
 
-const restaurarEmpleado= (dni: string) => {
-  console.log("ola", dni);
-  
-}
+    const [isRestoring, setIsRestoring] = useState(false);
+
+const restaurarEmpleado = async (dni: string) => {
+  setIsRestoring(true)
+
+      const confirmar = window.confirm(
+      "¿Estás seguro de que deseas restaurar este empleado?"
+    );
+    if (!confirmar) return;
+
+  try {
+    const empleadoRestaurado = await fetchRestaurarEmpleado(dni);
+    console.log("Empleado restaurado:", empleadoRestaurado);
+  } catch (err) {
+    console.error("Error al restaurar:", err);
+  }
+    setIsRestoring(false)
+    handleClose()
+
+};
 
   return (
     <ModalBase open={open} onClose={handleClose}>
@@ -110,7 +127,7 @@ const restaurarEmpleado= (dni: string) => {
       color="success"
       onClick={() => restaurarEmpleado(empleado.dni)}
       startIcon={<RestoreIcon />}
-      //loading={isRestoring}
+      loading={isRestoring}
     >
       Restaurar
     </Button>

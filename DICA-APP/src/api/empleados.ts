@@ -96,3 +96,18 @@ export const fetchBorrarEmpleado = async (dni: string) => {
 
   return await res.json();
 };
+
+export const fetchRestaurarEmpleado = async (dni: string) => {
+  // 📌 FUTURO: cambiar a axios.put(...)
+  const res = await fetch(`${API_URL}${EMPLEADOS_URL}/restaurar/${dni}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.message || "Error al restaurar el empleado");
+  }
+
+  return await res.json();
+};
