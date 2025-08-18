@@ -25,14 +25,16 @@ export const ListaEmpleados = () => {
   const { empleados, loading, error /*, refetch: refetchEmpleados*/ } =
     useGetEmpleados();
   const [showForm, setShowForm] = useState(false);
-    const [empleadosInvisibles, setEmpleadosInvisibles] = useState<Empleado[]>([]);
+  const [empleadosInvisibles, setEmpleadosInvisibles] = useState<Empleado[]>(
+    []
+  );
 
   // ✅ Resultados de búsqueda (sobre la lista base del modo actual)
   const [empleadosMostrados, setEmpleadosMostrados] = useState<Empleado[]>([]);
   const getLabel = useCallback((e: Empleado) => e.nombre_completo, []);
-    const [modoPapelera, setModoPapelera] = useState(false); 
+  const [modoPapelera, setModoPapelera] = useState(false);
 
-    const handleShowInvisibles = useCallback(async () => {
+  const handleShowInvisibles = useCallback(async () => {
     try {
       if (!modoPapelera) {
         const data = await fetchEmpleadosInvisibles();
@@ -48,36 +50,39 @@ export const ListaEmpleados = () => {
     }
   }, [modoPapelera]);
 
-
   const handleAdd = useCallback(() => {
     setShowForm(true);
   }, []);
 
-   const baseList = modoPapelera ? empleadosInvisibles : empleados;
+  const baseList = modoPapelera ? empleadosInvisibles : empleados;
 
   // ✅ si hay búsqueda, mostramos resultados; si no, la base
   const listaParaRenderizar =
     empleadosMostrados.length > 0 ? empleadosMostrados : baseList;
 
-
   return (
     <>
-            {loading && <LinearProgress color="inherit" />}
-        {error && <p>Error: {error}</p>}
+      {loading && <LinearProgress color="inherit" />}
+      {error && <p>Error: {error}</p>}
       <Container>
-        <TextFieldSearchBar
-          list={baseList}    
+        <TextFieldSearchBar<Empleado>
+          baseList={baseList}
           getLabel={getLabel}
+          placeholder={"Buscar empleados por nombre..."}
           onResults={setEmpleadosMostrados}
           onAdd={handleAdd}
-            onShowInvisibles={handleShowInvisibles}
-            disableAdd={modoPapelera} // 👈 Deshabilitar botón +
-          papeleraLabel={modoPapelera ? "Volver" : "Papelera"} // 👈 Cambia texto
+          onShowInvisibles={handleShowInvisibles}
+          disableAdd={modoPapelera}
+          papeleraLabel={modoPapelera ? "Volver" : "Papelera"}
         />
 
         <Box sx={styleBox1}>
           {listaParaRenderizar.map((empleado) => (
-            <FichaEmpleado key={empleado.dni} empleado={empleado} modoPapelera={modoPapelera}/>
+            <FichaEmpleado
+              key={empleado.dni}
+              empleado={empleado}
+              modoPapelera={modoPapelera}
+            />
           ))}
         </Box>
       </Container>
