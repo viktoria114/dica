@@ -2,7 +2,7 @@ import { useState } from "react";
 import { fetchActualizarEmpleado, fetchCrearEmpleado } from "../api/empleados";
 import type { Empleado } from "../types";
 
-export const useEmpleadoForm = (
+export const useFormEmpleado = (
   initialValues: Empleado,
   onSuccess: () => void,
   mode: "crear" | "editar" = "editar"

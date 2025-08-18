@@ -1,9 +1,6 @@
-import { ThemeProvider } from "@emotion/react";
-import theme from "../services/theme";
 
 export const Inicio = () => {
   return (
-    <ThemeProvider theme={theme}>
       <div
       /*style={{
     backgroundImage: 'url("Frame 1.png")',
@@ -81,6 +78,5 @@ export const Inicio = () => {
         <p>a</p>
         <h1>a</h1>
       </div>
-    </ThemeProvider>
   );
 };

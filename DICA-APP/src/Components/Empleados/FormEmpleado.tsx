@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
-import { useEmpleadoForm } from "../../hooks/useFormEmpleado";
+import { useFormEmpleado } from "../../hooks/useFormEmpleado";
 import type { Empleado } from "../../types";
 
 interface EmpleadoFormProps {
@@ -25,7 +25,7 @@ const EmpleadoForm = ({
   onCancel,
 }: EmpleadoFormProps) => {
   const { formErrors, editValues, handleChange, handleGuardar, isSaving } =
-    useEmpleadoForm(initialValues, onSuccess, modo);
+    useFormEmpleado(initialValues, onSuccess, modo);
 
   const camposTexto = [
     { name: "nombre_completo", label: "Nombre Completo" },

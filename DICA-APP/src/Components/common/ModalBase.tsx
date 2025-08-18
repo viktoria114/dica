@@ -1,6 +1,5 @@
-import { Modal, Box, ThemeProvider } from "@mui/material";
+import { Modal, Box } from "@mui/material";
 import type { ReactNode } from "react"; // Importación solo de tipo
-import theme from "../../services/theme";
 
 interface ModalBaseProps {
   open: boolean;
@@ -25,10 +24,8 @@ const modalStyle = {
 
 export function ModalBase({ open, onClose, children }: ModalBaseProps) {
   return (
-    <ThemeProvider theme={theme}>
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle}>{children}</Box>
     </Modal>
-    </ThemeProvider>
   );
 }

@@ -1,10 +1,6 @@
-import { ThemeProvider } from "@emotion/react";
 import { ListaEmpleados } from "../Components/Empleados/ListaEmpleados";
-import theme from "../services/theme";
-
 export const Empleados = () => {
   return (
-    <ThemeProvider theme={theme}>
       <div
       /*style={{
     backgroundImage: 'url("Frame 1.png")',
@@ -17,6 +13,5 @@ export const Empleados = () => {
         <ListaEmpleados></ListaEmpleados>
        
       </div>
-    </ThemeProvider>
   );
 };

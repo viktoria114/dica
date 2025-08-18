@@ -14,8 +14,6 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 import LockIcon from "@mui/icons-material/Lock";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { ThemeProvider } from "@mui/material/styles";
-import theme from "../services/theme"; // ajusta la ruta si es necesario
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -65,7 +63,6 @@ const Login = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
       <Box
         sx={{
           position: "fixed", // este cambio es clave
@@ -183,7 +180,6 @@ const Login = () => {
           </Button>
         </Paper>
       </Box>
-    </ThemeProvider>
   );
 };
 

@@ -10,6 +10,8 @@ import { NavBar } from "./Components/NavBar";
 import Login from "./Pages/Login";
 import { Inicio } from "./Pages/Inicio";
 import { Empleados } from "./Pages/Empleados";
+import { ThemeProvider } from "@emotion/react";
+import theme from "./services/theme";
 
 function App() {
  const router = createBrowserRouter(
@@ -29,7 +31,9 @@ function App() {
 
   return (
     <>
+     <ThemeProvider theme={theme}>
       <RouterProvider router={router} />
+      </ThemeProvider>
     </>
   );
 }

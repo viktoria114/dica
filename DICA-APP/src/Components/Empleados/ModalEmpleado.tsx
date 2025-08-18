@@ -1,24 +1,17 @@
 import { useState } from "react";
-import { Box, Button, Grid, Typography } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import CloseIcon from "@mui/icons-material/Close";
+import { Box, Grid, Typography } from "@mui/material";
 import { ModalBase } from "../common/ModalBase";
-import { useBorrarEmpleado } from "../../hooks/useBorrarEmpleado";
-import { useGetEmpleados } from "../../hooks/useGetEmpleados";
 import type { Empleado } from "../../types";
 import EmpleadoForm from "./FormEmpleado";
-import RestoreIcon from '@mui/icons-material/Restore';
-import { fetchRestaurarEmpleado } from "../../api/empleados";
+import { ButtonsNormalEmpleado } from "./ButtonsNormalEmpleado";
+import { ButtonsPapeleraEmpleado } from "./ButtonsPapeleraEmpleado";
 
 interface ModalEmpleadoProps {
   open: boolean;
   handleClose: () => void;
   empleado: Empleado;
-   modoPapelera?: boolean;
+  modoPapelera?: boolean;
 }
-
-
 
 export const ModalEmpleado = ({
   open,
@@ -27,32 +20,6 @@ export const ModalEmpleado = ({
   modoPapelera,
 }: ModalEmpleadoProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
-  const { refetchEmpleados } = useGetEmpleados();
-  const { borrarEmpleado, isDeleting } = useBorrarEmpleado(() => {
-    refetchEmpleados?.();
-    handleClose();
-  });
-
-    const [isRestoring, setIsRestoring] = useState(false);
-
-const restaurarEmpleado = async (dni: string) => {
-  setIsRestoring(true)
-
-      const confirmar = window.confirm(
-      "¿Estás seguro de que deseas restaurar este empleado?"
-    );
-    if (!confirmar) return;
-
-  try {
-    const empleadoRestaurado = await fetchRestaurarEmpleado(dni);
-    console.log("Empleado restaurado:", empleadoRestaurado);
-  } catch (err) {
-    console.error("Error al restaurar:", err);
-  }
-    setIsRestoring(false)
-    handleClose()
-
-};
 
   return (
     <ModalBase open={open} onClose={handleClose}>
@@ -69,14 +36,14 @@ const restaurarEmpleado = async (dni: string) => {
               modo="editar"
               initialValues={empleado}
               onSuccess={() => {
-                refetchEmpleados?.();
+                //refetchEmpleados?.();
                 setIsEditMode(false);
               }}
               onCancel={() => setIsEditMode(false)}
             />
           ) : (
             <>
-              <Typography>● Nombre Completo: {empleado.nombre_completo}</Typography>
+              <Typography>  ● Nombre Completo: {empleado.nombre_completo} </Typography>
               <Typography>● DNI: {empleado.dni}</Typography>
               <Typography>● Usuario: {empleado.username}</Typography>
               <Typography>● Correo: {empleado.correo || "-"}</Typography>
@@ -87,61 +54,21 @@ const restaurarEmpleado = async (dni: string) => {
         </Box>
       </Grid>
 
-     {!isEditMode && !modoPapelera && (
-  <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
-    <Button
-      sx={{ height: 50 }}
-      variant="contained"
-      onClick={() => setIsEditMode(true)}
-      startIcon={<EditIcon />}
-    >
-      Editar
-    </Button>
-    <Button
-      sx={{ height: 50 }}
-      variant="contained"
-      color="error"
-      onClick={() => borrarEmpleado(empleado.dni)}
-      startIcon={<DeleteIcon />}
-      loading={isDeleting}
-    >
-      Borrar
-    </Button>
-    <Button
-      sx={{ height: 50 }}
-      variant="outlined"
-      onClick={handleClose}
-      startIcon={<CloseIcon />}
-    >
-      Cerrar
-    </Button>
-  </Box>
-)}
+      {!isEditMode && !modoPapelera && (
+        <ButtonsNormalEmpleado
+          setIsEditMode={() => setIsEditMode(true)}
+          handleClose={handleClose}
+          empleadoDni={empleado.dni}
+        />
+      )}
 
-{/* Si está en modo papelera y no en edición */}
-{!isEditMode && modoPapelera && (
-  <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
-    <Button
-      sx={{ height: 50 }}
-      variant="contained"
-      color="success"
-      onClick={() => restaurarEmpleado(empleado.dni)}
-      startIcon={<RestoreIcon />}
-      loading={isRestoring}
-    >
-      Restaurar
-    </Button>
-    <Button
-      sx={{ height: 50 }}
-      variant="outlined"
-      onClick={handleClose}
-      startIcon={<CloseIcon />}
-    >
-      Cerrar
-    </Button>
-  </Box>
-)}
-
+      {/* Si está en modo papelera y no en edición */}
+      {!isEditMode && modoPapelera && (
+        <ButtonsPapeleraEmpleado
+          handleClose={handleClose}
+          empleadoDni={empleado.dni}
+        />
+      )}
     </ModalBase>
   );
 };
