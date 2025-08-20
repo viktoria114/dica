@@ -262,7 +262,7 @@ export const eliminarItemsPedido = async (req: Request, res: Response) => {
 export const getItemPedido = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
-        
+
         const query = `SELECT * FROM pedidos_menu WHERE fk_pedido= $1 ORDER BY id ASC;`;
         const { rows } = await pool.query(query, [id]);
         res.json(rows);
@@ -272,6 +272,57 @@ export const getItemPedido = async (req: Request, res: Response) => {
     }
 }
 
+export const actualizarEstadoPedido = async (req: Request, res: Response) => {
+  const { id } = req.params;
+   const { rol } = (req as any).user; 
 
-//router.get('/:id', mostrarItemPedido)
-//router.delete('/:id', eliminarItemPedido)
+  try {
+    const pedidoQuery = `
+      SELECT id_estado 
+      FROM pedidos
+      WHERE id = $1;
+    `;
+    const { rows } = await pool.query(pedidoQuery, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Pedido no encontrado" });
+    }
+
+    const estadoActual = rows[0].id_estado;
+
+    // Si ya está en el último estado, no permitimos avanzar más
+    if (estadoActual === 5) {
+      return res.status(400).json({ message: "El pedido ya está en el último estado" });
+    }
+
+    // Definir transiciones válidas por rol
+    const transiciones: Record<string, Record<number, number>> = {
+      cocinero: { 1: 2, 2:3 },             // pendiente -> en preparación
+      repartidor: { 3: 4,4:5 },           // por entregar -> entregado
+      admin: { 1: 2, 2:3, 3: 4,4:5 }         // ejemplo: el sistema o admin avanza estos estados
+    };
+
+    // Verificar si el rol puede hacer la transición desde el estado actual
+    const nuevaTransicion = transiciones[rol]?.[estadoActual];
+
+    if (!nuevaTransicion) {
+      return res.status(403).json({ message: "No tienes permisos para cambiar este estado" });
+    }
+
+    // Actualizamos el pedido al nuevo estado
+    const updateQuery = `
+      UPDATE pedidos
+      SET id_estado = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const { rows: updatedRows } = await pool.query(updateQuery, [nuevaTransicion, id]);
+
+    res.json({ message: "Estado actualizado correctamente", pedido: updatedRows[0] });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error al actualizar Estado" });
+  }
+};
+

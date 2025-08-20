@@ -1,5 +1,6 @@
 import { Router } from "express"
-import { crearPedido, actualizarPedido, getListaPedidos, eliminarPedido, getListaCompletaPedidos, restaurarPedido, agregarItemPedido, eliminarItemsPedido, getItemPedido } from "../controllers/pedidoController"
+import {verifyToken, checkRole } from '../middlewares/authHandler';
+import { crearPedido, actualizarPedido, getListaPedidos, eliminarPedido, getListaCompletaPedidos, restaurarPedido, agregarItemPedido, eliminarItemsPedido, getItemPedido, actualizarEstadoPedido } from "../controllers/pedidoController"
 const router = Router()
 
 router.post('/', crearPedido)
@@ -13,7 +14,7 @@ router.put('/restaurar/:id', restaurarPedido)
 router.post('/item/:id', agregarItemPedido)
 router.delete('/item/:id', eliminarItemsPedido)
 router.get('/item/:id', getItemPedido)
-//router.put('/estado/:id', actualizarEstadoPedido)
+router.put('/estado/:id', verifyToken, actualizarEstadoPedido)
 //router.put('/cancelar/:id', cancelarPedido)
 //router.put('/estado/:id', retrocederEstadoPedido)
 //router.put('/estado/:id', agenteInicioPedido)
