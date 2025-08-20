@@ -11,10 +11,10 @@ router.put('/restaurar/:id', restaurarPedido)
 
 //Logica de negocio
 router.post('/item/:id', agregarItemPedido)
-router.delete('//item/:id', eliminarItemsPedido)
+router.delete('/item/:id', eliminarItemsPedido)
 router.get('/item/:id', getItemPedido)
-//router.put('/cancelar/:id', cancelarPedido)
 //router.put('/estado/:id', actualizarEstadoPedido)
+//router.put('/cancelar/:id', cancelarPedido)
 //router.put('/estado/:id', retrocederEstadoPedido)
 //router.put('/estado/:id', agenteInicioPedido)
 //router.put('/estado/:id', agenteCandelarPedido)

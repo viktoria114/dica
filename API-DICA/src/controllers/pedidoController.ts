@@ -26,14 +26,14 @@ export const crearPedido = async (req: Request, res: Response) => {
 
         // Insertar el pedido
         const pedidoQuery = `
-            INSERT INTO pedidos (fecha, hora, estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad)
+            INSERT INTO pedidos (fecha, hora, id_estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id;
         `;
         const { rows: pedidoRows } = await client.query(pedidoQuery, [
             new Date(),
             pedido.hora,
-            pedido.estado,
+            pedido.fk_estado,
             pedido.fk_empleado,
             pedido.fk_cliente,
             pedido.ubicacion,
@@ -42,6 +42,18 @@ export const crearPedido = async (req: Request, res: Response) => {
         ]);
 
         const pedidoId = pedidoRows[0].id;
+
+        // 👇 Insertar el registro inicial del estado
+        const registroEstadoQuery = `
+            INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
+            VALUES ($1, $2, $3, $4);
+        `;
+        await client.query(registroEstadoQuery, [
+            pedidoId,
+            pedido.fk_estado,   // por defecto = 1 (pendiente)
+            new Date(),         // fecha actual
+            pedido.hora         // hora actual
+        ]);
 
         // Insertar en pedidos_menu
         const pedido_menuQuery = `
@@ -74,11 +86,11 @@ export const crearPedido = async (req: Request, res: Response) => {
 export const actualizarPedido = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { fk_empleado, fk_cliente, ubicacion, observacion, estado } = req.body;
+        const { fk_empleado, fk_cliente, ubicacion, observacion, fk_estado } = req.body;
 
         const query = `
             UPDATE pedidos
-            SET estado = $1, dni_empleado = $2, id_cliente = $3, ubicacion = $4, observaciones = $5
+            SET id_estado = $1, dni_empleado = $2, id_cliente = $3, ubicacion = $4, observaciones = $5
             WHERE id = $6
             RETURNING *;
         `;
@@ -87,7 +99,7 @@ export const actualizarPedido = async (req: Request, res: Response) => {
             null,
             null,
             null,
-            estado,
+            fk_estado,
             fk_empleado,
             fk_cliente,
             ubicacion,
@@ -95,7 +107,7 @@ export const actualizarPedido = async (req: Request, res: Response) => {
         );
 
         const { rows } = await pool.query(query, [
-            pedido.estado,
+            pedido.fk_estado,
             pedido.fk_empleado,
             pedido.fk_cliente,
             pedido.ubicacion,
