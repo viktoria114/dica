@@ -163,3 +163,45 @@ export const restaurarMenu = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Error al restaurar el menú" });
     }
 };
+
+export const getMenuImage = async (req: Request, res: Response) => {
+    try {
+
+        // numero de destino en formato internacional
+        const { to } = req.body; 
+
+        const url = `https://graph.facebook.com/v22.0/${process.env.PHONE_NUMBER_ID}/messages`
+
+        const payload = {
+            messaging_product: 'whatsapp',
+            to: to,
+            type: 'image',
+            image: {
+                link: 'https://i.pinimg.com/474x/42/c8/7a/42c87a15800892822015164f65e0ece9.jpg'
+            },
+        };
+
+        const response = await fetch(url,
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.ACCESS_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(JSON.stringify(data));
+        }
+
+        return res.status(200).json("Imagen del menu enviada con exito");
+    } catch (err: any) {
+        console.error("Error enviando imagen:", err);
+
+        return res.status(500).json(err.message || err);
+    }
+};

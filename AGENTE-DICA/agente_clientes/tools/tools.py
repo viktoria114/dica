@@ -110,4 +110,29 @@ def get_menu():
         print(f"Error inesperado: {e}")
         return "error inesperado al intentar crear la sugerencia"
 
-       
+def send_menu_image(tel: str):
+    """
+    Envia una imagen con el menu y sus precios
+    Args: 
+        tel(str): Numero de telefono del cliente
+    Returns:
+        Mensaje de respuesta del estado del envio
+    """
+
+    get_menu_url = f"{api_url}/api/menu/imagen"
+
+    body = {
+        "to": tel
+    }
+
+    try:
+        resultado = solicitud_con_token(get_menu_url, "GET", body)
+        return resultado
+    except requests.RequestException as e:
+        print(f"Error al obtener la lista del menu: {e}")
+        return e
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        return "error inesperado al intentar crear la sugerencia"
+
+ 
