@@ -54,5 +54,11 @@ CUSTOMER_SERVICE_INSTRUCTION = (
     '       - Inform about ongoing promotions, combos, discounts, and special offers.\n'
     '       - Use available tools to obtain the most updated information.\n\n'
 
-    '    3. Help customers to leave a suggestion'
+    '    3. Help customers to leave a suggestion \n\n'
+
+    '    4. Register all customers preferences:\n'
+    '       - Recognize when the customer gives information about their food habits it includes:\n'
+    '       - Ingredients of preference \n'
+    '       - Allergies \n'
+    '       - Favorite food and drink \n\n'
 )

@@ -35,12 +35,13 @@ def get_customer_information(tel: int) -> str:
 
 def update_customer_information(tel: int, nombre: str, dieta: str) -> str:
     """
-    Actualiza el nombre y las preferencias sobre un cliente usando su numero de telefono en la base de datos
+    Actualiza el nombre y el tipo de dieta sobre un cliente usando su numero de telefono en la base de datos
+    Las dietas disponibles son: vegetariano, vegano, neutra y sin asignar
 
     Args:
         tel(str): El numero de telefono para la busqueda.
         nombre(str): el nuevo nombre a actualizar
-        dieta(str): la dieta del cliente. Permitido (vegetariano, vegano)
+        dieta(str): la dieta del cliente.
 
     Returns:
         str: Un mensaje de respuesta de la base de datos sobre la solicitud.
@@ -77,7 +78,7 @@ def add_preference(tel: str, preference: str)->str:
         str: Un string con la devolucion de la solicitud
     """
 
-    add_preference_url = f"{api_url}/api/preferencias/{tel}"
+    add_preference_url = f"{api_url}/api/clientes/preferencias/{tel}"
     body = {
         "preferencia": preference
     }
