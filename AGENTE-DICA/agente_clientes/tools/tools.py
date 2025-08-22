@@ -33,14 +33,14 @@ def get_customer_information(tel: int) -> str:
         print(f"Error inesperado: {e}")
         return "error inesperado al obtener cliente por telefono"
 
-def update_customer_information(tel: int, nombre: str, preferencias: str) -> str:
+def update_customer_information(tel: int, nombre: str, dieta: str) -> str:
     """
     Actualiza el nombre y las preferencias sobre un cliente usando su numero de telefono en la base de datos
 
     Args:
         tel(str): El numero de telefono para la busqueda.
         nombre(str): el nuevo nombre a actualizar
-        preferencias(str): la nueva prefencia del cliente a actualizar
+        dieta(str): la dieta del cliente. Permitido (vegetariano, vegano)
 
     Returns:
         str: Un mensaje de respuesta de la base de datos sobre la solicitud.
@@ -51,7 +51,7 @@ def update_customer_information(tel: int, nombre: str, preferencias: str) -> str
 
     body = {
         "nombre":nombre,
-        "preferencia":preferencias
+        "dieta":dieta
     }
 
     try:
@@ -65,6 +65,31 @@ def update_customer_information(tel: int, nombre: str, preferencias: str) -> str
     except Exception as e:
         print(f"Error inesperado: {e}")
         return "error inesperado al obtener cliente por telefono"
+
+def add_preference(tel: str, preference: str)->str:
+    """
+    Mediante esta herramienta, se registra las preferencias de los clientes para una mejor atencion
+
+    Args:
+        tel(str): numero de telefono del cliente
+        preferencia(str): descripcion de la preferencia
+    Returns:
+        str: Un string con la devolucion de la solicitud
+    """
+
+    add_preference_url = f"{api_url}/api/preferencias/{tel}"
+    body = {
+        "preferencia": preference
+    }
+    try:
+        resultado = solicitud_con_token(add_preference_url,"POST", body)
+    except requests.RequestException as e:
+        print(f"Error al intentar agregar la preferencia: {e}")
+        return "error al intentar agregar la preferencia"
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        return "error inesperado al intentar agregar la preferencia"
+
 
 def create_suggestion(tel: str, descripcion: str)->str:
     """
@@ -129,10 +154,10 @@ def send_menu_image(tel: str):
         resultado = solicitud_con_token(get_menu_url, "GET", body)
         return resultado
     except requests.RequestException as e:
-        print(f"Error al obtener la lista del menu: {e}")
+        print(f"Error al enviar la lista del menu: {e}")
         return e
     except Exception as e:
         print(f"Error inesperado: {e}")
-        return "error inesperado al intentar crear la sugerencia"
+        return "error inesperado al intentar enviar la lista del menu"
 
  
