@@ -5,7 +5,7 @@ import { pool } from '../config/db';
 // import pool from './db';
 
 // ---- Configurables ----
-const BUFFER_WINDOW_MS = parseInt(process.env.BUFFER_WINDOW_MS || '5000', 10);
+const BUFFER_WINDOW_MS = parseInt(process.env.BUFFER_WINDOW_MS || '1000', 10);
 const MAX_WORDS = 50;
 const MAX_CHARS = Math.ceil(4.4 * MAX_WORDS);
 

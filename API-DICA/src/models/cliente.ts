@@ -25,7 +25,7 @@ export class Cliente {
       throw new Error("El teléfono debe tener entre 10 y 15 dígitos.");
     }
 
-    const dietasPermitidas = ["vegano", "vegetariano", "neutra"]
+    const dietasPermitidas = ["vegano", "vegetariano", "neutra", "sin asignar"]
 
     if (dieta != null){
       if (dieta.trim() === '') {

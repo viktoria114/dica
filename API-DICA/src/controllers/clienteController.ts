@@ -154,7 +154,7 @@ export const obtenerClientePorTelefono = async (req: Request, res: Response): Pr
     const telefono = parseInt(tel, 10)
 
     const query = `
-      SELECT telefono, nombre, dieta 
+      SELECT telefono, nombre, dieta, preferencias
       FROM clientes 
       WHERE telefono = $1 AND visibilidad = true;
     `;
@@ -192,8 +192,6 @@ export const agregarPreferencia = async (req: Request, res: Response) =>{
 
     const clienteActual = result.rows[0]
 
-
-    console.log("clienteActual:", clienteActual)
     const cliente = new Cliente(
       clienteActual.telefono,
       clienteActual.nombre,
