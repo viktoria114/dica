@@ -221,3 +221,41 @@ export const agregarPreferencia = async (req: Request, res: Response) =>{
       res.status(500).json({ error: 'Error interno al agregar una preferencia'});
   }
 }
+
+export const modificarPreferencia = async (req: Request, res: Response) =>{
+  try{
+
+    const { tel } = req.params
+    const { preferenciaAntigua, nuevaPreferencia} = req.body
+
+    const result = await pool.query('SELECT * FROM clientes WHERE telefono = $1', [tel])
+
+    if (result.rows.length === 0){
+      throw new Error("No es posible modificar la preferencia, cliente no encontrado")
+    }
+
+    const row = result.rows[0]
+
+    const nuevoCliente = new Cliente(
+      row.telefono,
+      row.nombre,
+      row.dieta,
+      row.preferencias,
+      row.agent_session_id,
+      new Date(row.ultima_compra),
+      row.visibilidad
+    )
+
+    nuevoCliente.modificarPreferencia(preferenciaAntigua, nuevaPreferencia)
+
+    await pool.query("UPDATE clientes SET preferencias = $1 WHERE telefono = $2", [nuevoCliente.preferencias, nuevoCliente.telefono])
+
+    res.status(200).json("Preferencia modificada exitosamente")
+  }catch(err: any){
+    if (err.message.includes("no existe") || err.message.includes("no encontrado")){
+      return res.status(404).json({error: err.message})
+    }
+    console.error('Error al modificar la preferencia del cliente: ', err.message)
+    res.status(500).json({error: "Error interno al modificar una preferencia"})
+  }
+}

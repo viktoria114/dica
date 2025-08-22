@@ -33,7 +33,7 @@ def get_customer_information(tel: int) -> str:
         print(f"Error inesperado: {e}")
         return "error inesperado al obtener cliente por telefono"
 
-def update_customer_information(tel: int, nombre: str, dieta: str) -> str:
+def update_customer_name_and_diet(tel: int, nombre: str, dieta: str) -> str:
     """
     Actualiza el nombre y el tipo de dieta sobre un cliente usando su numero de telefono en la base de datos
     Las dietas disponibles son: vegetariano, vegano, neutra y sin asignar
@@ -69,7 +69,7 @@ def update_customer_information(tel: int, nombre: str, dieta: str) -> str:
 
 def add_preference(tel: str, preference: str)->str:
     """
-    Mediante esta herramienta, se registra las preferencias de los clientes para una mejor atencion
+    Registra una nueva preferencias de los clientes para una mejor atencion
 
     Args:
         tel(str): numero de telefono del cliente
@@ -84,12 +84,41 @@ def add_preference(tel: str, preference: str)->str:
     }
     try:
         resultado = solicitud_con_token(add_preference_url,"POST", body)
+        return resultado
     except requests.RequestException as e:
         print(f"Error al intentar agregar la preferencia: {e}")
         return "error al intentar agregar la preferencia"
     except Exception as e:
         print(f"Error inesperado: {e}")
         return "error inesperado al intentar agregar la preferencia"
+
+def update_preference(tel: str, old_preference: str, new_preference: str)->str:
+    """
+    Modifica o cambia una preferencia existente por una nueva
+
+    Args:
+        tel(str): numero de telefono del cliente
+        old_preference(str): descripcion de la anterior preferencia
+        new_preference(str): descripcion de la nueva preferencia
+    Returns:
+        str: Un string con la devolucion de la solicitud
+    """
+
+    add_preference_url = f"{api_url}/api/clientes/preferencias/{tel}"
+    body = {
+        "preferenciaAntigua": old_preference,
+        "nuevaPreferencia": new_preference
+    }
+    try:
+        resultado = solicitud_con_token(add_preference_url,"PUT", body)
+        return resultado
+    except requests.RequestException as e:
+        print(f"Error al intentar modificar la preferencia: {e}")
+        return "error al intentar modificar la preferencia"
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        return "error inesperado al intentar modificar la preferencia"
+
 
 
 def create_suggestion(tel: str, descripcion: str)->str:

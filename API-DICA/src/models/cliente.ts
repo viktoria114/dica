@@ -72,6 +72,32 @@ export class Cliente {
 
     this.preferencias.push(prefNormalizada);
   }
+
+public modificarPreferencia(preferenciaAntigua: string, nuevaPreferencia: string): void {
+    if (!nuevaPreferencia || nuevaPreferencia.trim() === "") {
+        throw new Error("La nueva preferencia no puede ser nula ni vacía.");
+    }
+
+    if (!this.preferencias || this.preferencias.length === 0) {
+        throw new Error("No hay preferencias registradas para modificar.");
+    }
+
+    const prefAntiguaNormalizada = preferenciaAntigua.trim().toLowerCase();
+    const prefNuevaNormalizada = nuevaPreferencia.trim().toLowerCase();
+
+    const indice = this.preferencias.indexOf(prefAntiguaNormalizada);
+
+    if (indice === -1) {
+        throw new Error(`La preferencia '${prefAntiguaNormalizada}' no existe.`);
+    }
+
+    if (this.preferencias.includes(prefNuevaNormalizada)) {
+        throw new Error(`La preferencia '${prefNuevaNormalizada}' ya existe.`);
+    }
+
+    this.preferencias[indice] = prefNuevaNormalizada;
+}
+
    //para soft delete
   public desactivar(): void {
     if (!this.visibilidad) {
