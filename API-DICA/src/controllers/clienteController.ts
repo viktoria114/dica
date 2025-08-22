@@ -213,7 +213,7 @@ export const agregarPreferencia = async (req: Request, res: Response) =>{
 
   if (err instanceof Error && 
     err.message.includes("Cliente no encontrado") || 
-    err.message.includes("No se pueden agregar más de 5 preferencias.")
+    err.message.includes("No se pueden agregar más de")
   ) {
     return res.status(404).json({ error: err.message });
   }

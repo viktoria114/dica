@@ -50,28 +50,30 @@ export class Cliente {
 
     }
 
-  public agregarPreferencia(preferencia: string): void {
+public agregarPreferencia(preferencia: string): void {
     if (!preferencia || preferencia.trim() === "") {
         throw new Error("La preferencia no puede ser nula ni vacía.");
     }
 
     const prefNormalizada = preferencia.trim().toLowerCase();
 
-    // Si es null, inicializamos el array
     if (!this.preferencias) {
         this.preferencias = [];
     }
 
+    //validar duplicados
     if (this.preferencias.includes(prefNormalizada)) {
         throw new Error(`La preferencia '${prefNormalizada}' ya existe.`);
     }
-
-    if (this.preferencias.length >= 5) {
-        throw new Error("No se pueden agregar más de 5 preferencias.");
+    
+    //si supera el limite
+    if (this.preferencias.length >= 10) {
+        this.preferencias.shift(); // elimina el primer elemento
     }
 
+    // la nueva preferencia al final
     this.preferencias.push(prefNormalizada);
-  }
+}
 
 public modificarPreferencia(preferenciaAntigua: string, nuevaPreferencia: string): void {
     if (!nuevaPreferencia || nuevaPreferencia.trim() === "") {
