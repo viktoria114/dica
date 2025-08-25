@@ -370,3 +370,51 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error al actualizar Estado' });
   }
 };
+
+export const cancelarPedido = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const rol = (req as any).rol;
+
+  try {
+    // Verificar que el pedido exista
+    const pedidoQuery = `
+      SELECT id_estado 
+      FROM pedidos
+      WHERE id = $1;
+    `;
+    const { rows } = await pool.query(pedidoQuery, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Pedido no encontrado' });
+    }
+
+    // Determinar el nuevo estado según el rol
+    let nuevoEstado: number;
+
+    if (rol === 'agente') {
+      nuevoEstado = 7; // Por Cancelar
+    } else {
+      nuevoEstado = 8; // Cancelado
+    }
+
+    // Actualizamos el estado
+    const updateQuery = `
+      UPDATE pedidos
+      SET id_estado = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const { rows: updatedRows } = await pool.query(updateQuery, [
+      nuevoEstado,
+      id,
+    ]);
+
+    res.json({
+      message: `Pedido actualizado al estado ${nuevoEstado}`,
+      pedido: updatedRows[0],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al cancelar el pedido' });
+  }
+};
