@@ -410,7 +410,7 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     ]);
 
     res.json({
-      message: `Pedido actualizado al estado ${nuevoEstado}`,
+      message: `Pedido actualizado al estado ${nuevoEstado} `,
       pedido: updatedRows[0],
     });
   } catch (error) {
