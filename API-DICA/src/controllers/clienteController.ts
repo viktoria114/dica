@@ -3,26 +3,28 @@
 import { Request, Response } from 'express';
 import { Cliente } from '../models/cliente';
 import { pool } from '../config/db';
+import { Client } from 'pg';
 
 export const crearCliente = async (req: Request, res: Response): Promise<void> => {
   try {
-    const {nombre, telefono, preferencia } = req.body;
+    const {telefono, nombre, dieta, preferencias } = req.body;
 
-    const nuevoCliente = new Cliente(null, nombre, telefono, preferencia,null);
+    const nuevoCliente = new Cliente(telefono, nombre, dieta, preferencias, null);
 
     const query = `
-      INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO clientes (telefono, nombre, dieta, ultima_compra, visibilidad, agent_session_id, preferencias)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
     `;
 
     const values = [
-      nuevoCliente.nombre,
       nuevoCliente.telefono,
-      nuevoCliente.preferencia,
+      nuevoCliente.nombre,
+      nuevoCliente.dieta,
       nuevoCliente.ultimaCompra,
       nuevoCliente.visibilidad,
-      nuevoCliente.agentSessionID
+      nuevoCliente.agentSessionID,
+      nuevoCliente.preferencias
     ];
 
     const resultado = await pool.query(query, values);
@@ -42,10 +44,10 @@ export const actualizarCliente = async (req: Request, res: Response): Promise<vo
   try {
     const { tel } = req.params;
 
-    const { nombre, preferencia, session, visibilidad } = req.body;
+    const { nombre, dieta} = req.body;
 
     if (!tel) {
-      res.status(400).json({ error: 'ID requerido' });
+      res.status(400).json({ error: 'Telefono requerido' });
       return;
     }
 
@@ -56,43 +58,28 @@ export const actualizarCliente = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const actual = resultadoActual.rows[0];
+    const actual = resultadoActual.rows[0]
 
     const clienteNuevo = new Cliente(
-      null,
+      actual.telefono,
       nombre,
-      tel,
-      preferencia,
-      session,
+      dieta,
+      actual.preferencias,
+      actual.agent_session_id,
       new Date(actual.ultima_compra), // mantener la fecha original
-      visibilidad ?? actual.visibilidad
+      actual.visibilidad
     );
-
-    const sinCambios =
-      actual.nombre === clienteNuevo.nombre &&
-      actual.telefono === clienteNuevo.telefono &&
-      actual.preferencia === clienteNuevo.preferencia &&
-      actual.visibilidad === clienteNuevo.visibilidad;
-
-    if (sinCambios) {
-      res.status(200).json({
-        mensaje: 'No hubo cambios en los datos del cliente',
-        cliente: actual,
-      });
-      return;
-    }
 
     const query = `
       UPDATE clientes 
-      SET nombre = $1, preferencia = $2, visibilidad = $3
-      WHERE telefono = $4
+      SET nombre = $1, dieta = $2
+      WHERE telefono = $3
       RETURNING *;
     `;
 
     const valores = [
       clienteNuevo.nombre,
-      clienteNuevo.preferencia,
-      clienteNuevo.visibilidad,
+      clienteNuevo.dieta,
       clienteNuevo.telefono,
     ];
 
@@ -110,43 +97,21 @@ export const actualizarCliente = async (req: Request, res: Response): Promise<vo
 
 export const eliminarCliente = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { tel } = req.params;
 
-    if (!id) {
-      res.status(400).json({ error: 'ID requerido' });
+    if (!tel) {
+      res.status(400).json({ error: 'Telefono requerido' });
       return;
     }
 
-    // Buscar cliente actual
-    const consulta = await pool.query(`SELECT * FROM clientes WHERE id = $1`, [id]);
-    const actual = consulta.rows[0];
+    const telefono = parseInt(tel, 10)
 
-    if (!actual) {
-      res.status(404).json({ error: 'Cliente no encontrado' });
-      return;
-    }
-
-    const cliente = new Cliente(
-      actual.id,
-      actual.nombre,
-      actual.telefono,
-      actual.preferencia,
-      actual.agent_session_id,
-      new Date(actual.ultima_compra),
-      actual.visibilidad,
+    await pool.query(
+      `UPDATE clientes SET visibilidad = false WHERE telefono = $1;`,
+      [telefono]
     );
 
-    cliente.desactivar();
-
-    const resultado = await pool.query(
-      `UPDATE clientes SET visibilidad = false WHERE id = $1 RETURNING *;`,
-      [cliente.id]
-    );
-
-    res.status(200).json({
-      mensaje: 'Cliente eliminado correctamente (soft delete)',
-      cliente: resultado.rows[0],
-    });
+    res.status(200).json('Cliente eliminado correctamente (soft delete)');
   } catch (error: any) {
     console.error('Error al eliminar cliente:', error.message);
     res.status(400).json({ error: error.message });
@@ -155,43 +120,21 @@ export const eliminarCliente = async (req: Request, res: Response): Promise<void
 
 export const restaurarCliente = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { tel } = req.params;
 
-    if (!id) {
-      res.status(400).json({ error: 'ID requerido' });
+    if (!tel) {
+      res.status(400).json({ error: 'Telefono requerido' });
       return;
     }
 
-    // Buscar cliente actual
-    const consulta = await pool.query(`SELECT * FROM clientes WHERE id = $1`, [id]);
-    const actual = consulta.rows[0];
+    const telefono = parseInt(tel, 10)
 
-    if (!actual) {
-      res.status(404).json({ error: 'Cliente no encontrado' });
-      return;
-    }
-
-    const cliente = new Cliente(
-      actual.id,
-      actual.nombre,
-      actual.telefono,
-      actual.preferencia,
-      actual.agent_session_id,
-      new Date(actual.ultima_compra),
-      actual.visibilidad,
+    await pool.query(
+      `UPDATE clientes SET visibilidad = true WHERE telefono = $1 RETURNING *;`,
+      [telefono]
     );
 
-    cliente.reactivar();
-
-    const resultado = await pool.query(
-      `UPDATE clientes SET visibilidad = true WHERE id = $1 RETURNING *;`,
-      [cliente.id]
-    );
-
-    res.status(200).json({
-      mensaje: 'Cliente restaurado correctamente',
-      cliente: resultado.rows[0],
-    });
+    res.status(200).json('Cliente restaurado correctamente');
   } catch (error: any) {
     console.error('Error al restaurar cliente:', error.message);
     res.status(400).json({ error: error.message });
@@ -200,15 +143,19 @@ export const restaurarCliente = async (req: Request, res: Response): Promise<voi
 
 export const obtenerClientePorTelefono = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { telefono } = req.params;
+    const { tel } = req.params;
 
-    if (!telefono || !/^\d{6,15}$/.test(telefono)) {
+
+    if (!tel || !/^\d{10,15}$/.test(tel)) {
       res.status(400).json({ error: 'Número de teléfono inválido' });
       return;
     }
 
+    const telefono = parseInt(tel, 10)
+
     const query = `
-      SELECT * FROM clientes 
+      SELECT telefono, nombre, dieta, preferencias
+      FROM clientes 
       WHERE telefono = $1 AND visibilidad = true;
     `;
 
@@ -228,3 +175,87 @@ export const obtenerClientePorTelefono = async (req: Request, res: Response): Pr
     res.status(500).json({ error: 'Error interno al buscar cliente' });
   }
 };
+
+
+export const agregarPreferencia = async (req: Request, res: Response) =>{
+  try{
+
+    const { tel } = req.params
+    const { preferencia } = req.body
+
+    const query = 'SELECT * FROM clientes WHERE telefono = $1'
+    const result = await pool.query(query, [tel])
+
+    if (result.rows.length === 0){
+      throw new Error("Cliente no encontrado")
+    }
+
+    const clienteActual = result.rows[0]
+
+    const cliente = new Cliente(
+      clienteActual.telefono,
+      clienteActual.nombre,
+      clienteActual.dieta,
+      clienteActual.preferencias,
+      clienteActual.agent_session_id,
+      new Date(clienteActual.ultima_compra),
+      true
+    )
+
+    cliente.agregarPreferencia(preferencia)
+
+    await pool.query('UPDATE clientes SET preferencias = $1 WHERE telefono = $2', [cliente.preferencias, cliente.telefono])
+
+    res.status(200).json("Preferencia agregada exitosamente")
+
+  }catch(err: any){
+    console.error('Error al agregar una nueva preferencia al cliente:', err.message);
+
+  if (err instanceof Error && 
+    err.message.includes("Cliente no encontrado") || 
+    err.message.includes("No se pueden agregar más de")
+  ) {
+    return res.status(404).json({ error: err.message });
+  }
+
+      res.status(500).json({ error: 'Error interno al agregar una preferencia'});
+  }
+}
+
+export const modificarPreferencia = async (req: Request, res: Response) =>{
+  try{
+
+    const { tel } = req.params
+    const { preferenciaAntigua, nuevaPreferencia} = req.body
+
+    const result = await pool.query('SELECT * FROM clientes WHERE telefono = $1', [tel])
+
+    if (result.rows.length === 0){
+      throw new Error("No es posible modificar la preferencia, cliente no encontrado")
+    }
+
+    const row = result.rows[0]
+
+    const nuevoCliente = new Cliente(
+      row.telefono,
+      row.nombre,
+      row.dieta,
+      row.preferencias,
+      row.agent_session_id,
+      new Date(row.ultima_compra),
+      row.visibilidad
+    )
+
+    nuevoCliente.modificarPreferencia(preferenciaAntigua, nuevaPreferencia)
+
+    await pool.query("UPDATE clientes SET preferencias = $1 WHERE telefono = $2", [nuevoCliente.preferencias, nuevoCliente.telefono])
+
+    res.status(200).json("Preferencia modificada exitosamente")
+  }catch(err: any){
+    if (err.message.includes("no existe") || err.message.includes("no encontrado")){
+      return res.status(404).json({error: err.message})
+    }
+    console.error('Error al modificar la preferencia del cliente: ', err.message)
+    res.status(500).json({error: "Error interno al modificar una preferencia"})
+  }
+}

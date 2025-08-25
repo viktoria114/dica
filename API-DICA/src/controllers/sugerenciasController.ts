@@ -25,7 +25,7 @@ export const crearSugerencia = async (req: Request, res: Response): Promise<void
             res.status(404).json({ error: 'Cliente no encontrado con ese número de teléfono'})
             return;
          }
-         const idCliente = resultado.rows[0].id;
+         const idCliente = resultado.rows[0].telefono;
 
          const nuevaSugerencia = new Sugerencia(null, descripcion, new Date(), idCliente);
 

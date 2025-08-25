@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { fetchActualizarEmpleado } from "../api/empleados";
+import { fetchActualizarEmpleado, fetchCrearEmpleado } from "../api/empleados";
 import type { Empleado } from "../types";
 
-export const useEmpleadoForm = (
+export const useFormEmpleado = (
   initialValues: Empleado,
   onSuccess: () => void,
   mode: "crear" | "editar" = "editar"
@@ -35,6 +35,18 @@ export const useEmpleadoForm = (
       nuevosErrores.rol = "El rol es obligatorio";
     }
 
+    // Validaciones modo crear: dni y password obligatorios
+    if (mode === "crear") {
+      if (!editValues.dni?.trim()) {
+        nuevosErrores.dni = "El dni es obligatorio";
+      } else if (!/^\d+$/.test(editValues.dni.trim())) {
+        nuevosErrores.dni = "El dni debe contener solo números";
+      } 
+      if (!editValues.password?.trim()) {
+        nuevosErrores.password = "La contraseña es obligatoria";
+      }
+    }
+
     // Validaciones opcionales
     if (editValues.telefono && !/^[\d+]+$/.test(editValues.telefono)) {
       nuevosErrores.telefono = "Solo números y '+'";
@@ -60,14 +72,19 @@ export const useEmpleadoForm = (
         ...editValues,
         telefono: editValues.telefono?.trim() || null,
         correo: editValues.correo?.trim() || null,
+        visibilidad: true,
       };
 
-      await fetchActualizarEmpleado(payload);
-      alert(
-        `Empleado ${mode === "crear" ? "creado" : "actualizado"} correctamente`
-      );
+      if (mode === "crear") {
+        console.log(payload);
 
-      // ✅ Solo acá se llama a onSuccess()
+        await fetchCrearEmpleado(payload);
+        alert("Empleado creado correctamente");
+      } else {
+        await fetchActualizarEmpleado(payload);
+        alert("Empleado actualizado correctamente");
+      }
+
       onSuccess();
     } catch (error) {
       if (error instanceof Error) alert(error.message);

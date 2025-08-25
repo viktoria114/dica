@@ -7,13 +7,11 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  ThemeProvider,
   Toolbar,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { Outlet, useNavigate } from "react-router-dom";
-import theme from "../services/theme";
 
 const pages = [
   { text: "Inicio", path: "/inicio" },
@@ -44,7 +42,6 @@ export const NavBar = () => {
 
   return (
     <>
-      <ThemeProvider theme={theme}>
         {/* Encabezado fijo */}
         <Box sx={{ backgroundColor: "primary.main", textAlign: "center", py: 4 }}>
           <Typography variant="h2" sx={{ color: "white", fontWeight: "800" }}>
@@ -108,7 +105,6 @@ export const NavBar = () => {
             </Box>
           </Toolbar>
         </AppBar>
-      </ThemeProvider>
       <Outlet />
     </>
   );
