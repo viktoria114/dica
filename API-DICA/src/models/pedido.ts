@@ -1,12 +1,12 @@
 export class Pedido {
     public hora: string;
-    public estado: string;
+    public fk_estado: number;
 
     constructor(
         public id: number | null,
         public fk_fecha: Date | null = new Date(),
         hora: string | null = null,
-        estado: string | null = null,
+        fk_estado: number | null = null,   // ahora recibe id del estado
         public fk_empleado: number | null,
         public fk_cliente: number | null,
         public ubicacion: string,
@@ -16,19 +16,13 @@ export class Pedido {
         // Hora por defecto
         this.hora = hora ?? Pedido.obtenerHoraActual();
 
-        // Estado por defecto
-        this.estado = estado ?? "pendiente";
+        // Estado por defecto (1 = pendiente)
+        this.fk_estado = fk_estado ?? 1;
 
         // Validación de la hora
         const horaRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
         if (!horaRegex.test(this.hora)) {
             throw new Error("La hora debe tener el formato HH:MM.");
-        }
-
-        // Validación de estado
-        const estadosPermitidos = ["pendiente", "en preparación", "listo", "entregado", "cancelado"];
-        if (!estadosPermitidos.includes(this.estado.toLowerCase())) {
-            throw new Error(`El estado debe ser uno de: ${estadosPermitidos.join(", ")}.`);
         }
 
         // Validación de cliente
@@ -60,3 +54,4 @@ export class Pedido {
         return `${horas}:${minutos}`;
     }
 }
+
