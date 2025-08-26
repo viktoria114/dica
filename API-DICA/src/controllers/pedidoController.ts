@@ -7,9 +7,9 @@ import { MessagePort } from 'worker_threads';
 export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
   try {
-    const { fk_empleado, fk_cliente, ubicacion, observacion, items_menu } =
-      req.body;
+    const { fk_cliente, ubicacion, observacion, items_menu } = req.body;
     const rol = (req as any).rol; // <- aquí tenés el rol desde el token (ya lo usaste en otros endpoints)
+    const fk_empleado = (req as any).dni;
 
     // Validar que las cantidades sean correctas
     for (const item of items_menu) {
@@ -38,12 +38,13 @@ export const crearPedido = async (req: Request, res: Response) => {
       ubicacion,
       observacion,
       true,
+      false, // pagado por defecto en false
     );
 
     // Insertar el pedido
     const pedidoQuery = `
-            INSERT INTO pedidos (fecha, hora, id_estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO pedidos (fecha, hora, id_estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad, pagado)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id;
         `;
     const { rows: pedidoRows } = await client.query(pedidoQuery, [
@@ -126,6 +127,7 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       fk_cliente,
       ubicacion,
       observacion,
+      
     );
 
     const { rows } = await pool.query(query, [
@@ -334,10 +336,11 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
 
     // Definir transiciones válidas por rol
     const transiciones: Record<string, Record<number, number>> = {
-      cajero: { 6: 1, 3: 5 },
+      agente: { 6: 7 },
+      cajero: { 7: 1, 3: 5 },
       cocinero: { 1: 2, 2: 3 }, // pendiente -> en preparación
       repartidor: { 3: 4, 4: 5 }, // por entregar -> entregado
-      admin: { 6: 1, 1: 2, 2: 3, 3: 4, 4: 5 }, // ejemplo: el sistema o admin avanza estos estados
+      admin: { 6: 7, 7: 1, 1: 2, 2: 3, 3: 4, 4: 5 }, // ejemplo: el sistema o admin avanza estos estados
     };
 
     // Verificar si el rol puede hacer la transición desde el estado actual
@@ -361,6 +364,13 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
       id,
     ]);
 
+    // Insertamos el registro en "registro_de_estados"
+    const insertRegistroQuery = `
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+    `;
+    await pool.query(insertRegistroQuery, [id, nuevaTransicion]);
+
     res.json({
       message: 'Estado actualizado correctamente',
       pedido: updatedRows[0],
@@ -368,6 +378,78 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al actualizar Estado' });
+  }
+};
+
+export const retrocederEstadoPedido = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const rol = (req as any).rol;
+
+  try {
+    const pedidoQuery = `
+      SELECT id_estado 
+      FROM pedidos
+      WHERE id = $1;
+    `;
+    const { rows } = await pool.query(pedidoQuery, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Pedido no encontrado' });
+    }
+
+    const estadoActual = rows[0].id_estado;
+
+    // Si ya está en el primer estado, no se puede retroceder más
+    if (estadoActual === 6) {
+      return res
+        .status(400)
+        .json({ message: 'El pedido ya está en el primer estado' });
+    }
+
+    // Definir transiciones válidas hacia atrás por rol
+    const retrocesos: Record<string, Record<number, number>> = {
+      admin: { 5: 4, 4: 3, 3: 2, 2: 1, 1: 7, 7: 6 },
+      repartidor: { 5: 4, 4: 3 }, 
+      cocinero: { 3: 2, 2: 1 }, 
+      cajero: { 5: 3, 1: 7 },
+      agente: { 7: 6 },
+    };
+
+    // Verificar si el rol puede retroceder desde el estado actual
+    const nuevaTransicion = retrocesos[rol]?.[estadoActual];
+
+    if (!nuevaTransicion) {
+      return res
+        .status(403)
+        .json({ message: `No tienes permisos para retroceder este estado` });
+    }
+
+    // Actualizamos el pedido al nuevo estado
+    const updateQuery = `
+      UPDATE pedidos
+      SET id_estado = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const { rows: updatedRows } = await pool.query(updateQuery, [
+      nuevaTransicion,
+      id,
+    ]);
+
+    // Insertamos el registro en "registro_de_estados"
+    const insertRegistroQuery = `
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+    `;
+    await pool.query(insertRegistroQuery, [id, nuevaTransicion]);
+
+    res.json({
+      message: 'Estado retrocedido correctamente',
+      pedido: updatedRows[0],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al retroceder Estado' });
   }
 };
 
@@ -392,9 +474,9 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     let nuevoEstado: number;
 
     if (rol === 'agente') {
-      nuevoEstado = 7; // Por Cancelar
+      nuevoEstado = 8; // Por Cancelar
     } else {
-      nuevoEstado = 8; // Cancelado
+      nuevoEstado = 9; // Cancelado
     }
 
     // Actualizamos el estado
@@ -409,8 +491,15 @@ export const cancelarPedido = async (req: Request, res: Response) => {
       id,
     ]);
 
+    // Insertamos el registro en "registro_de_estados"
+    const insertRegistroQuery = `
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+    `;
+    await pool.query(insertRegistroQuery, [id, nuevoEstado]);
+
     res.json({
-      message: `Pedido actualizado al estado ${nuevoEstado}`,
+      message: `Pedido actualizado al estado ${nuevoEstado} `,
       pedido: updatedRows[0],
     });
   } catch (error) {
@@ -418,3 +507,40 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error al cancelar el pedido' });
   }
 };
+
+export const pedidoPagado = async (req: Request, res: Response) => {
+   const { id } = req.params;
+
+   try {
+     // Verificar que el pedido exista
+     const pedidoQuery = `
+       SELECT pagado 
+       FROM pedidos
+       WHERE id = $1;
+     `;
+     let { rows } = await pool.query(pedidoQuery, [id]);
+
+     if (rows.length === 0) {
+       return res.status(404).json({ message: 'Pedido no encontrado' });
+     }
+
+     let pagado = Boolean(rows[0].pagado);
+     pagado = !pagado;
+     // Actualizamos el estado a "Pagado"
+     const updateQuery = `
+       UPDATE pedidos
+       SET pagado = $1
+       WHERE id = $2
+       RETURNING *;
+     `;
+     const { rows: updatedRows } = await pool.query(updateQuery, [pagado, id]);
+
+     res.json({
+       message: 'Pedido marcado como pagado',
+       pedido: updatedRows[0],
+     });
+   } catch (error) {
+     console.error(error);
+     res.status(500).json({ message: 'Error al marcar el pedido como pagado' });
+   }
+}

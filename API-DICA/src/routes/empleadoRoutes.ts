@@ -9,7 +9,7 @@ router.get('/', verifyToken, checkRole(['admin', 'agente']), getEmpleadosVisible
 router.get('/invisibles',verifyToken, checkRole(['admin']), getEmpleadosInvisibles); //getEmpleados
 router.get('/tel/:tel', verifyToken, checkRole(['admin', 'agente']),getEmpleadoPorTelefono); //getEmpleadoByTel
 router.get('/dni/:id',verifyToken, checkRole(['admin']), getEmpleadoPordni); //getEmpleadoBydni
-router.post('/',verifyToken, checkRole(['admin']), crearEmpleado);//createEmpleado
+router.post('/', crearEmpleado);//createEmpleado
 router.put('/:id',verifyToken, checkRole(['admin']), actualizarEmpleado); // actualizarEmpleado
 //router.put('/',verifyToken, actualizarEmpleado_POVEmpledo); // actualizarEmpleado_POVEmpled
 router.put('/restaurar/:id',verifyToken, checkRole(['admin']), restaurarEmpleado ) //restaurarEmpleado
