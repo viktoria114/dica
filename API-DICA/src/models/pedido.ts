@@ -1,6 +1,7 @@
 export class Pedido {
     public hora: string;
     public fk_estado: number;
+    public pagado: boolean;   // <-- nuevo campo
 
     constructor(
         public id: number | null,
@@ -12,12 +13,16 @@ export class Pedido {
         public ubicacion: string,
         public observacion: string,
         public visibilidad: boolean = true,
+        pagado: boolean = false,           // <-- valor por defecto false
     ) {
         // Hora por defecto
         this.hora = hora ?? Pedido.obtenerHoraActual();
 
         // Estado por defecto (1 = pendiente)
         this.fk_estado = fk_estado ?? 1;
+
+        // Pagado por defecto
+        this.pagado = pagado;
 
         // Validación de la hora
         const horaRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -45,6 +50,11 @@ export class Pedido {
         if (typeof visibilidad !== "boolean") {
             throw new Error("La visibilidad debe ser un valor booleano.");
         }
+
+        // Validación de pagado
+        if (typeof this.pagado !== "boolean") {
+            throw new Error("El campo 'pagado' debe ser booleano.");
+        }
     }
 
     private static obtenerHoraActual(): string {
@@ -54,4 +64,3 @@ export class Pedido {
         return `${horas}:${minutos}`;
     }
 }
-

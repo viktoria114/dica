@@ -11,7 +11,9 @@ import {
   eliminarItemsPedido,
   getItemPedido,
   actualizarEstadoPedido,
+  retrocederEstadoPedido,
   cancelarPedido,
+  pedidoPagado,
 } from '../controllers/pedidoController';
 const router = Router();
 
@@ -28,8 +30,7 @@ router.delete('/item/:id', eliminarItemsPedido);
 router.get('/item/:id', getItemPedido);
 router.put('/estado/:id', verifyToken, actualizarEstadoPedido);
 router.put('/cancelar/:id',verifyToken, cancelarPedido);
-//router.put('/estado/:id', retrocederEstadoPedido)
-//router.put('/estado/:id', pedidoPagado)
-//router.put('/estado/:id', pedidoRenbolsado)
+router.put('/retroceder_estado/:id',verifyToken, retrocederEstadoPedido)
+router.put('/pagado/:id', pedidoPagado)
 
 export default router;
