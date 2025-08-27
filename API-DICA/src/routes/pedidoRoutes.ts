@@ -13,6 +13,7 @@ import {
   actualizarEstadoPedido,
   retrocederEstadoPedido,
   cancelarPedido,
+  deshacerCancelarPedido,
   pedidoPagado,
 } from '../controllers/pedidoController';
 const router = Router();
@@ -29,8 +30,9 @@ router.post('/item/:id', agregarItemPedido);
 router.delete('/item/:id', eliminarItemsPedido);
 router.get('/item/:id', getItemPedido);
 router.put('/estado/:id', verifyToken, actualizarEstadoPedido);
-router.put('/cancelar/:id',verifyToken, cancelarPedido);
 router.put('/retroceder_estado/:id',verifyToken, retrocederEstadoPedido)
+router.put('/cancelar/:id',verifyToken, cancelarPedido);
+router.put('/deshacer_cancelar/:id',verifyToken, deshacerCancelarPedido);
 router.put('/pagado/:id', pedidoPagado)
 
 export default router;
