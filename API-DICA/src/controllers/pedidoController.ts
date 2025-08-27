@@ -8,7 +8,7 @@ export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
   try {
     const { fk_cliente, ubicacion, observacion, items_menu } = req.body;
-    const rol = (req as any).rol; // <- aquí tenés el rol desde el token (ya lo usaste en otros endpoints)
+    const rol = (req as any).rol;
     const fk_empleado = (req as any).dni;
 
     // Validar que las cantidades sean correctas
@@ -20,11 +20,64 @@ export const crearPedido = async (req: Request, res: Response) => {
       }
     }
 
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
-    // Estado inicial depende del rol
-    let estadoInicial = 1; // default pendiente
-    if (rol === 'agente') {
+    // 🔹 VALIDACIÓN DE STOCK
+    for (const item of items_menu) {
+      // Traer ingredientes que requiere ese menú
+      const ingredientesQuery = `
+        SELECT ms.fk_stock, ms.cantidad_necesaria
+        FROM menu_stock ms
+        WHERE ms.fk_menu = $1;
+      `;
+      const { rows: ingredientes } = await client.query(ingredientesQuery, [item.id_menu]);
+
+      for (const ing of ingredientes) {
+        const totalNecesario = ing.cantidad_necesaria * item.cantidad;
+
+        // 1️⃣ Validar contra stock principal
+        const stockQuery = `SELECT stock_actual FROM stock WHERE id = $1`;
+        const { rows: stockRows } = await client.query(stockQuery, [ing.fk_stock]);
+
+        if (stockRows.length === 0) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({
+            message: `No existe el stock con id=${ing.fk_stock} para el menú ${item.id_menu}`,
+          });
+        }
+
+        if (stockRows[0].stock_actual < totalNecesario) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({
+            message: `Stock insuficiente para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
+          });
+        }
+
+        // 2️⃣ Validar contra registro_stock (FIFO)
+        let restante = totalNecesario;
+
+        const registrosQuery = `
+          SELECT id, cantidad_actual
+          FROM registro_stock
+          WHERE fk_stock = $1 AND cantidad_actual > 0
+          ORDER BY fk_fecha ASC;
+        `;
+        const { rows: registros } = await client.query(registrosQuery, [ing.fk_stock]);
+
+        let disponible = registros.reduce((acc, r) => acc + r.cantidad_actual, 0);
+
+        if (disponible < totalNecesario) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({
+            message: `Stock insuficiente (registro_stock) para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
+          });
+        }
+      }
+    }
+
+    // 🔹 Estado inicial depende del rol
+    let estadoInicial = 1; // pendiente
+    if (rol === "agente") {
       estadoInicial = 6; // a confirmar
     }
 
@@ -38,15 +91,15 @@ export const crearPedido = async (req: Request, res: Response) => {
       ubicacion,
       observacion,
       true,
-      false, // pagado por defecto en false
+      false // pagado por defecto en false
     );
 
     // Insertar el pedido
     const pedidoQuery = `
-            INSERT INTO pedidos (fecha, hora, id_estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad, pagado)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING id;
-        `;
+      INSERT INTO pedidos (fecha, hora, id_estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad, pagado)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id;
+    `;
     const { rows: pedidoRows } = await client.query(pedidoQuery, [
       new Date(),
       pedido.hora,
@@ -61,28 +114,28 @@ export const crearPedido = async (req: Request, res: Response) => {
 
     const pedidoId = pedidoRows[0].id;
 
-    // 👇 Insertar el registro inicial del estado
+    // Registro inicial de estado
     const registroEstadoQuery = `
-            INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
-            VALUES ($1, $2, $3, $4);
-        `;
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
+      VALUES ($1, $2, $3, $4);
+    `;
     await client.query(registroEstadoQuery, [
       pedidoId,
-      pedido.fk_estado, // por defecto = 1 (pendiente)
-      new Date(), // fecha actual
-      pedido.hora, // hora actual
+      pedido.fk_estado,
+      new Date(),
+      pedido.hora,
     ]);
 
-    // Insertar en pedidos_menu
+    // Insertar ítems del menú
     const pedido_menuQuery = `
-            INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
-            VALUES ($1, $2, $3, $4);
-        `;
+      INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
+      VALUES ($1, $2, $3, $4);
+    `;
 
     for (const item of items_menu) {
       const result = await client.query(
-        'SELECT precio FROM menu WHERE id = $1',
-        [item.id_menu],
+        "SELECT precio FROM menu WHERE id = $1",
+        [item.id_menu]
       );
       const precio = result.rows[0].precio * item.cantidad;
 
@@ -94,17 +147,18 @@ export const crearPedido = async (req: Request, res: Response) => {
       ]);
     }
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
-    res.status(201).json({ id: pedidoId, message: 'Pedido creado con éxito' });
+    res.status(201).json({ id: pedidoId, message: "Pedido creado con éxito" });
   } catch (error) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({ message: 'Error al crear el pedido' });
+    res.status(500).json({ message: "Error al crear el pedido" });
   } finally {
     client.release();
   }
 };
+
 
 export const actualizarPedido = async (req: Request, res: Response) => {
   try {
@@ -313,44 +367,110 @@ export const getItemPedido = async (req: Request, res: Response) => {
 export const actualizarEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
+  const client = await pool.connect();
 
   try {
+    await client.query("BEGIN");
+
     const pedidoQuery = `
       SELECT id_estado 
       FROM pedidos
       WHERE id = $1;
     `;
-    const { rows } = await pool.query(pedidoQuery, [id]);
+    const { rows } = await client.query(pedidoQuery, [id]);
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Pedido no encontrado' });
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Pedido no encontrado" });
     }
 
     const estadoActual = rows[0].id_estado;
 
-    // Si ya está en el último estado, no permitimos avanzar más
     if (estadoActual === 5) {
+      await client.query("ROLLBACK");
       return res
         .status(400)
-        .json({ message: 'El pedido ya está en el último estado' });
+        .json({ message: "El pedido ya está en el último estado" });
     }
 
     // Definir transiciones válidas por rol
     const transiciones: Record<string, Record<number, number>> = {
       agente: { 6: 7 },
       cajero: { 7: 1, 3: 5 },
-      cocinero: { 1: 2, 2: 3 }, // pendiente -> en preparación
-      repartidor: { 3: 4, 4: 5 }, // por entregar -> entregado
-      admin: { 6: 7, 7: 1, 1: 2, 2: 3, 3: 4, 4: 5 }, // ejemplo: el sistema o admin avanza estos estados
+      cocinero: { 1: 2, 2: 3 },
+      repartidor: { 3: 4, 4: 5 },
+      admin: { 6: 7, 7: 1, 1: 2, 2: 3, 3: 4, 4: 5 },
     };
 
-    // Verificar si el rol puede hacer la transición desde el estado actual
     const nuevaTransicion = transiciones[rol]?.[estadoActual];
 
     if (!nuevaTransicion) {
+      await client.query("ROLLBACK");
       return res
         .status(403)
-        .json({ message: 'No tienes permisos para cambiar este estado' });
+        .json({ message: "No tienes permisos para cambiar este estado" });
+    }
+
+    // 👉 Si el cambio es de 2 -> 3, descontamos stock
+    if (estadoActual === 2 && nuevaTransicion === 3) {
+      const ingredientesQuery = `
+        SELECT ms.fk_stock, ms.cantidad_necesaria, pm.cantidad AS cantidad_pedida
+        FROM pedidos_menu pm
+        JOIN menu_stock ms ON pm.fk_menu = ms.fk_menu
+        WHERE pm.fk_pedido = $1;
+      `;
+      const { rows: ingredientes } = await client.query(ingredientesQuery, [id]);
+
+      for (const ing of ingredientes) {
+        let descuento = ing.cantidad_necesaria * ing.cantidad_pedida;
+
+        // 🔹 Descontar del stock principal
+        const updateStockQuery = `
+          UPDATE stock
+          SET stock_actual = stock_actual - $1
+          WHERE id = $2;
+        `;
+        await client.query(updateStockQuery, [descuento, ing.fk_stock]);
+
+        // 🔹 Descontar del registro_stock (FIFO)
+        while (descuento > 0) {
+          const registroQuery = `
+            SELECT id, cantidad_actual
+            FROM registro_stock
+            WHERE fk_stock = $1 AND cantidad_actual > 0
+            ORDER BY fk_fecha ASC
+            LIMIT 1;
+          `;
+          const { rows: registros } = await client.query(registroQuery, [ing.fk_stock]);
+
+          if (registros.length === 0) {
+            throw new Error(`No hay suficiente stock en registro_stock para el ingrediente ${ing.fk_stock}`);
+          }
+
+          const registro = registros[0];
+          const cantidadDisponible = registro.cantidad_actual;
+
+          if (cantidadDisponible >= descuento) {
+            // Se descuenta todo del mismo registro
+            const updateRegistro = `
+              UPDATE registro_stock
+              SET cantidad_actual = cantidad_actual - $1
+              WHERE id = $2;
+            `;
+            await client.query(updateRegistro, [descuento, registro.id]);
+            descuento = 0;
+          } else {
+            // Se descuenta lo que queda y seguimos con el siguiente registro
+            const updateRegistro = `
+              UPDATE registro_stock
+              SET cantidad_actual = 0
+              WHERE id = $1;
+            `;
+            await client.query(updateRegistro, [registro.id]);
+            descuento -= cantidadDisponible;
+          }
+        }
+      }
     }
 
     // Actualizamos el pedido al nuevo estado
@@ -360,7 +480,7 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
       WHERE id = $2
       RETURNING *;
     `;
-    const { rows: updatedRows } = await pool.query(updateQuery, [
+    const { rows: updatedRows } = await client.query(updateQuery, [
       nuevaTransicion,
       id,
     ]);
@@ -370,59 +490,116 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
     `;
-    await pool.query(insertRegistroQuery, [id, nuevaTransicion]);
+    await client.query(insertRegistroQuery, [id, nuevaTransicion]);
+
+    await client.query("COMMIT");
 
     res.json({
-      message: 'Estado actualizado correctamente',
+      message: "Estado actualizado correctamente",
       pedido: updatedRows[0],
     });
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({ message: 'Error al actualizar Estado' });
+    res.status(500).json({ message: "Error al actualizar Estado" });
+  } finally {
+    client.release();
   }
 };
+
 
 export const retrocederEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
+  const client = await pool.connect();
 
   try {
+    await client.query("BEGIN");
+
     const pedidoQuery = `
       SELECT id_estado 
       FROM pedidos
       WHERE id = $1;
     `;
-    const { rows } = await pool.query(pedidoQuery, [id]);
+    const { rows } = await client.query(pedidoQuery, [id]);
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Pedido no encontrado' });
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Pedido no encontrado" });
     }
 
     const estadoActual = rows[0].id_estado;
 
-    // Si ya está en el primer estado, no se puede retroceder más
     if (estadoActual === 6) {
+      await client.query("ROLLBACK");
       return res
         .status(400)
-        .json({ message: 'El pedido ya está en el primer estado' });
+        .json({ message: "El pedido ya está en el primer estado" });
     }
 
-    // Definir transiciones válidas hacia atrás por rol
     const retrocesos: Record<string, Record<number, number>> = {
       admin: { 5: 4, 4: 3, 3: 2, 2: 1, 1: 7, 7: 6 },
-      repartidor: { 5: 4, 4: 3 }, 
-      cocinero: { 3: 2, 2: 1 }, 
+      repartidor: { 5: 4, 4: 3 },
+      cocinero: { 3: 2, 2: 1 },
       cajero: { 5: 3, 1: 7 },
       agente: { 7: 6 },
     };
 
-    // Verificar si el rol puede retroceder desde el estado actual
     const nuevaTransicion = retrocesos[rol]?.[estadoActual];
 
     if (!nuevaTransicion) {
+      await client.query("ROLLBACK");
       return res
         .status(403)
-        .json({ message: `No tienes permisos para retroceder este estado` });
+        .json({ message: "No tienes permisos para retroceder este estado" });
+    }
+
+    // 👇 Revertir stock si pasamos de 3 → 2
+    if (estadoActual === 3 && nuevaTransicion === 2) {
+      const ingredientesQuery = `
+        SELECT ms.fk_stock, ms.cantidad_necesaria, pm.cantidad AS cantidad_pedida
+        FROM pedidos_menu pm
+        JOIN menu_stock ms ON pm.fk_menu = ms.fk_menu
+        WHERE pm.fk_pedido = $1;
+      `;
+      const { rows: ingredientes } = await client.query(ingredientesQuery, [id]);
+
+      for (const ing of ingredientes) {
+        const devolucion = ing.cantidad_necesaria * ing.cantidad_pedida;
+
+        // 1️⃣ Devolver al stock principal
+        const updateStockQuery = `
+          UPDATE stock
+          SET stock_actual = stock_actual + $1
+          WHERE id = $2;
+        `;
+        await client.query(updateStockQuery, [devolucion, ing.fk_stock]);
+
+        // 2️⃣ Devolver al registro_stock (reponer en FIFO inverso)
+        let restante = devolucion;
+
+        const registrosQuery = `
+          SELECT id, cantidad_actual
+          FROM registro_stock
+          WHERE fk_stock = $1
+          ORDER BY fk_fecha DESC; -- reposición en orden inverso
+        `;
+        const { rows: registros } = await client.query(registrosQuery, [ing.fk_stock]);
+
+        for (const reg of registros) {
+          if (restante <= 0) break;
+
+          // devolvemos en este registro
+          const updateRegistroQuery = `
+            UPDATE registro_stock
+            SET cantidad_actual = cantidad_actual + $1
+            WHERE id = $2;
+          `;
+          // devolvemos todo de una vez (no hay límite superior porque es reponer)
+          await client.query(updateRegistroQuery, [restante, reg.id]);
+          restante = 0; 
+        }
+      }
     }
 
     // Actualizamos el pedido al nuevo estado
@@ -432,25 +609,30 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
       WHERE id = $2
       RETURNING *;
     `;
-    const { rows: updatedRows } = await pool.query(updateQuery, [
+    const { rows: updatedRows } = await client.query(updateQuery, [
       nuevaTransicion,
       id,
     ]);
 
-    // Insertamos el registro en "registro_de_estados"
+    // Registro del nuevo estado
     const insertRegistroQuery = `
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
     `;
-    await pool.query(insertRegistroQuery, [id, nuevaTransicion]);
+    await client.query(insertRegistroQuery, [id, nuevaTransicion]);
+
+    await client.query("COMMIT");
 
     res.json({
-      message: 'Estado retrocedido correctamente',
+      message: "Estado retrocedido correctamente",
       pedido: updatedRows[0],
     });
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error(error);
-    res.status(500).json({ message: 'Error al retroceder Estado' });
+    res.status(500).json({ message: "Error al retroceder Estado" });
+  } finally {
+    client.release();
   }
 };
 
@@ -516,7 +698,6 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error al cancelar el pedido' });
   }
 };
-
 
 export const deshacerCancelarPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
