@@ -18,10 +18,11 @@ export class Stock {
         throw new Error("El campo de vencimiento no puede estar vacío o ser negativo")
     }
 
-    const tiposPermitidos = ["PERECEDERO, NO PERECEDERO"];
-      if (!tiposPermitidos.includes(medida.toUpperCase())) {
-          throw new Error(`Los tipos debe ser uno de: ${tiposPermitidos.join(", ")}.`);
-      }
+    const tiposPermitidos = ["PERECEDERO", "NO PERECEDERO"];
+    if (!tiposPermitidos.includes(tipo.toUpperCase())) {
+        throw new Error(`Los tipos debe ser uno de: ${tiposPermitidos.join(", ")}.`);
+    }
+
      
     if (!stock_minimo || stock_minimo <= 0){
         throw new Error("El campo de stock mínimo no puede estar vacío, ni ser negativo o cero")
