@@ -37,6 +37,143 @@ export const crearStock = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
+export const actualizarStock = async(req: Request, res: Response): Promise<void> => {
+    try{
+        const { id } = req.params;
+        const { nombre, stock_actual, vencimiento, tipo, stock_minimo, medida} = req.body;
+
+        const query = `
+        UPDATE stock
+        SET nombre = $1, stock_actual = $2, vencimiento = $3, tipo = $4, stock_minimo = $5, medida = $6
+        WHERE id = $7
+        RETURNING *;
+        `;
+
+        const nuevo_stock = new Stock(null,nombre, stock_actual, vencimiento, tipo, stock_minimo, medida)
+
+        const valores = [
+            nuevo_stock.nombre,
+            nuevo_stock.stock_actual,
+            nuevo_stock.vencimiento,
+            nuevo_stock.tipo,
+            nuevo_stock.stock_minimo,
+            nuevo_stock.medida,
+            id
+        ];
+
+        const resultado = await pool.query(query, valores);
+
+        res.status(200).json({
+            mensaje: 'Stock actualizado correctamente',
+            stock: resultado.rows[0],
+        });
+    }catch (error: any) {
+        console.error('Error al actualizar stock:', error.message);
+        res.status(500).json({ error: error.message})  //REVISAR POR EL FRONTEND
+    }                                                  
+}
+
+
+export const eliminarstock = async (req: Request, res: Response): Promise<void> => {
+  try {
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({ error: 'id requerido' });
+        return;
+      }
+
+      // Buscar stock actual
+      const consulta = await pool.query(`SELECT * FROM stock WHERE id = $1`, [id]);
+      const actual = consulta.rows[0];
+
+      if (!actual) {
+        res.status(404).json({ error: 'stock no encontrado' });
+        return;
+      }
+
+      const stock = new Stock(
+        actual.id,
+        actual.nombre,
+        actual.stock_actual,
+        actual.vencimiento,
+        actual.tipo,
+        actual.stock_minimo,
+        actual.medida,
+        actual.visibilidad
+      );
+      stock.desactivar();
+
+      const resultado = await pool.query(
+        `UPDATE stock SET visibilidad = false WHERE id = $1 RETURNING *;`,
+        [stock.id]
+      );
+
+      await pool.query(               //SoftDelete a todos los registros_stock asociados
+      `UPDATE registro_stock SET visibilidad = false WHERE fk_stock = $1;`,
+      [stock.id]
+    );
+
+      res.status(200).json({
+        mensaje: 'Stock eliminado correctamente (soft delete)',
+        stock: resultado.rows[0],
+      });
+    } catch (error: any) {
+      console.error('Error al eliminar stock:', error.message);
+      res.status(400).json({ error: error.message });   //REVISAR PARA LO DEL FRONTEND
+    }
+}
+
+export const restaurarStock = async (req:Request, res:Response): Promise<void> =>{
+try {
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({ error: 'dni requerido' });
+        return;
+      }
+
+      // Buscar stock actual
+      const consulta = await pool.query(`SELECT * FROM stock WHERE id = $1`, [id]);
+      const actual = consulta.rows[0];
+
+      if (!actual) {
+        res.status(404).json({ error: 'stock no encontrado' });
+        return;
+      }
+
+      const stock = new Stock(
+        actual.id,
+        actual.nombre,
+        actual.stock_actual,
+        actual.vencimiento,
+        actual.tipo,
+        actual.stock_minimo,
+        actual.medida,
+        actual.visibilidad
+      );
+      stock.reactivar();
+
+      const resultado = await pool.query(
+        `UPDATE stock SET visibilidad = true WHERE id = $1 RETURNING *;`,
+        [stock.id]
+      );
+
+      await pool.query(               //Restauramos también todos los registros_stock asociados
+      `UPDATE registro_stock SET visibilidad = true WHERE fk_stock = $1;`,
+      [stock.id]
+    );
+
+      res.status(200).json({
+        mensaje: 'stock restaurado correctamente',
+        stock: resultado.rows[0],
+      });
+    } catch (error: any) {
+      console.error('Error al restaurar el stock:', error.message);
+      res.status(400).json({ error: error.message });       //REVISAR PARA EL FRONTEND
+    }
+}
+
 export const getStockVisible = async (req: Request, res: Response): Promise<void> =>{
     try{
         const result = await pool.query<Stock>("SELECT * FROM stock WHERE visibilidad = TRUE");
