@@ -65,34 +65,71 @@ export const crearMenu = async (req: Request, res: Response) => {
 };
 
 export const actualizarMenu = async (req: Request, res: Response) => {
+    const client: PoolClient = await pool.connect();
     try {
         const { id } = req.params;
-        const { nombre, precio, descripcion, categoria} = req.body;
+        const { nombre, precio, descripcion, categoria, stocks} = req.body;
 
-        const query = `
+        /**
+         * `stocks` debe ser un arreglo con la forma:
+         * [
+         *   { id_stock: number, cantidad_necesaria: number },
+         *   { id_stock: number, cantidad_necesaria: number }
+         * ]
+        */
+
+        if (!Array.isArray(stocks) || stocks.length === 0) {
+            return res.status(400).json({ message: "Se requiere al menos un stock asociado" });
+        }
+        await client.query("BEGIN");
+
+        const queryMenu = `
             UPDATE menu
             SET nombre = $1, precio = $2, descripcion = $3, categoria = $4
             WHERE id = $5
             RETURNING *;
         `;
 
-        const menu = new Menu(null, nombre, precio, descripcion, categoria)
+        const menu = new Menu(null, nombre,precio,descripcion,categoria, true)
 
-        const { rows } = await pool.query(query, [
+        const values = [
             menu.nombre,
             menu.precio,
             menu.descripcion,
             menu.categoria,
             id
-        ]);
-        if (rows.length === 0) {
-            return res.status(404).json({ message: "Menú no encontrado" });
+        ]
+
+        const { rows: menuRows } = await client.query(queryMenu, values);
+
+        if (menuRows.length === 0) {
+            throw new Error("El menu no existe");
         }
 
-        res.json(rows[0]);
-    } catch (error) {
+        // Limpiar relaciones previas
+        await client.query("DELETE FROM menu_stock WHERE fk_menu = $1", [id]);
+
+        // Insertar las nuevas relaciones
+        for (const item of stocks) {
+            if (!item.id_stock || typeof item.cantidad_necesaria !== "number") {
+                throw new Error("Cada stock debe tener 'id_stock' y 'cantidad_necesaria' válidos");
+            }
+            await client.query(
+                "INSERT INTO menu_stock (fk_menu, fk_stock, cantidad_necesaria) VALUES ($1, $2, $3)",
+                [id, item.id_stock, item.cantidad_necesaria]
+            );
+        }
+
+        await client.query("COMMIT");
+
+        res.status(200).json("Menu y cantidades actualizadas con exito");
+
+    } catch (error: any) {
+        await client.query("ROLLBACK");
         console.error(error);
-        res.status(500).json({ message: "Error al actualizar el menú" });
+        res.status(500).json({ message: "Error al actualizar el menu", error: error.message });
+    } finally {
+        client.release();
     }
 };
 
