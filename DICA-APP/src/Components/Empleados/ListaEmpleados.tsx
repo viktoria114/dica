@@ -1,52 +1,86 @@
-import { Box, Container } from "@mui/material";
+import { Box, Container, LinearProgress } from "@mui/material";
 import { FichaEmpleado } from "./FichaEmpleado";
 import type { Empleado } from "../../types";
-import { useGetEmpleados } from "../../hooks/useGetEmpleados";
 import { TextFieldSearchBar } from "../TextFieldSearchBar";
-import { useState } from "react";
+import { ModalBase } from "../common/ModalBase";
+import EmpleadoForm from "./FormEmpleado";
+import { useCallback, useState } from "react";
+import { useEmpleados } from "../../hooks/useEmpleados";
 
 const styleBox1 = {
-  bgcolor: "secondary.main",
+  bgcolor: "primary.main",
   boxShadow: 1,
   borderRadius: 2,
   p: 2,
   minWidth: 300,
   display: "grid",
-  gridTemplateColumns: { sm: "repeat(3, 1fr)", xs: "repeat(1,1fr)" },
+  gridTemplateColumns: { sm: "repeat(3, 1fr)", xs: "repeat(1, 1fr)" },
   gap: 2,
   justifyContent: "center",
   mb: 2,
 };
 
 export const ListaEmpleados = () => {
-  const { empleados, loading, error } = useGetEmpleados();
+ const { empleados, loading, error, modoPapelera, toggleInvisibles } = useEmpleados();
 
-  // Estado para manejar si hay búsqueda
+  // ✅ Estado para búsqueda
   const [empleadosMostrados, setEmpleadosMostrados] = useState<Empleado[]>([]);
+  const getLabel = useCallback((e: Empleado) => e.nombre_completo, []);
 
-  // Determinar lista a mostrar (si no hay búsqueda, mostrar todos)
+  // ✅ Estado para modal de creación
+  const [showForm, setShowForm] = useState(false);
+  const handleAdd = useCallback(() => setShowForm(true), []);
+
+  // ✅ si hay búsqueda, mostramos resultados; si no, usamos los del hook
   const listaParaRenderizar =
     empleadosMostrados.length > 0 ? empleadosMostrados : empleados;
 
   return (
-    <Container>
-      {loading && <p>Cargando empleados...</p>}
+    <>
+      {loading && <LinearProgress color="inherit" />}
       {error && <p>Error: {error}</p>}
+      <Container>
+        <TextFieldSearchBar<Empleado>
+          baseList={empleados}
+          getLabel={getLabel}
+          placeholder={"Buscar empleados por nombre..."}
+          onResults={setEmpleadosMostrados}
+          onAdd={handleAdd}
+          onShowInvisibles={toggleInvisibles}
+          disableAdd={modoPapelera}
+          papeleraLabel={modoPapelera ? "Volver" : "Papelera"}
+        />
 
-      <TextFieldSearchBar
-        list={empleados}
-        getLabel={(empleado) => empleado.nombre_completo}
-        onResults={(filtrados) => {
-          // Si hay texto en el search, guardar resultados filtrados
-          setEmpleadosMostrados(filtrados);
-        }}
-      />
+        <Box sx={styleBox1}>
+          {listaParaRenderizar.map((empleado) => (
+            <FichaEmpleado
+              key={empleado.dni}
+              empleado={empleado}
+              modoPapelera={modoPapelera}
+            />
+          ))}
+        </Box>
+      </Container>
 
-      <Box sx={styleBox1}>
-        {listaParaRenderizar.map((empleado: Empleado) => (
-          <FichaEmpleado key={empleado.dni} empleado={empleado} />
-        ))}
-      </Box>
-    </Container>
+      <ModalBase open={showForm} onClose={() => setShowForm(false)}>
+        <EmpleadoForm
+          modo="crear"
+          initialValues={{
+            nombre_completo: "",
+            username: "",
+            password: "",
+            correo: "",
+            telefono: "",
+            rol: "cajero", // valor por defecto
+            dni: "", // si es requerido por el tipo Empleado
+          }}
+          onSuccess={() => {
+            // refetchEmpleados?.();
+            setShowForm(false);
+          }}
+          onCancel={() => setShowForm(false)}
+        />
+      </ModalBase>
+    </>
   );
 };

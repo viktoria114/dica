@@ -132,6 +132,11 @@ export const eliminarstock = async (req: Request, res: Response): Promise<void> 
         `UPDATE stock SET visibilidad = false WHERE id = $1 RETURNING *;`,
         [stock.id]
       );
+
+      await pool.query(               //SoftDelete a todos los registros_stock asociados
+      `UPDATE registro_stock SET visibilidad = false WHERE fk_stock = $1;`,
+      [stock.id]
+    );
   
       res.status(200).json({
         mensaje: 'Stock eliminado correctamente (soft delete)',
@@ -177,6 +182,11 @@ try {
         `UPDATE stock SET visibilidad = true WHERE id = $1 RETURNING *;`,
         [stock.id]
       );
+
+      await pool.query(               //Restauramos también todos los registros_stock asociados
+      `UPDATE registro_stock SET visibilidad = true WHERE fk_stock = $1;`,
+      [stock.id]
+    );
   
       res.status(200).json({
         mensaje: 'stock restaurado correctamente',
@@ -208,44 +218,6 @@ export const validateLowStock = async (req: Request, res: Response) : Promise <v
     }
 }
 
-export const CrearRegistroStock = async (req: Request, res: Response): Promise<void> => {
-    const stockId = parseInt(req.params.id, 10);
-    const { cantidad } = req.body;
-
-    try {
-        const nuevoRegistro = new RegistroStock(null, cantidad, stockId, "disponible");
-
-        var query = `
-            INSERT INTO registro_stock (cantidad, fk_id_stock, fk_fecha, vencido)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id
-        `;
-
-        const valores = [nuevoRegistro.cantidad, nuevoRegistro.fk_stock, nuevoRegistro.fk_fecha];
-
-        const resultadoRegistro = await pool.query(query, valores);
-
-        query = `
-            UPDATE stock
-            SET stock_actual = stock_actual + $1
-            WHERE id = $2
-            RETURNING id;          
-        `;
-
-        const resultadoStock = await pool.query(query, [
-            nuevoRegistro.cantidad,
-            nuevoRegistro.fk_stock
-        ])
-
-        res.status(201).json({
-            mensaje: 'Registro de stock creado exitosamente.',
-            idRegistro: resultadoRegistro.rows[0].id
-        });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
 export const GetRegistrosStock = async (req: Request, res: Response): Promise<void> => {
     const stockId = parseInt(req.params.id, 10);
 
@@ -275,49 +247,8 @@ export const GetRegistrosStock = async (req: Request, res: Response): Promise<vo
     }
 };
 
-export const eliminarRegistroStock = async (req: Request, res: Response): Promise<void> => {
-    const registroId = parseInt(req.params.id, 10);
 
-    if (isNaN(registroId)) {
-        res.status(400).json({ error: 'ID de registro inválido.' });
-        return;
-    }
-
-    try {
-        const consultaExistencia = await pool.query(
-            'SELECT cantidad, fk_id_stock FROM registro_stock WHERE id = $1',
-            [registroId]
-        );
-
-        if (consultaExistencia.rowCount === 0) {
-            res.status(404).json({ error: 'Registro no encontrado.' });
-            return;
-        }
-
-        const { cantidad, fk_id_stock } = consultaExistencia.rows[0];
-
-        // Eliminar el registro
-        await pool.query(
-            'DELETE FROM registro_stock WHERE id = $1',
-            [registroId]
-        );
-
-        const query = `
-            UPDATE stock
-            SET stock_actual = stock_actual - $1
-            WHERE id = $2
-            RETURNING id;          
-        `;
-
-        await pool.query(query, [cantidad, fk_id_stock]);
-
-        res.status(200).json({ mensaje: 'Registro eliminado exitosamente.' });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-export const checkVencimientoStock = async(req: Request, res: Response) => {
+export const setVencimientoStock = async(req: Request, res: Response) => {
   const client = await pool.connect();
   try {
     const today = new Date();
@@ -334,9 +265,9 @@ export const checkVencimientoStock = async(req: Request, res: Response) => {
     for (const stock of stockRows) {
       // 2. Obtener registros de stock no vencidos
       const { rows: registros } = await client.query(`
-        SELECT id, cantidad, fk_fecha, vencido
+        SELECT id, cantidad_actual, fk_fecha, estado
         FROM registro_stock
-        WHERE fk_id_stock = $1 AND vencido = false
+        WHERE fk_id_stock = $1 AND estado = 'disponible'
       `, [stock.id]);
 
       for (const reg of registros) {
@@ -348,7 +279,7 @@ export const checkVencimientoStock = async(req: Request, res: Response) => {
           // Marcar como vencido
           await client.query(`
             UPDATE registro_stock
-            SET vencido = true
+            SET estado = 'vencido'
             WHERE id = $1
           `, [reg.id]);
 
@@ -357,7 +288,7 @@ export const checkVencimientoStock = async(req: Request, res: Response) => {
             UPDATE stock
             SET stock_actual = stock_actual::numeric - $1
             WHERE id = $2
-          `, [reg.cantidad, stock.id]);
+          `, [reg.cantidad_actual, stock.id]);
         }
       }
     }

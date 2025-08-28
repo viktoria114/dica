@@ -14,8 +14,11 @@ interface Usuario {
 // Función para buscar usuario por username
 const findByUsername = async (username: string): Promise<Usuario | null> => {
   const result = await pool.query<Usuario>(
-    "SELECT dni, username, password, rol FROM empleados WHERE username = $1 OR correo = $1",
-    [username]
+    `SELECT dni, username, password, rol, visibilidad 
+     FROM empleados 
+     WHERE (username = $1 OR correo = $1) 
+     AND visibilidad = TRUE`,
+    [username],
   );
 
   if (result.rows.length === 0) return null;
@@ -31,14 +34,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const usuario = await findByUsername(username);
 
     if (!usuario) {
-      res.status(401).json({ message: "Usuario y/o contraseña son incorrectos" });
+      res
+        .status(401)
+        .json({ message: 'Usuario y/o contraseña son incorrectos' });
       return;
     }
 
     const isValid = await bcrypt.compare(password, usuario.password);
 
     if (!isValid) {
-      res.status(401).json({ message: "Usuario y/o contraseña son incorrectos" });
+      res
+        .status(401)
+        .json({ message: 'Usuario y/o contraseña son incorrectos' });
       return;
     }
 
@@ -49,25 +56,27 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         rol: usuario.rol,
         username: usuario.username,
       },
-      process.env.JWT_SECRET || "secreto", // Usá variable de entorno si está definida
-      { expiresIn: "6h" }
+      process.env.JWT_SECRET || 'secreto', // Usá variable de entorno si está definida
+      { expiresIn: '6h' },
     );
 
     res.json({ token });
   } catch (error: any) {
-    console.error("❌ Error en login:", error);
-    res.status(500).json({ message: "Error en el servidor", error: error.message });
+    console.error('❌ Error en login:', error);
+    res
+      .status(500)
+      .json({ message: 'Error en el servidor', error: error.message });
   }
 };
 
 export const logout = async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(400).json({ message: "Token no proporcionado" });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(400).json({ message: 'Token no proporcionado' });
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(' ')[1];
   tokenBlacklist.add(token);
 
-  res.json({ message: "Sesión cerrada correctamente" });
+  res.json({ message: 'Sesión cerrada correctamente' });
 };

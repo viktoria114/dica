@@ -5,7 +5,7 @@ import { pool } from '../config/db';
 // import pool from './db';
 
 // ---- Configurables ----
-const BUFFER_WINDOW_MS = parseInt(process.env.BUFFER_WINDOW_MS || '5000', 10);
+const BUFFER_WINDOW_MS = parseInt(process.env.BUFFER_WINDOW_MS || '1000', 10);
 const MAX_WORDS = 50;
 const MAX_CHARS = Math.ceil(4.4 * MAX_WORDS);
 
@@ -69,6 +69,8 @@ async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Pro
         let mensajeADK: string | undefined;
         let agenteAutor: string | undefined;
 
+        numeroEntrada = quitarPrefijo(numeroEntrada)
+        
         // Verificar si es un empleado
         const consultaEmpleados = await pool.query(`SELECT * FROM empleados WHERE telefono = $1 AND visibilidad = TRUE`, [numeroEntrada]);
 
@@ -89,10 +91,10 @@ async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Pro
                 const sesionCliente = await crearSessionAdk(numeroEntrada, true);
 
                 const crearCliente = await pool.query(
-                    `INSERT INTO clientes (nombre, telefono, preferencia, ultima_compra, visibilidad, agent_session_id)
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    `INSERT INTO clientes (telefono, nombre, dieta, ultima_compra, visibilidad, agent_session_id, preferencias)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                     RETURNING *;`,
-                    ["sin asignar", numeroEntrada, "sin asignar", new Date(), true, sesionCliente]
+                    [numeroEntrada,"sin asignar", "sin asignar", new Date(), true, sesionCliente, null]
                 );
 
                 if (crearCliente.rows.length === 0) {
@@ -112,6 +114,10 @@ async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Pro
         // Enviar respuesta por WhatsApp
         if (mensajeADK) {
             console.log(`Mensaje procesado para ${numeroEntrada}. Respuesta ADK: ${mensajeADK}`);
+
+            //formato internacional
+            numeroEntrada = transformarNumero(numeroEntrada)
+            console.log("numero internacionalizado: ", numeroEntrada)
             await enviarMensajeWhatsApp(numeroEntrada, mensajeADK);
         } else {
             console.warn(`No se generó respuesta ADK para el número ${numeroEntrada}`);
@@ -156,15 +162,13 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
                         let numeroEntrada = message.from as string;
                         const mensajeTexto = message.text?.body as string | undefined;
 
-                        // Ajuste por número shiojano
-                        if (numeroEntrada && numeroEntrada.startsWith('549380')) {
-                            numeroEntrada = numeroEntrada.replace('549380', '5438015');
-                        }
-
                         if (!numeroEntrada || !mensajeTexto) {
                             console.warn('Número o mensaje de texto no definido. Se omite.');
                             continue;
                         }
+
+                        console.log("numero entrada:", numeroEntrada)
+
                         const palabras = countWords(mensajeTexto);
                         const caracteres = mensajeTexto.length;
 
@@ -376,6 +380,18 @@ export const enviarMensajeAdk = async (
     }
 };
 
+//HELPERS
+
 function countWords(text: string): number {
     return text.trim().length === 0 ? 0 : text.trim().split(/\s+/).length;
+}
+
+function transformarNumero(numero: string): string {
+  const codigoArea = numero.slice(0, 3);     // primeros 3 dígitos
+  const resto = numero.slice(3);             // el resto
+  return `54${codigoArea}15${resto}`;
+}
+
+function quitarPrefijo(numero: string): string {
+  return numero.slice(3);
 }
