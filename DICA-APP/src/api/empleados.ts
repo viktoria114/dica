@@ -64,6 +64,21 @@ export const fetchEmpleadosInvisibles = async (): Promise<Empleado[]> => {
   return await res.json();
 };
 
+// GET empleados by DNI
+export const fetchEmpleadosbyDNI = async (dni: string):  Promise<{ mensaje: string; empleado: Empleado }> => {
+  const res = await fetch(`${API_URL}${EMPLEADOS_URL}/dni/${dni}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.message || "Error al obtener empleado");
+  }
+
+  return await res.json();
+};
+
 // PUT empleado
 export const fetchActualizarEmpleado = async (empleado: Empleado) => {
   // 📌 FUTURO: cambiar a axios.put(...)

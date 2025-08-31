@@ -11,7 +11,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { Outlet, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const pages = [
   { text: "Inicio", path: "/inicio" },
@@ -20,6 +20,7 @@ const pages = [
   { text: "Stock", path: "/stock" },
   { text: "Estadísticas", path: "estadisticas" },
   { text: "Empleados", path: "/empleados" },
+    { text: "Clientes", path: "/clientes" },
 ];
 const settings = [
   { text: "Perfil", path: "/perfil" },
@@ -97,7 +98,16 @@ export const NavBar = () => {
                 onClose={handleCloseUserMenu}
               >
                 {settings.map(({ text, path }) => (
-                  <MenuItem key={text} onClick={() => navigate(path)}>
+                  <MenuItem key={text} onClick={() => {
+      if (text === "Cerrar Sesión") {
+        localStorage.removeItem("token"); 
+        navigate(path);
+      } else {
+        navigate(path);
+      }
+      handleCloseUserMenu(); // cierra el menú
+    }}
+  >
                     <Typography textAlign="center">{text}</Typography>
                   </MenuItem>
                 ))}
@@ -105,7 +115,7 @@ export const NavBar = () => {
             </Box>
           </Toolbar>
         </AppBar>
-      <Outlet />
+     
     </>
   );
 };

@@ -8,7 +8,7 @@ const router = Router();
 router.get('/', verifyToken, checkRole(['admin', 'agente']), getEmpleadosVisibles); //getEmpleados
 router.get('/invisibles',verifyToken, checkRole(['admin']), getEmpleadosInvisibles); //getEmpleados
 router.get('/tel/:tel', verifyToken, checkRole(['admin', 'agente']),getEmpleadoPorTelefono); //getEmpleadoByTel
-router.get('/dni/:id',verifyToken, checkRole(['admin']), getEmpleadoPordni); //getEmpleadoBydni
+router.get('/dni/:id',verifyToken, getEmpleadoPordni); //getEmpleadoBydni
 router.post('/', crearEmpleado);//createEmpleado
 router.put('/:id',verifyToken, checkRole(['admin']), actualizarEmpleado); // actualizarEmpleado
 //router.put('/',verifyToken, actualizarEmpleado_POVEmpledo); // actualizarEmpleado_POVEmpled

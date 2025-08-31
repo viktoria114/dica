@@ -25,9 +25,10 @@ interface GenericFormProps<T> {
   values: T;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onChange: (field: keyof T, value: any) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (values: T) => void;   // 👈 ahora devuelve los valores, no el evento
   onCancel?: () => void;
   isSaving?: boolean;
+  disabledFields?: (keyof T)[];
 }
 
 function GenericForm<T>({
@@ -40,7 +41,13 @@ function GenericForm<T>({
   onSubmit,
   onCancel,
   isSaving,
+  disabledFields = [],
 }: GenericFormProps<T>) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(values);  // 👈 ahora el padre recibe los values directamente
+  };
+
   return (
     <Box>
       <Grid container spacing={2} direction="column">
@@ -55,7 +62,7 @@ function GenericForm<T>({
         </Grid>
 
         <Grid sx={{ ml: { sm: 0, xs: 7 } }}>
-          <form onSubmit={onSubmit}>
+          <form onSubmit={handleSubmit}>
             {fields.map((field) => {
               if (field.onlyInCreate && modo !== "crear") return null;
 
@@ -66,13 +73,16 @@ function GenericForm<T>({
                   label={field.label}
                   type={field.type ?? "text"}
                   value={values[field.name] ?? ""}
-                  onChange={(e) => onChange(field.name, e.target.value)}
+                  onChange={(e) =>
+                    onChange(field.name, e.target.value as unknown)
+                  }
                   margin="dense"
                   variant="standard"
                   focused
                   error={!!formErrors[field.name]}
                   helperText={formErrors[field.name]}
                   select={field.type === "select"}
+                  disabled={disabledFields.includes(field.name)} // 👈 se controla desde el padre
                 >
                   {field.type === "select" &&
                     field.options?.map((opt) => (
@@ -84,7 +94,9 @@ function GenericForm<T>({
               );
             })}
 
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}
+            >
               <Button
                 type="submit"
                 variant="contained"

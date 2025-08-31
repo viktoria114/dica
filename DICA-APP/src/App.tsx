@@ -6,22 +6,32 @@ import {
   Route,
   RouterProvider,
 } from "react-router-dom";
-import { NavBar } from "./Components/NavBar";
 import Login from "./Pages/Login";
 import { Inicio } from "./Pages/Inicio";
 import { Empleados } from "./Pages/Empleados";
+import { Perfil } from "./Pages/Perfil";
 import { ThemeProvider } from "@emotion/react";
 import theme from "./services/theme";
+import { PrivateRoute } from "./Components/PrivateRoute";
+import { AppLayout } from "./Components/AppLayout";
 
 function App() {
- const router = createBrowserRouter(
+  const router = createBrowserRouter(
     createRoutesFromElements(
       <>
         <Route path="/" element={<Login />} />
-        
-        <Route element={<NavBar />}>
-        <Route path="/inicio" element={<Inicio />} />
-        <Route path="/empleados" element={<Empleados />} />
+
+        {/* Rutas protegidas */}
+        <Route
+          element={
+            <PrivateRoute>
+              <AppLayout /> {/* NavBar + Outlet */}
+            </PrivateRoute>
+          }
+        >
+          <Route path="/inicio" element={<Inicio />} />
+          <Route path="/empleados" element={<Empleados />} />
+          <Route path="/perfil" element={<Perfil />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -30,11 +40,9 @@ function App() {
   );
 
   return (
-    <>
-     <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
       <RouterProvider router={router} />
-      </ThemeProvider>
-    </>
+    </ThemeProvider>
   );
 }
 

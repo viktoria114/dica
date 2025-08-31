@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { PedidoItem } from "../Components/Inicio/PedidoItem";
 import { InfoCard } from "../Components/Inicio/InfoCard";
 import { DashboardCard } from "../Components/Inicio/DashboardCard";
+import { useAuth } from "../hooks/useAuth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ChatItem = ({ texto }: any) => (
@@ -21,6 +22,7 @@ const ChatItem = ({ texto }: any) => (
 
 export const Inicio = () => {
   const [fecha, setFecha] = useState(new Date());
+  const { usuario } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,8 +34,7 @@ export const Inicio = () => {
 
   const hora = fecha.toLocaleTimeString("es-AR", {
     hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+    minute: "2-digit"
   });
 
   const fechaTexto = fecha.toLocaleDateString("es-AR", {
@@ -45,8 +46,6 @@ export const Inicio = () => {
 
   const capitalizar = (texto: string) =>
     texto.charAt(0).toUpperCase() + texto.slice(1);
-
-  const usuario = "Matias Moreno"; //despues se cambiaaa
 
   const pedidos = [
     {
@@ -110,7 +109,7 @@ export const Inicio = () => {
             fontWeight="600"
             p={4}
           >
-            Bienvenido, {usuario} a Sistema Gestión Dica
+            Bienvenido, {usuario?.username} a Sistema Gestión Dica
           </Typography>
 
           <Box
