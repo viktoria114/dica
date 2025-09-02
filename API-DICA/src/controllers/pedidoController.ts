@@ -7,70 +7,70 @@ import { MessagePort } from 'worker_threads';
 export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
   try {
-    const { fk_cliente, ubicacion, observacion, items_menu } = req.body;
+    const { fk_cliente = null, ubicacion = null, observacion = null, items_menu = [] } = req.body;
     const rol = (req as any).rol;
     const fk_empleado = (req as any).dni;
 
-    // Validar que las cantidades sean correctas
-    for (const item of items_menu) {
-      if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
-        return res.status(400).json({
-          message: `La cantidad para el ítem con id_menu=${item.id_menu} debe ser mayor a 0`,
-        });
+    // 🔹 Validar items_menu solo si viene con datos
+    if (items_menu && items_menu.length > 0) {
+      for (const item of items_menu) {
+        if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
+          return res.status(400).json({
+            message: `La cantidad para el ítem con id_menu=${item.id_menu} debe ser mayor a 0`,
+          });
+        }
       }
     }
 
     await client.query("BEGIN");
 
-    // 🔹 VALIDACIÓN DE STOCK
-    for (const item of items_menu) {
-      // Traer ingredientes que requiere ese menú
-      const ingredientesQuery = `
-        SELECT ms.fk_stock, ms.cantidad_necesaria
-        FROM menu_stock ms
-        WHERE ms.fk_menu = $1;
-      `;
-      const { rows: ingredientes } = await client.query(ingredientesQuery, [item.id_menu]);
-
-      for (const ing of ingredientes) {
-        const totalNecesario = ing.cantidad_necesaria * item.cantidad;
-
-        // 1️⃣ Validar contra stock principal
-        const stockQuery = `SELECT stock_actual FROM stock WHERE id = $1`;
-        const { rows: stockRows } = await client.query(stockQuery, [ing.fk_stock]);
-
-        if (stockRows.length === 0) {
-          await client.query("ROLLBACK");
-          return res.status(400).json({
-            message: `No existe el stock con id=${ing.fk_stock} para el menú ${item.id_menu}`,
-          });
-        }
-
-        if (stockRows[0].stock_actual < totalNecesario) {
-          await client.query("ROLLBACK");
-          return res.status(400).json({
-            message: `Stock insuficiente para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
-          });
-        }
-
-        // 2️⃣ Validar contra registro_stock (FIFO)
-        let restante = totalNecesario;
-
-        const registrosQuery = `
-          SELECT id, cantidad_actual
-          FROM registro_stock
-          WHERE fk_stock = $1 AND cantidad_actual > 0
-          ORDER BY fk_fecha ASC;
+    // 🔹 Validación de stock solo si hay items
+    if (items_menu && items_menu.length > 0) {
+      for (const item of items_menu) {
+        const ingredientesQuery = `
+          SELECT ms.fk_stock, ms.cantidad_necesaria
+          FROM menu_stock ms
+          WHERE ms.fk_menu = $1;
         `;
-        const { rows: registros } = await client.query(registrosQuery, [ing.fk_stock]);
+        const { rows: ingredientes } = await client.query(ingredientesQuery, [item.id_menu]);
 
-        let disponible = registros.reduce((acc, r) => acc + r.cantidad_actual, 0);
+        for (const ing of ingredientes) {
+          const totalNecesario = ing.cantidad_necesaria * item.cantidad;
 
-        if (disponible < totalNecesario) {
-          await client.query("ROLLBACK");
-          return res.status(400).json({
-            message: `Stock insuficiente (registro_stock) para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
-          });
+          // Stock principal
+          const stockQuery = `SELECT stock_actual FROM stock WHERE id = $1`;
+          const { rows: stockRows } = await client.query(stockQuery, [ing.fk_stock]);
+
+          if (stockRows.length === 0) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({
+              message: `No existe el stock con id=${ing.fk_stock} para el menú ${item.id_menu}`,
+            });
+          }
+
+          if (stockRows[0].stock_actual < totalNecesario) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({
+              message: `Stock insuficiente para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
+            });
+          }
+
+          // Registro_stock FIFO
+          const registrosQuery = `
+            SELECT id, cantidad_actual
+            FROM registro_stock
+            WHERE fk_stock = $1 AND cantidad_actual > 0
+            ORDER BY fk_fecha ASC;
+          `;
+          const { rows: registros } = await client.query(registrosQuery, [ing.fk_stock]);
+
+          let disponible = registros.reduce((acc, r) => acc + r.cantidad_actual, 0);
+          if (disponible < totalNecesario) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({
+              message: `Stock insuficiente (registro_stock) para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
+            });
+          }
         }
       }
     }
@@ -81,20 +81,7 @@ export const crearPedido = async (req: Request, res: Response) => {
       estadoInicial = 6; // a confirmar
     }
 
-    const pedido = new Pedido(
-      null,
-      null,
-      null,
-      estadoInicial,
-      fk_empleado,
-      fk_cliente,
-      ubicacion,
-      observacion,
-      true,
-      false // pagado por defecto en false
-    );
-
-    // Insertar el pedido
+    // Crear pedido
     const pedidoQuery = `
       INSERT INTO pedidos (fecha, hora, id_estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad, pagado)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -102,54 +89,56 @@ export const crearPedido = async (req: Request, res: Response) => {
     `;
     const { rows: pedidoRows } = await client.query(pedidoQuery, [
       new Date(),
-      pedido.hora,
-      pedido.fk_estado,
-      pedido.fk_empleado,
-      pedido.fk_cliente,
-      pedido.ubicacion,
-      pedido.observacion,
-      pedido.visibilidad,
-      pedido.pagado,
+      new Date().toLocaleTimeString(),
+      estadoInicial,
+      fk_empleado,
+      fk_cliente,     // Puede ir null
+      ubicacion,      // Puede ir null
+      observacion,    // Puede ir null
+      true,
+      false
     ]);
 
     const pedidoId = pedidoRows[0].id;
 
-    // Registro inicial de estado
+    // Registro de estado
     const registroEstadoQuery = `
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
       VALUES ($1, $2, $3, $4);
     `;
     await client.query(registroEstadoQuery, [
       pedidoId,
-      pedido.fk_estado,
+      estadoInicial,
       new Date(),
-      pedido.hora,
+      new Date().toLocaleTimeString(),
     ]);
 
-    // Insertar ítems del menú
-    const pedido_menuQuery = `
-      INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
-      VALUES ($1, $2, $3, $4);
-    `;
+    // Insertar ítems solo si hay
+    if (items_menu && items_menu.length > 0) {
+      const pedido_menuQuery = `
+        INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
+        VALUES ($1, $2, $3, $4);
+      `;
 
-    for (const item of items_menu) {
-      const result = await client.query(
-        "SELECT precio FROM menu WHERE id = $1",
-        [item.id_menu]
-      );
-      const precio = result.rows[0].precio * item.cantidad;
+      for (const item of items_menu) {
+        const result = await client.query(
+          "SELECT precio FROM menu WHERE id = $1",
+          [item.id_menu]
+        );
+        const precioUnitario = result.rows[0].precio;
 
-      await client.query(pedido_menuQuery, [
-        pedidoId,
-        item.id_menu,
-        precio,
-        item.cantidad,
-      ]);
+        await client.query(pedido_menuQuery, [
+          pedidoId,
+          item.id_menu,
+          precioUnitario,
+          item.cantidad,
+        ]);
+      }
     }
 
     await client.query("COMMIT");
-
     res.status(201).json({ id: pedidoId, message: "Pedido creado con éxito" });
+
   } catch (error) {
     await client.query("ROLLBACK");
     console.error(error);
@@ -803,3 +792,72 @@ export const pedidoPagado = async (req: Request, res: Response) => {
      res.status(500).json({ message: 'Error al marcar el pedido como pagado' });
    }
 }
+
+export const agenteEstadoPedido = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { ubicacion, observacion} = req.body;
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const pedidoQuery = `
+      SELECT id_estado 
+      FROM pedidos
+      WHERE id = $1;
+    `;
+    const { rows } = await client.query(pedidoQuery, [id]);
+
+    if (rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Pedido no encontrado" });
+    }
+
+    const estadoActual = rows[0].id_estado;
+
+    if (estadoActual !== 6 ) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ message: "El pedido no esta en el estado de 'En construccion'" });
+    }
+    
+    let nuevaTransicion = 7;
+
+    const updateQuery = `
+      UPDATE pedidos
+      SET id_estado = $1, ubicacion = $2, observaciones = $3
+      WHERE id = $4
+      RETURNING *;
+    `;
+    
+    const { rows: updatedRows } = await client.query(updateQuery, [
+      nuevaTransicion,
+      ubicacion,
+      observacion,
+      id,
+    ]);
+     // Insertamos el registro en "registro_de_estados"
+    const insertRegistroQuery = `
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+    `;
+    await client.query(insertRegistroQuery, [id, nuevaTransicion]);
+     await client.query("COMMIT");
+
+    res.json({
+      message: "Estado actualizado correctamente",
+      pedido: updatedRows[0],
+    });
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Error en rollback:", rollbackError);
+    }
+    console.error("Error en AgenteEstadoPedido:", error);
+    res.status(500).json({ message: "Error al actualizar estado" });
+  } finally {
+    client.release();
+  }
+};
