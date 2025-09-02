@@ -7,6 +7,7 @@ import {
   eliminarPedido,
   getListaCompletaPedidos,
   restaurarPedido,
+  getListaPedidosPorTelefono,
   agregarItemPedido,
   eliminarItemsPedido,
   getItemPedido,
@@ -25,6 +26,7 @@ router.get('/', getListaPedidos);
 router.get('/invisibles', getListaCompletaPedidos);
 router.delete('/:id', eliminarPedido);
 router.put('/restaurar/:id', restaurarPedido);
+router.get('/telefono_cliente/:telefono', getListaPedidosPorTelefono);
 
 //Logica de negocio
 router.post('/item/:id', agregarItemPedido);

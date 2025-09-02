@@ -7,7 +7,12 @@ import { MessagePort } from 'worker_threads';
 export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
   try {
-    const { fk_cliente = null, ubicacion = null, observacion = null, items_menu = [] } = req.body;
+    const {
+      fk_cliente = null,
+      ubicacion = null,
+      observacion = null,
+      items_menu = [],
+    } = req.body;
     const rol = (req as any).rol;
     const fk_empleado = (req as any).dni;
 
@@ -22,7 +27,7 @@ export const crearPedido = async (req: Request, res: Response) => {
       }
     }
 
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     // 🔹 Validación de stock solo si hay items
     if (items_menu && items_menu.length > 0) {
@@ -32,24 +37,28 @@ export const crearPedido = async (req: Request, res: Response) => {
           FROM menu_stock ms
           WHERE ms.fk_menu = $1;
         `;
-        const { rows: ingredientes } = await client.query(ingredientesQuery, [item.id_menu]);
+        const { rows: ingredientes } = await client.query(ingredientesQuery, [
+          item.id_menu,
+        ]);
 
         for (const ing of ingredientes) {
           const totalNecesario = ing.cantidad_necesaria * item.cantidad;
 
           // Stock principal
           const stockQuery = `SELECT stock_actual FROM stock WHERE id = $1`;
-          const { rows: stockRows } = await client.query(stockQuery, [ing.fk_stock]);
+          const { rows: stockRows } = await client.query(stockQuery, [
+            ing.fk_stock,
+          ]);
 
           if (stockRows.length === 0) {
-            await client.query("ROLLBACK");
+            await client.query('ROLLBACK');
             return res.status(400).json({
               message: `No existe el stock con id=${ing.fk_stock} para el menú ${item.id_menu}`,
             });
           }
 
           if (stockRows[0].stock_actual < totalNecesario) {
-            await client.query("ROLLBACK");
+            await client.query('ROLLBACK');
             return res.status(400).json({
               message: `Stock insuficiente para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
             });
@@ -62,11 +71,16 @@ export const crearPedido = async (req: Request, res: Response) => {
             WHERE fk_stock = $1 AND cantidad_actual > 0
             ORDER BY fk_fecha ASC;
           `;
-          const { rows: registros } = await client.query(registrosQuery, [ing.fk_stock]);
+          const { rows: registros } = await client.query(registrosQuery, [
+            ing.fk_stock,
+          ]);
 
-          let disponible = registros.reduce((acc, r) => acc + r.cantidad_actual, 0);
+          let disponible = registros.reduce(
+            (acc, r) => acc + r.cantidad_actual,
+            0,
+          );
           if (disponible < totalNecesario) {
-            await client.query("ROLLBACK");
+            await client.query('ROLLBACK');
             return res.status(400).json({
               message: `Stock insuficiente (registro_stock) para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
             });
@@ -77,7 +91,7 @@ export const crearPedido = async (req: Request, res: Response) => {
 
     // 🔹 Estado inicial depende del rol
     let estadoInicial = 1; // pendiente
-    if (rol === "agente") {
+    if (rol === 'agente') {
       estadoInicial = 6; // a confirmar
     }
 
@@ -92,11 +106,11 @@ export const crearPedido = async (req: Request, res: Response) => {
       new Date().toLocaleTimeString(),
       estadoInicial,
       fk_empleado,
-      fk_cliente,     // Puede ir null
-      ubicacion,      // Puede ir null
-      observacion,    // Puede ir null
+      fk_cliente, // Puede ir null
+      ubicacion, // Puede ir null
+      observacion, // Puede ir null
       true,
-      false
+      false,
     ]);
 
     const pedidoId = pedidoRows[0].id;
@@ -122,8 +136,8 @@ export const crearPedido = async (req: Request, res: Response) => {
 
       for (const item of items_menu) {
         const result = await client.query(
-          "SELECT precio FROM menu WHERE id = $1",
-          [item.id_menu]
+          'SELECT precio FROM menu WHERE id = $1',
+          [item.id_menu],
         );
         const precioUnitario = result.rows[0].precio;
 
@@ -136,18 +150,16 @@ export const crearPedido = async (req: Request, res: Response) => {
       }
     }
 
-    await client.query("COMMIT");
-    res.status(201).json({ id: pedidoId, message: "Pedido creado con éxito" });
-
+    await client.query('COMMIT');
+    res.status(201).json({ id: pedidoId, message: 'Pedido creado con éxito' });
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ message: "Error al crear el pedido" });
+    res.status(500).json({ message: 'Error al crear el pedido' });
   } finally {
     client.release();
   }
 };
-
 
 export const actualizarPedido = async (req: Request, res: Response) => {
   try {
@@ -171,7 +183,6 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       fk_cliente,
       ubicacion,
       observacion,
-      
     );
 
     const { rows } = await pool.query(query, [
@@ -204,6 +215,38 @@ export const getListaPedidos = async (_req: Request, res: Response) => {
     res.status(500).json({ message: 'Error al obtener los Pedidos visible' });
   }
 };
+
+export const getListaPedidosPorTelefono = async (req: Request, res: Response) => {
+  const { telefono } = req.params;
+
+  try {
+    // Verificar si el cliente existe
+    const clienteQuery = `SELECT telefono FROM clientes WHERE telefono = $1;`;
+    const clienteResult = await pool.query(clienteQuery, [telefono]);
+
+    if (clienteResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Cliente no existente' });
+    }
+
+    const idCliente = clienteResult.rows[0].id_cliente;
+
+    // Buscar pedidos del cliente
+    const pedidosQuery = `SELECT * FROM pedidos WHERE id_cliente = $1;`;
+    const pedidosResult = await pool.query(pedidosQuery, [telefono]);
+
+    if (pedidosResult.rows.length === 0) {
+      return res.status(200).json({ message: 'El cliente no tiene pedidos asignados' });
+    }
+
+    // Devolver pedidos
+    res.json(pedidosResult.rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los pedidos' });
+  }
+};
+
 
 export const eliminarPedido = async (req: Request, res: Response) => {
   try {
@@ -359,7 +402,7 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
 
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     const pedidoQuery = `
       SELECT id_estado 
@@ -369,17 +412,17 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
     const { rows } = await client.query(pedidoQuery, [id]);
 
     if (rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Pedido no encontrado" });
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
     const estadoActual = rows[0].id_estado;
 
     if (estadoActual === 5) {
-      await client.query("ROLLBACK");
+      await client.query('ROLLBACK');
       return res
         .status(400)
-        .json({ message: "El pedido ya está en el último estado" });
+        .json({ message: 'El pedido ya está en el último estado' });
     }
 
     // Definir transiciones válidas por rol
@@ -394,10 +437,10 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
     const nuevaTransicion = transiciones[rol]?.[estadoActual];
 
     if (!nuevaTransicion) {
-      await client.query("ROLLBACK");
+      await client.query('ROLLBACK');
       return res
         .status(403)
-        .json({ message: "No tienes permisos para cambiar este estado" });
+        .json({ message: 'No tienes permisos para cambiar este estado' });
     }
 
     // 👉 Si el cambio es de 2 -> 3, descontamos stock
@@ -408,7 +451,9 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
         JOIN menu_stock ms ON pm.fk_menu = ms.fk_menu
         WHERE pm.fk_pedido = $1;
       `;
-      const { rows: ingredientes } = await client.query(ingredientesQuery, [id]);
+      const { rows: ingredientes } = await client.query(ingredientesQuery, [
+        id,
+      ]);
 
       for (const ing of ingredientes) {
         let descuento = ing.cantidad_necesaria * ing.cantidad_pedida;
@@ -430,10 +475,14 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
             ORDER BY fk_fecha ASC
             LIMIT 1;
           `;
-          const { rows: registros } = await client.query(registroQuery, [ing.fk_stock]);
+          const { rows: registros } = await client.query(registroQuery, [
+            ing.fk_stock,
+          ]);
 
           if (registros.length === 0) {
-            throw new Error(`No hay suficiente stock en registro_stock para el ingrediente ${ing.fk_stock}`);
+            throw new Error(
+              `No hay suficiente stock en registro_stock para el ingrediente ${ing.fk_stock}`,
+            );
           }
 
           const registro = registros[0];
@@ -481,21 +530,20 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
     `;
     await client.query(insertRegistroQuery, [id, nuevaTransicion]);
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
 
     res.json({
-      message: "Estado actualizado correctamente",
+      message: 'Estado actualizado correctamente',
       pedido: updatedRows[0],
     });
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ message: "Error al actualizar Estado" });
+    res.status(500).json({ message: 'Error al actualizar Estado' });
   } finally {
     client.release();
   }
 };
-
 
 export const retrocederEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -503,7 +551,7 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
 
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     const pedidoQuery = `
       SELECT id_estado 
@@ -513,17 +561,17 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
     const { rows } = await client.query(pedidoQuery, [id]);
 
     if (rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Pedido no encontrado" });
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
     const estadoActual = rows[0].id_estado;
 
     if (estadoActual === 6) {
-      await client.query("ROLLBACK");
+      await client.query('ROLLBACK');
       return res
         .status(400)
-        .json({ message: "El pedido ya está en el primer estado" });
+        .json({ message: 'El pedido ya está en el primer estado' });
     }
 
     const retrocesos: Record<string, Record<number, number>> = {
@@ -537,10 +585,10 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
     const nuevaTransicion = retrocesos[rol]?.[estadoActual];
 
     if (!nuevaTransicion) {
-      await client.query("ROLLBACK");
+      await client.query('ROLLBACK');
       return res
         .status(403)
-        .json({ message: "No tienes permisos para retroceder este estado" });
+        .json({ message: 'No tienes permisos para retroceder este estado' });
     }
 
     // 👇 Revertir stock si pasamos de 3 → 2
@@ -551,7 +599,9 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
         JOIN menu_stock ms ON pm.fk_menu = ms.fk_menu
         WHERE pm.fk_pedido = $1;
       `;
-      const { rows: ingredientes } = await client.query(ingredientesQuery, [id]);
+      const { rows: ingredientes } = await client.query(ingredientesQuery, [
+        id,
+      ]);
 
       for (const ing of ingredientes) {
         const devolucion = ing.cantidad_necesaria * ing.cantidad_pedida;
@@ -573,7 +623,9 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
           WHERE fk_stock = $1
           ORDER BY fk_fecha DESC; -- reposición en orden inverso
         `;
-        const { rows: registros } = await client.query(registrosQuery, [ing.fk_stock]);
+        const { rows: registros } = await client.query(registrosQuery, [
+          ing.fk_stock,
+        ]);
 
         for (const reg of registros) {
           if (restante <= 0) break;
@@ -586,7 +638,7 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
           `;
           // devolvemos todo de una vez (no hay límite superior porque es reponer)
           await client.query(updateRegistroQuery, [restante, reg.id]);
-          restante = 0; 
+          restante = 0;
         }
       }
     }
@@ -610,16 +662,16 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
     `;
     await client.query(insertRegistroQuery, [id, nuevaTransicion]);
 
-    await client.query("COMMIT");
+    await client.query('COMMIT');
 
     res.json({
-      message: "Estado retrocedido correctamente",
+      message: 'Estado retrocedido correctamente',
       pedido: updatedRows[0],
     });
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ message: "Error al retroceder Estado" });
+    res.status(500).json({ message: 'Error al retroceder Estado' });
   } finally {
     client.release();
   }
@@ -700,7 +752,9 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
       ORDER BY id_fecha DESC, hora DESC
       LIMIT 1;
     `;
-    const { rows: estadoActualRows } = await pool.query(estadoActualQuery, [id]);
+    const { rows: estadoActualRows } = await pool.query(estadoActualQuery, [
+      id,
+    ]);
 
     if (estadoActualRows.length === 0) {
       return res.status(404).json({ message: 'Pedido no encontrado' });
@@ -710,7 +764,10 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
 
     // 🚨 Validar que el estado actual sea 8 o 9
     if (![8, 9].includes(estadoActual)) {
-      return res.status(400).json({ message: 'El pedido no está en estado de cancelación, no se puede deshacer' });
+      return res.status(400).json({
+        message:
+          'El pedido no está en estado de cancelación, no se puede deshacer',
+      });
     }
 
     // 2. Buscar el último estado ANTES de entrar en 8 o 9
@@ -722,10 +779,14 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
       ORDER BY id_fecha DESC, hora DESC
       LIMIT 1;
     `;
-    const { rows: estadoAnteriorRows } = await pool.query(estadoAnteriorQuery, [id]);
+    const { rows: estadoAnteriorRows } = await pool.query(estadoAnteriorQuery, [
+      id,
+    ]);
 
     if (estadoAnteriorRows.length === 0) {
-      return res.status(400).json({ message: 'No existe un estado válido anterior para restaurar' });
+      return res.status(400).json({
+        message: 'No existe un estado válido anterior para restaurar',
+      });
     }
 
     const estadoAnterior = estadoAnteriorRows[0].id_estado;
@@ -737,7 +798,10 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
       WHERE id = $2
       RETURNING *;
     `;
-    const { rows: updatedRows } = await pool.query(updateQuery, [estadoAnterior, id]);
+    const { rows: updatedRows } = await pool.query(updateQuery, [
+      estadoAnterior,
+      id,
+    ]);
 
     // 4. Insertar registro en historial
     const insertRegistroQuery = `
@@ -752,54 +816,56 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error al deshacer la cancelación del pedido' });
+    res
+      .status(500)
+      .json({ message: 'Error al deshacer la cancelación del pedido' });
   }
 };
 
 export const pedidoPagado = async (req: Request, res: Response) => {
-   const { id } = req.params;
+  const { id } = req.params;
 
-   try {
-     // Verificar que el pedido exista
-     const pedidoQuery = `
+  try {
+    // Verificar que el pedido exista
+    const pedidoQuery = `
        SELECT pagado 
        FROM pedidos
        WHERE id = $1;
      `;
-     let { rows } = await pool.query(pedidoQuery, [id]);
+    let { rows } = await pool.query(pedidoQuery, [id]);
 
-     if (rows.length === 0) {
-       return res.status(404).json({ message: 'Pedido no encontrado' });
-     }
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Pedido no encontrado' });
+    }
 
-     let pagado = Boolean(rows[0].pagado);
-     pagado = !pagado;
-     // Actualizamos el estado a "Pagado"
-     const updateQuery = `
+    let pagado = Boolean(rows[0].pagado);
+    pagado = !pagado;
+    // Actualizamos el estado a "Pagado"
+    const updateQuery = `
        UPDATE pedidos
        SET pagado = $1
        WHERE id = $2
        RETURNING *;
      `;
-     const { rows: updatedRows } = await pool.query(updateQuery, [pagado, id]);
+    const { rows: updatedRows } = await pool.query(updateQuery, [pagado, id]);
 
-     res.json({
-       message: 'Pedido marcado como pagado',
-       pedido: updatedRows[0],
-     });
-   } catch (error) {
-     console.error(error);
-     res.status(500).json({ message: 'Error al marcar el pedido como pagado' });
-   }
-}
+    res.json({
+      message: 'Pedido marcado como pagado',
+      pedido: updatedRows[0],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al marcar el pedido como pagado' });
+  }
+};
 
 export const agenteEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { ubicacion, observacion} = req.body;
+  const { ubicacion, observacion } = req.body;
   const client = await pool.connect();
 
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
 
     const pedidoQuery = `
       SELECT id_estado 
@@ -809,19 +875,19 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
     const { rows } = await client.query(pedidoQuery, [id]);
 
     if (rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Pedido no encontrado" });
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
     const estadoActual = rows[0].id_estado;
 
-    if (estadoActual !== 6 ) {
-      await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ message: "El pedido no esta en el estado de 'En construccion'" });
+    if (estadoActual !== 6) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        message: "El pedido no esta en el estado de 'En construccion'",
+      });
     }
-    
+
     let nuevaTransicion = 7;
 
     const updateQuery = `
@@ -830,33 +896,33 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       WHERE id = $4
       RETURNING *;
     `;
-    
+
     const { rows: updatedRows } = await client.query(updateQuery, [
       nuevaTransicion,
       ubicacion,
       observacion,
       id,
     ]);
-     // Insertamos el registro en "registro_de_estados"
+    // Insertamos el registro en "registro_de_estados"
     const insertRegistroQuery = `
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
     `;
     await client.query(insertRegistroQuery, [id, nuevaTransicion]);
-     await client.query("COMMIT");
+    await client.query('COMMIT');
 
     res.json({
-      message: "Estado actualizado correctamente",
+      message: 'Estado actualizado correctamente',
       pedido: updatedRows[0],
     });
   } catch (error) {
     try {
-      await client.query("ROLLBACK");
+      await client.query('ROLLBACK');
     } catch (rollbackError) {
-      console.error("Error en rollback:", rollbackError);
+      console.error('Error en rollback:', rollbackError);
     }
-    console.error("Error en AgenteEstadoPedido:", error);
-    res.status(500).json({ message: "Error al actualizar estado" });
+    console.error('Error en AgenteEstadoPedido:', error);
+    res.status(500).json({ message: 'Error al actualizar estado' });
   } finally {
     client.release();
   }
