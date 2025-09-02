@@ -10,6 +10,7 @@ import {
   getListaPedidosPorTelefono,
   agregarItemPedido,
   eliminarItemsPedido,
+  vaciarItemsPedido,
   getItemPedido,
   actualizarEstadoPedido,
   retrocederEstadoPedido,
@@ -31,6 +32,7 @@ router.get('/telefono_cliente/:telefono', getListaPedidosPorTelefono);
 //Logica de negocio
 router.post('/item/:id', agregarItemPedido);
 router.delete('/item/:id', eliminarItemsPedido);
+router.delete('/vaciar_item/:id', vaciarItemsPedido);
 router.get('/item/:id', getItemPedido);
 router.put('/estado/:id', verifyToken, actualizarEstadoPedido);
 router.put('/retroceder_estado/:id',verifyToken, retrocederEstadoPedido)

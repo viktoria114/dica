@@ -216,7 +216,10 @@ export const getListaPedidos = async (_req: Request, res: Response) => {
   }
 };
 
-export const getListaPedidosPorTelefono = async (req: Request, res: Response) => {
+export const getListaPedidosPorTelefono = async (
+  req: Request,
+  res: Response,
+) => {
   const { telefono } = req.params;
 
   try {
@@ -235,18 +238,18 @@ export const getListaPedidosPorTelefono = async (req: Request, res: Response) =>
     const pedidosResult = await pool.query(pedidosQuery, [telefono]);
 
     if (pedidosResult.rows.length === 0) {
-      return res.status(200).json({ message: 'El cliente no tiene pedidos asignados' });
+      return res
+        .status(200)
+        .json({ message: 'El cliente no tiene pedidos asignados' });
     }
 
     // Devolver pedidos
     res.json(pedidosResult.rows);
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al obtener los pedidos' });
   }
 };
-
 
 export const eliminarPedido = async (req: Request, res: Response) => {
   try {
@@ -308,10 +311,12 @@ export const restaurarPedido = async (req: Request, res: Response) => {
 //Logica de negocio
 
 export const agregarItemPedido = async (req: Request, res: Response) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
     const { items_menu } = req.body;
     const pedidoId = id;
+
     // Validar que las cantidades sean correctas
     for (const item of items_menu) {
       if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
@@ -321,32 +326,44 @@ export const agregarItemPedido = async (req: Request, res: Response) => {
       }
     }
 
-    // Insertar en pedidos_menu
+    await client.query("BEGIN"); // Iniciamos transacción
+
+    // 1. Borrar todos los items actuales del pedido
+    await client.query(`DELETE FROM pedidos_menu WHERE fk_pedido = $1`, [pedidoId]);
+
+    // 2. Insertar los nuevos items
     const pedido_menuQuery = `
-            INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario)
-            VALUES ($1, $2, $3, $4);
-        `;
+      INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
+      VALUES ($1, $2, $3, $4);
+    `;
 
     for (const item of items_menu) {
-      const result = await pool.query('SELECT precio FROM menu WHERE id = $1', [
+      const result = await client.query('SELECT precio FROM menu WHERE id = $1', [
         item.id_menu,
       ]);
-      const precio = result.rows[0].precio * item.cantidad;
+      const precioUnitario = result.rows[0].precio;
+      const precioTotal = precioUnitario * item.cantidad;
 
-      await pool.query(pedido_menuQuery, [
+      await client.query(pedido_menuQuery, [
         pedidoId,
         item.id_menu,
-        precio,
+        precioTotal,
         item.cantidad,
       ]);
     }
 
-    res
-      .status(201)
-      .json({ id: pedidoId, message: 'Items agregados con éxito' });
+    await client.query("COMMIT"); // Confirmamos todo
+
+    res.status(201).json({
+      id: pedidoId,
+      message: 'Items reemplazados con éxito',
+    });
   } catch (error) {
+    await client.query("ROLLBACK"); // Si hay error, revertimos todo
     console.error(error);
-    res.status(500).json({ message: 'Error al agregar Items el pedido' });
+    res.status(500).json({ message: 'Error al reemplazar items del pedido' });
+  } finally {
+    client.release();
   }
 };
 
@@ -375,6 +392,32 @@ export const eliminarItemsPedido = async (req: Request, res: Response) => {
       return res
         .status(404)
         .json({ message: 'No se encontraron items con esos IDs' });
+    }
+
+    res.json({ message: 'Items eliminados correctamente', eliminados: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al eliminar los items' });
+  }
+};
+
+export const vaciarItemsPedido = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; // Array con los ids de los items a eliminar
+
+
+    const query = `
+            DELETE FROM pedidos_menu
+            WHERE fk_pedido = $1
+            RETURNING *;
+        `;
+
+    const { rows } = await pool.query(query, [id]);
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: 'No se encontraron items de este pedido' });
     }
 
     res.json({ message: 'Items eliminados correctamente', eliminados: rows });
@@ -427,7 +470,6 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
 
     // Definir transiciones válidas por rol
     const transiciones: Record<string, Record<number, number>> = {
-      agente: { 6: 7 },
       cajero: { 7: 1, 3: 5 },
       cocinero: { 1: 2, 2: 3 },
       repartidor: { 3: 4, 4: 5 },
@@ -892,7 +934,7 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
 
     const updateQuery = `
       UPDATE pedidos
-      SET id_estado = $1, ubicacion = $2, observaciones = $3
+      SET id_estado = $1, ubicacion = $2, observaciones = $3, fecha= CURRENT_DATE, hora = CURRENT_TIME
       WHERE id = $4
       RETURNING *;
     `;
