@@ -8,7 +8,9 @@ import {
   getListaCompletaPedidos,
   restaurarPedido,
   getListaPedidosPorTelefono,
+  getPedidosCanceladosHoy,
   agregarItemPedido,
+  agregarUnItemPedido,
   eliminarItemsPedido,
   vaciarItemsPedido,
   getItemPedido,
@@ -28,9 +30,11 @@ router.get('/invisibles', getListaCompletaPedidos);
 router.delete('/:id', eliminarPedido);
 router.put('/restaurar/:id', restaurarPedido);
 router.get('/telefono_cliente/:telefono', getListaPedidosPorTelefono);
+router.get('/cancelados_hoy', getPedidosCanceladosHoy);
 
 //Logica de negocio
 router.post('/item/:id', agregarItemPedido);
+router.post('/un_item/:id', agregarUnItemPedido);
 router.delete('/item/:id', eliminarItemsPedido);
 router.delete('/vaciar_item/:id', vaciarItemsPedido);
 router.get('/item/:id', getItemPedido);

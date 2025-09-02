@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { PoolClient } from 'pg';
 import { pool } from '../config/db';
 import { Pedido } from '../models/pedido';
-import { MessagePort } from 'worker_threads';
 
 export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
@@ -15,6 +14,27 @@ export const crearPedido = async (req: Request, res: Response) => {
     } = req.body;
     const rol = (req as any).rol;
     const fk_empleado = (req as any).dni;
+
+    // 🚨 Validación: Si es agente, verificar si ya existe un pedido activo en estado 6 o 7
+    if (rol === 'agente' && fk_cliente) {
+      const validacionQuery = `
+        SELECT id 
+        FROM pedidos 
+        WHERE id_cliente = $1 
+        AND id_estado IN (6,7)
+        AND visibilidad = true
+        LIMIT 1;
+      `;
+      const { rows: pedidosExistentes } = await client.query(validacionQuery, [
+        fk_cliente,
+      ]);
+
+      if (pedidosExistentes.length > 0) {
+        return res.status(400).json({
+          message: `El cliente ya tiene un pedido pendiente de confirmación. No se puede crear otro.`,
+        });
+      }
+    }
 
     // 🔹 Validar items_menu solo si viene con datos
     if (items_menu && items_menu.length > 0) {
@@ -231,8 +251,6 @@ export const getListaPedidosPorTelefono = async (
       return res.status(404).json({ message: 'Cliente no existente' });
     }
 
-    const idCliente = clienteResult.rows[0].id_cliente;
-
     // Buscar pedidos del cliente
     const pedidosQuery = `SELECT * FROM pedidos WHERE id_cliente = $1;`;
     const pedidosResult = await pool.query(pedidosQuery, [telefono]);
@@ -241,6 +259,26 @@ export const getListaPedidosPorTelefono = async (
       return res
         .status(200)
         .json({ message: 'El cliente no tiene pedidos asignados' });
+    }
+
+    // Devolver pedidos
+    res.json(pedidosResult.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los pedidos' });
+  }
+};
+
+export const getPedidosCanceladosHoy = async (req: Request, res: Response) => {
+  try {
+    // Buscar pedidos del cliente
+    const pedidosQuery = `SELECT * FROM pedidos WHERE id_estado = 9 AND fecha = CURRENT_DATE;`;
+    const pedidosResult = await pool.query(pedidosQuery);
+
+    if (pedidosResult.rows.length === 0) {
+      return res
+        .status(200)
+        .json({ message: 'No hay pedidos cancelados hoy' });
     }
 
     // Devolver pedidos
@@ -326,10 +364,12 @@ export const agregarItemPedido = async (req: Request, res: Response) => {
       }
     }
 
-    await client.query("BEGIN"); // Iniciamos transacción
+    await client.query('BEGIN'); // Iniciamos transacción
 
     // 1. Borrar todos los items actuales del pedido
-    await client.query(`DELETE FROM pedidos_menu WHERE fk_pedido = $1`, [pedidoId]);
+    await client.query(`DELETE FROM pedidos_menu WHERE fk_pedido = $1`, [
+      pedidoId,
+    ]);
 
     // 2. Insertar los nuevos items
     const pedido_menuQuery = `
@@ -338,9 +378,10 @@ export const agregarItemPedido = async (req: Request, res: Response) => {
     `;
 
     for (const item of items_menu) {
-      const result = await client.query('SELECT precio FROM menu WHERE id = $1', [
-        item.id_menu,
-      ]);
+      const result = await client.query(
+        'SELECT precio FROM menu WHERE id = $1',
+        [item.id_menu],
+      );
       const precioUnitario = result.rows[0].precio;
       const precioTotal = precioUnitario * item.cantidad;
 
@@ -352,16 +393,74 @@ export const agregarItemPedido = async (req: Request, res: Response) => {
       ]);
     }
 
-    await client.query("COMMIT"); // Confirmamos todo
+    await client.query('COMMIT'); // Confirmamos todo
 
     res.status(201).json({
       id: pedidoId,
       message: 'Items reemplazados con éxito',
     });
   } catch (error) {
-    await client.query("ROLLBACK"); // Si hay error, revertimos todo
+    await client.query('ROLLBACK'); // Si hay error, revertimos todo
     console.error(error);
     res.status(500).json({ message: 'Error al reemplazar items del pedido' });
+  } finally {
+    client.release();
+  }
+};
+
+export const agregarUnItemPedido = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params; // id del pedido
+    const { id_menu, cantidad } = req.body; // un solo ítem
+    const pedidoId = id;
+
+    // Validar que la cantidad sea correcta
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+      return res.status(400).json({
+        message: `La cantidad para el ítem con id_menu=${id_menu} debe ser mayor a 0`,
+      });
+    }
+
+    await client.query('BEGIN'); // Iniciamos transacción
+
+    // Buscar precio unitario del menú
+    const result = await client.query('SELECT precio FROM menu WHERE id = $1', [
+      id_menu,
+    ]);
+
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        message: `El menú con id=${id_menu} no existe`,
+      });
+    }
+
+    const precioUnitario = result.rows[0].precio;
+
+    // Insertar el nuevo ítem al pedido sin borrar los anteriores
+    const pedido_menuQuery = `
+      INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
+      VALUES ($1, $2, $3, $4);
+    `;
+
+    await client.query(pedido_menuQuery, [
+      pedidoId,
+      id_menu,
+      precioUnitario,
+      cantidad,
+    ]);
+
+    await client.query('COMMIT'); // Confirmamos todo
+
+    res.status(201).json({
+      id: pedidoId,
+      message: 'Ítem agregado con éxito',
+    });
+  } catch (error) {
+    await client.query('ROLLBACK'); // Si hay error, revertimos todo
+    console.error(error);
+    res.status(500).json({ message: 'Error al agregar ítem al pedido' });
   } finally {
     client.release();
   }
@@ -404,7 +503,6 @@ export const eliminarItemsPedido = async (req: Request, res: Response) => {
 export const vaciarItemsPedido = async (req: Request, res: Response) => {
   try {
     const { id } = req.params; // Array con los ids de los items a eliminar
-
 
     const query = `
             DELETE FROM pedidos_menu
