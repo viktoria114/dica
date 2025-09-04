@@ -228,7 +228,7 @@ def get_active_cart(tel: str):
         informacion sobre el estado o existencia del carrito activo del cliente
     """
 
-    get_cart_url = f"{api_url}/api/pedido/{tel}"
+    get_cart_url = f"{api_url}/api/pedido/en_construccion/{tel}"
 
     try:
         resultado = solicitud_con_token(get_cart_url, "GET")
@@ -241,22 +241,24 @@ def get_active_cart(tel: str):
         return "error inesperado al intentar obtener el carrito activo"
 
 
-def add_menu_to_cart(tel: str, menuID: int, cantidad: int):
+def add_menu_to_cart(tel: str, cartID: int, menuID: int, cantidad: int) -> str:
     """
-    Agrega un item de menu al carrito
+    Suma un item de menu al carrito existente
 
     Args:
         tel(str): Numero de telefono del cliente
+        cartID(int): ID del carrito que se desea modificar
         menuID(int): ID del menu que se desea agregar
         cantidad(int): cantidad de items de menu
     Returns: 
         Estado de la peticion y del carrito actualizado
     """
 
-    add_menu_url = f"{api_url}/api/pedido/items/{tel}"
+    add_menu_url = f"{api_url}/api/pedido/un_item/{cartID}"
 
     body = {
-        "fk_menu": menuID,
+        "tel": tel,
+        "id_menu": menuID,
         "cantidad": cantidad
     }
 
@@ -270,12 +272,13 @@ def add_menu_to_cart(tel: str, menuID: int, cantidad: int):
         print(f"Error inesperado: {e}")
         return "error inesperado al intentar agregar el menu al carrito"
 
-def remove_menu_from_cart(tel: str, menuID: int, cantidad: int) ->str:
+def remove_menu_from_cart(tel: str, cartID: int, menuID: int, cantidad: int) ->str:
     """
-    Quita un item de menu del carrito
+    Quita items de menu del carrito existente
 
     Args:
         tel(str): Numero de telefono del cliente
+        cartID(int): ID del carrito que se desea modificar
         menuID(int): ID del menu que se desea quitar
         cantidad(int): cantidad de items de menu
     Returns: 
@@ -283,11 +286,12 @@ def remove_menu_from_cart(tel: str, menuID: int, cantidad: int) ->str:
     """
 
     body = {
-        "fk_menu": menuID,
+        "tel": tel,
+        "id_menu": menuID,
         "cantidad": cantidad
     }
 
-    remove_menu_url= f"{api_url}/api/pedido/cart/{tel}"
+    remove_menu_url= f"{api_url}/api/pedido/un_item/{cartID}"
 
     try:
         resultado = solicitud_con_token(remove_menu_url, "DELETE", body)
@@ -317,10 +321,10 @@ def create_order(tel: str, ubicacion: str, observacion: str):
         "observacion": observacion
     }
     # API: Buscar el unico pedido que corresponde al cliente y que tenga el estado "En construccion"
-    create_order_url= f"{api_url}/api/pedido/{tel}"
+    create_order_url= f"{api_url}/api/pedido/agente_estado/{tel}"
 
     try:
-        resultado = solicitud_con_token(create_order_url, "POST", body)
+        resultado = solicitud_con_token(create_order_url, "PUT", body)
         return resultado
     except requests.RequestException as e:
         print(f"Error al crear el pedido: {e}")
@@ -361,15 +365,11 @@ def cancel_cart(tel: str):
         string: resultado de la operacion
     """
 
-    body = {
-        "telefono": tel
-    }
-
     #API: vaciar el pedido donde num = tel y estado = "En construccion"
-    cancel_order_url= f"{api_url}/api/pedido/cancelar/{tel}"
+    cancel_cart_url= f"{api_url}/api/pedido/vaciar_item/{tel}"
 
     try:
-        resultado = solicitud_con_token(cancel_order_url, "POST", body)
+        resultado = solicitud_con_token(cancel_cart_url, "DELETE")
         return resultado
     except requests.RequestException as e:
         print(f"Error al cancelar el carrito: {e}")
@@ -385,8 +385,7 @@ def check_active_orders(tel: str):
     Informa sobre el estado de las ordenes activas del cliente
     """
 
-    #API: vaciar el pedido donde num = tel y estado = "En construccion"
-    check_orders_url= f"{api_url}/api/pedido/{tel}"
+    check_orders_url= f"{api_url}/api/pedido/telefono_cliente/{tel}"
 
     try:
         resultado = solicitud_con_token(check_orders_url, "GET")

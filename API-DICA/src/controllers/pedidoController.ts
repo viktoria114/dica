@@ -29,12 +29,19 @@ export const crearPedido = async (req: Request, res: Response) => {
         fk_cliente,
       ]);
 
-      if (pedidosExistentes.length > 0) {
-        return res.status(400).json({
-          message: `El cliente ya tiene un pedido pendiente de confirmación. No se puede crear otro.`,
-        });
+    if (pedidosExistentes.length > 0) {
+        const { id_estado } = pedidosExistentes[0];
+
+        let mensaje;
+        if (id_estado === 6) {
+          mensaje = "El cliente ya cuenta con un carrito activo. Usa la herramienta correspondiente para obtener informacion"
+        } else if (id_estado === 7) {
+          mensaje = "El cliente tiene un pedido pendiente de confirmación. Hay que esperar que un empleado lo acepte.";
+        }
+
+        return res.status(400).json({ message: mensaje });
       }
-    }
+   }
 
     // 🔹 Validar items_menu solo si viene con datos
     if (items_menu && items_menu.length > 0) {
@@ -112,7 +119,7 @@ export const crearPedido = async (req: Request, res: Response) => {
     // 🔹 Estado inicial depende del rol
     let estadoInicial = 1; // pendiente
     if (rol === 'agente') {
-      estadoInicial = 6; // a confirmar
+      estadoInicial = 6; // en construccion
     }
 
     // Crear pedido
@@ -252,7 +259,7 @@ export const getListaPedidosPorTelefono = async (
     }
 
     // Buscar pedidos del cliente
-    const pedidosQuery = `SELECT * FROM pedidos WHERE id_cliente = $1;`;
+    const pedidosQuery = `SELECT * FROM pedidos WHERE id_cliente = $1 AND id_estado NOT IN (6,8,9);`;
     const pedidosResult = await pool.query(pedidosQuery, [telefono]);
 
     if (pedidosResult.rows.length === 0) {
@@ -268,6 +275,42 @@ export const getListaPedidosPorTelefono = async (
     res.status(500).json({ message: 'Error al obtener los pedidos' });
   }
 };
+
+export const getPedidosEnConstruccion = async(req: Request, res: Response) =>{
+  try{
+    const { tel } = req.params
+
+   const query = `
+      SELECT p.id AS cart_id, pm.fk_menu AS menu_id, pm.precio_unitario, pm.cantidad
+      FROM pedidos p
+      LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      WHERE p.id_estado = 6 AND p.id_cliente = $1;
+    `;
+
+    const result = await pool.query(query, [tel]);
+
+    if (result.rows.length === 0){
+      return res.status(200).json({message: "Actualmente el cliente no cuenta con un carrito activo"})
+    }
+
+
+    const { cart_id } = result.rows[0];
+    const items = result.rows
+      .filter(row => row.menuid !== null) 
+      .map(({ menu_id, precio_unitario, cantidad }) => ({
+        menuID: menu_id,
+        precio_total: precio_unitario,
+        cantidad
+      }));
+
+    res.status(200).json({ cartID: cart_id, items });
+
+
+  }catch(err: any){
+    console.error(err);
+    res.status(500).json('Error al obtener el carrito activo del cliente')
+  }
+}
 
 export const getPedidosCanceladosHoy = async (req: Request, res: Response) => {
   try {
@@ -411,9 +454,18 @@ export const agregarItemPedido = async (req: Request, res: Response) => {
 export const agregarUnItemPedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
+
     const { id } = req.params; // id del pedido
-    const { id_menu, cantidad } = req.body; // un solo ítem
+    const { tel, id_menu, cantidad } = req.body; // un solo ítem
     const pedidoId = id;
+
+    await client.query('BEGIN'); // Iniciamos transacción
+
+    //verificar si existe un pedido "en construccion" para el cliente
+    const exists = await client.query("SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6", [pedidoId, tel])
+    if (exists.rows.length === 0){
+      return res.status(404).json(`No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`)
+    }
 
     // Validar que la cantidad sea correcta
     if (!Number.isInteger(cantidad) || cantidad <= 0) {
@@ -422,9 +474,7 @@ export const agregarUnItemPedido = async (req: Request, res: Response) => {
       });
     }
 
-    await client.query('BEGIN'); // Iniciamos transacción
-
-    // Buscar precio unitario del menú
+    // Buscar precio del menú
     const result = await client.query('SELECT precio FROM menu WHERE id = $1', [
       id_menu,
     ]);
@@ -436,31 +486,130 @@ export const agregarUnItemPedido = async (req: Request, res: Response) => {
       });
     }
 
-    const precioUnitario = result.rows[0].precio;
+    //calcular precio unitario
+    const precio = result.rows[0].precio;
+    const precioUnitario = precio * cantidad;
 
-    // Insertar el nuevo ítem al pedido sin borrar los anteriores
-    const pedido_menuQuery = `
-      INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
-      VALUES ($1, $2, $3, $4);
-    `;
+    //verificar si ya existe un item de pedidos_menu para ese pedido
+    const entry_pedidos_menu = await client.query("SELECT id FROM pedidos_menu WHERE fk_menu = $1 AND fk_pedido = $2", [id_menu, pedidoId])
 
-    await client.query(pedido_menuQuery, [
-      pedidoId,
-      id_menu,
-      precioUnitario,
-      cantidad,
-    ]);
+    let itemAgregado
+
+    //si no existe
+    if(entry_pedidos_menu.rows.length === 0){
+
+    //Insertar el nuevo ítem al pedido
+      const pedido_menuQuery = `
+        INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *;
+      `;
+  
+      itemAgregado = await client.query(pedido_menuQuery, [
+        pedidoId,
+        id_menu,
+        precioUnitario,
+        cantidad,
+      ]);
+   }else{
+      const pedido_menuID = entry_pedidos_menu.rows[0].id
+
+      //si existe, se actualizan las cantidades anteriores
+      itemAgregado = await client.query(`
+        UPDATE pedidos_menu
+        SET precio_unitario = precio_unitario + $1, cantidad = cantidad + $2
+        WHERE id = $3
+        RETURNING *;
+        `, [precioUnitario, cantidad, pedido_menuID])
+   }
 
     await client.query('COMMIT'); // Confirmamos todo
 
-    res.status(201).json({
-      id: pedidoId,
+    res.status(200).json({
       message: 'Ítem agregado con éxito',
+      carrito: itemAgregado.rows[0]
     });
   } catch (error) {
     await client.query('ROLLBACK'); // Si hay error, revertimos todo
     console.error(error);
     res.status(500).json({ message: 'Error al agregar ítem al pedido' });
+  } finally {
+    client.release();
+  }
+};
+
+
+
+export const eliminarUnItemPedido = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params; // id del pedido
+    const { tel, id_menu, cantidad } = req.body; // ítem a quitar
+    const pedidoId = id;
+
+    //respuesta del estado del pedido
+    let itemActualizado
+
+    // Verificar que exista un pedido en construcción para el cliente
+    const exists = await client.query(
+      "SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6",
+      [pedidoId, tel]
+    );
+    if (exists.rows.length === 0) {
+      return res.status(200).json({
+        message: `No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`
+      });
+    }
+
+    // Validar que la cantidad sea correcta
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+      return res.status(200).json({
+        message: `La cantidad a quitar para el ítem con id_menu=${id_menu} debe ser mayor a 0`
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // Verificar si el ítem existe en el pedido
+    const entry = await client.query(
+      "SELECT id, cantidad, precio_unitario FROM pedidos_menu WHERE fk_pedido = $1 AND fk_menu = $2",
+      [pedidoId, id_menu]
+    );
+
+    if (entry.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        message: `El ítem con id_menu=${id_menu} no existe en el pedido ${pedidoId}`
+      });
+    }
+
+    const item = entry.rows[0];
+
+    if (item.cantidad <= cantidad) {
+      // Si la cantidad a quitar es igual o mayor, borramos el ítem
+      await client.query("DELETE FROM pedidos_menu WHERE id = $1", [item.id]);
+    } else {
+      // Si la cantidad es menor, actualizamos restando
+      itemActualizado = await client.query(
+        `UPDATE pedidos_menu
+         SET cantidad = cantidad - $1,
+             precio_unitario = precio_unitario - $2
+         WHERE id = $3
+         RETURNING *;`,
+        [cantidad, (item.precio_unitario / item.cantidad) * cantidad, item.id]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    res.status(200).json({
+      message: 'Ítem quitado con éxito',
+      carrito: itemActualizado?.rows[0]
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error(error);
+    res.status(500).json({ message: 'Error al quitar ítem del pedido' });
   } finally {
     client.release();
   }
@@ -500,25 +649,38 @@ export const eliminarItemsPedido = async (req: Request, res: Response) => {
   }
 };
 
+//vacia todos los items del pedido "en construccion" del cliente
 export const vaciarItemsPedido = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params; // Array con los ids de los items a eliminar
+    const { tel } = req.params; 
+    
+    let query = `
+            SELECT id FROM pedidos
+            WHERE id_cliente = $1 AND id_estado = 6
+        `;
+    
+    const result = await pool.query(query, [tel])
 
-    const query = `
+    if (result.rows.length === 0 ){
+      return res.json("No hay un carrito asociado, considera crear uno nuevo")
+    }
+
+    const id_pedido = result.rows[0].id
+
+    query = `
             DELETE FROM pedidos_menu
             WHERE fk_pedido = $1
             RETURNING *;
         `;
-
-    const { rows } = await pool.query(query, [id]);
+    const { rows } = await pool.query(query, [id_pedido]);
 
     if (rows.length === 0) {
       return res
         .status(404)
-        .json({ message: 'No se encontraron items de este pedido' });
+        .json({ message: 'No se encontraron items de este carrito' });
     }
 
-    res.json({ message: 'Items eliminados correctamente', eliminados: rows });
+    res.json({ message: 'Carrito vaciado correctamente', eliminados: rows });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al eliminar los items' });
@@ -1000,7 +1162,7 @@ export const pedidoPagado = async (req: Request, res: Response) => {
 };
 
 export const agenteEstadoPedido = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { tel } = req.params;
   const { ubicacion, observacion } = req.body;
   const client = await pool.connect();
 
@@ -1008,51 +1170,42 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
     await client.query('BEGIN');
 
     const pedidoQuery = `
-      SELECT id_estado 
+      SELECT * 
       FROM pedidos
-      WHERE id = $1;
+      WHERE id_cliente = $1 AND id_estado = 6
+      LIMIT 1;
     `;
-    const { rows } = await client.query(pedidoQuery, [id]);
+    const { rows } = await client.query(pedidoQuery, [tel]);
 
     if (rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
-    const estadoActual = rows[0].id_estado;
-
-    if (estadoActual !== 6) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        message: "El pedido no esta en el estado de 'En construccion'",
-      });
-    }
-
-    let nuevaTransicion = 7;
+    const pedido_id = rows[0].id
 
     const updateQuery = `
       UPDATE pedidos
-      SET id_estado = $1, ubicacion = $2, observaciones = $3, fecha= CURRENT_DATE, hora = CURRENT_TIME
-      WHERE id = $4
+      SET id_estado = 7, ubicacion = $1, observaciones = $2, fecha= CURRENT_DATE, hora = CURRENT_TIME
+      WHERE id = $3
       RETURNING *;
     `;
 
     const { rows: updatedRows } = await client.query(updateQuery, [
-      nuevaTransicion,
       ubicacion,
       observacion,
-      id,
+      pedido_id,
     ]);
     // Insertamos el registro en "registro_de_estados"
     const insertRegistroQuery = `
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
     `;
-    await client.query(insertRegistroQuery, [id, nuevaTransicion]);
+    await client.query(insertRegistroQuery, [pedido_id, 7]);
     await client.query('COMMIT');
 
     res.json({
-      message: 'Estado actualizado correctamente',
+      message: 'Pedido creado correctamente',
       pedido: updatedRows[0],
     });
   } catch (error) {
@@ -1061,8 +1214,8 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
     } catch (rollbackError) {
       console.error('Error en rollback:', rollbackError);
     }
-    console.error('Error en AgenteEstadoPedido:', error);
-    res.status(500).json({ message: 'Error al actualizar estado' });
+    console.error('Error en crear el pedido:', error);
+    res.status(500).json({ message: 'Error al crear el pedido' });
   } finally {
     client.release();
   }

@@ -105,7 +105,7 @@ ORDER_SERVICE_INSTRUCTION = (
     "You operate under a strict, state-based workflow. Your actions are determined by the customer's needs. "
     "Assume you are taking over a conversation.\n\n"
     "   1. **Initial Action:** Your **IMMEDIATE FIRST ACTION** is to check if the customer is already building an order "
-    "using `get_active_cart(tel=\"{phone_number}\")`. Inform the customer of what you find (e.g., the items in their current order, or that they haven't started one yet).\n\n"
+    "using `get_active_cart({phone_number})`. Inform the customer of what you find (e.g., the items in their current order, or that they haven't started one yet).\n\n"
 
     "   2. **Building the Order (Cart Management):**\n"
     "      - To **start a new order** from scratch, use `create_new_cart()`.\n"
