@@ -127,75 +127,92 @@ async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Pro
     }
 }
 // ----------------------- Endpoint principal -----------------------
+
 export const gestionarMensajes = async (req: Request, res: Response): Promise<Response> => {
-    try {
-        const body = req.body;
-        if (body?.object !== 'whatsapp_business_account') {
-            return res.sendStatus(404);
-        }
-
-        const entries = body.entry;
-        if (!Array.isArray(entries)) {
-            return res.sendStatus(400);
-        }
-
-        for (const entry of entries) {
-            if (!Array.isArray(entry.changes)) continue;
-
-            for (const change of entry.changes) {
-                const messages = change?.value?.messages;
-                if (!Array.isArray(messages)) continue;
-
-                for (const message of messages) {
-                    try {
-
-                        const ahora = Math.floor(Date.now() / 1000);
-                        const timestampStr = message.timestamp; // normalmente es string en segundos
-                        if (timestampStr) {
-                            const ts = parseInt(timestampStr, 10);
-                            if (!isNaN(ts) && (ahora - ts) > 60) {
-                                console.warn(`Mensaje descartado por retraso (${ahora - ts}s) de ${message.from}`);
-                                continue; // pasar al siguiente mensaje
-                            }
-                        }
-
-                        let numeroEntrada = message.from as string;
-                        const mensajeTexto = message.text?.body as string | undefined;
-
-                        if (!numeroEntrada || !mensajeTexto) {
-                            console.warn('Número o mensaje de texto no definido. Se omite.');
-                            continue;
-                        }
-
-                        console.log("numero entrada:", numeroEntrada)
-
-                        const palabras = countWords(mensajeTexto);
-                        const caracteres = mensajeTexto.length;
-
-                        if (palabras > MAX_WORDS || caracteres > MAX_CHARS) {
-                            console.warn(`Mensaje individual descartado por exceder límites (${palabras} palabras, ${caracteres} caracteres) de ${numeroEntrada}`);
-                            // Notificar al usuario que su mensaje fue descartado por longitud
-                            try {
-                                await enviarMensajeWhatsApp(numeroEntrada, 'Su mensaje excede el límite de 50 palabras (≈220 caracteres) y no fue procesado. Por favor envíe un texto más corto.');
-                            } catch (notifyErr) {
-                                console.error('Error al notificar al usuario sobre límite de longitud:', notifyErr);
-                            }
-                            continue;
-                        }
-
-                        reiniciarTemporizadorYEncolar(numeroEntrada, mensajeTexto);
-                    } catch (innerErr) {
-                        console.error('Error interno procesando un mensaje:', innerErr);
-                    }
-                }
-            }
-        }
-
-        return res.sendStatus(200);
-    } catch (error) {
-        console.error('Error en gestionar el mensaje al agente:', error);
-        return res.status(500).send('Error interno del servidor');
+  try {
+    const body = req.body;
+    if (body?.object !== 'whatsapp_business_account') {
+      return res.sendStatus(404);
     }
+
+    const entries = body.entry;
+    if (!Array.isArray(entries)) {
+      return res.sendStatus(400);
+    }
+
+    for (const entry of entries) {
+      if (!Array.isArray(entry.changes)) continue;
+
+      for (const change of entry.changes) {
+        const messages = change?.value?.messages;
+        if (!Array.isArray(messages)) continue;
+
+        for (const message of messages) {
+          try {
+            const ahora = Math.floor(Date.now() / 1000);
+            const timestampStr = message.timestamp;
+            if (timestampStr) {
+              const ts = parseInt(timestampStr, 10);
+              if (!isNaN(ts) && (ahora - ts) > 60) {
+                console.warn(`Mensaje descartado por retraso (${ahora - ts}s) de ${message.from}`);
+                continue;
+              }
+            }
+
+            const numeroEntrada = message.from as string;
+            if (!numeroEntrada) {
+              console.warn('Número de origen no definido. Se omite.');
+              continue;
+            }
+
+            // 1) Intentar extraer URL de Google Maps
+            const mapsUrl = extractGoogleMapsUrl(message);
+            if (mapsUrl) {
+              console.log("URL de Google Maps recibida:", mapsUrl);
+              reiniciarTemporizadorYEncolar(numeroEntrada, mapsUrl);
+              continue;
+            }
+
+            // 2) Si no es Google Maps, procesar como texto normal
+            const mensajeTexto = message.text?.body as string | undefined;
+            if (mensajeTexto) {
+              const palabras = countWords(mensajeTexto);
+              const caracteres = mensajeTexto.length;
+
+              if (palabras > MAX_WORDS || caracteres > MAX_CHARS) {
+                console.warn(
+                  `Mensaje descartado por exceder límites (${palabras} palabras, ${caracteres} caracteres) de ${numeroEntrada}`
+                );
+                try {
+                  await enviarMensajeWhatsApp(
+                    numeroEntrada,
+                    'Su mensaje excede el límite de 50 palabras (≈220 caracteres) y no fue procesado. Por favor envíe un texto más corto.'
+                  );
+                } catch (notifyErr) {
+                  console.error('Error al notificar al usuario sobre límite de longitud:', notifyErr);
+                }
+                continue;
+              }
+
+              reiniciarTemporizadorYEncolar(numeroEntrada, mensajeTexto);
+              continue;
+            }
+
+            // 3) Si no hay texto ni URL de Maps
+            console.warn('Mensaje sin texto ni link de Google Maps. Se omite.');
+
+          } catch (innerErr) {
+            console.error('Error interno procesando un mensaje:', innerErr);
+          }
+        }
+      }
+    }
+
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error('Error en gestionar el mensaje al agente:', error);
+    return res.status(500).send('Error interno del servidor');
+  }
 };
 
 export const gestionarVerificacion = async (req: Request, res: Response): Promise<Response> => {
@@ -394,4 +411,26 @@ function transformarNumero(numero: string): string {
 
 function quitarPrefijo(numero: string): string {
   return numero.slice(3);
+}
+
+function extractGoogleMapsUrl(message: any): string | null {
+  // Caso 1: link en el body de texto
+  if (message.text?.body) {
+    const body = message.text.body;
+    const match = body.match(/https?:\/\/[^\s)]+/i);
+    if (match && /google\.com\/maps|maps\.app\.goo\.gl|g\.page/i.test(match[0])) {
+      return match[0];
+    }
+  }
+
+  // Caso 2: ubicación nativa -> generar url de Google Maps
+  if (message.location) {
+    const lat = message.location.latitude;
+    const lng = message.location.longitude;
+    if (lat && lng) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat + ',' + lng)}`;
+    }
+  }
+
+  return null;
 }

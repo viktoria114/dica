@@ -270,7 +270,7 @@ export const getListaPedidosPorTelefono = async (
     const menuQuery = `
       SELECT m.nombre, pm.cantidad, pm.precio_unitario AS precio_item
       FROM pedidos_menu pm
-      INNER JOIN menu m ON m.id = pm.menu_id
+      INNER JOIN menu m ON m.id = pm.fk_menu
       WHERE pm.fk_pedido = $1; 
     `
 
@@ -524,7 +524,7 @@ export const agregarUnItemPedido = async (req: Request, res: Response) => {
       const pedido_menuQuery = `
         INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
         VALUES ($1, $2, $3, $4)
-        RETURNING *;
+        RETURNING fk_pedido AS cartID, fk_menu AS menuID, cantidad, precio_unitario AS precio_item;
       `;
   
       itemAgregado = await client.query(pedido_menuQuery, [
@@ -541,7 +541,7 @@ export const agregarUnItemPedido = async (req: Request, res: Response) => {
         UPDATE pedidos_menu
         SET precio_unitario = precio_unitario + $1, cantidad = cantidad + $2
         WHERE id = $3
-        RETURNING *;
+        RETURNING fk_pedido AS cartID, fk_menu AS menuID, cantidad, precio_unitario AS precio_item;
         `, [precioUnitario, cantidad, pedido_menuID])
    }
 
@@ -617,7 +617,7 @@ export const eliminarUnItemPedido = async (req: Request, res: Response) => {
          SET cantidad = cantidad - $1,
              precio_unitario = precio_unitario - $2
          WHERE id = $3
-         RETURNING *;`,
+         RETURNING fk_pedido AS cartID, fk_menu as menuID, cantidad, precio_unitario AS precio_item;`,
         [cantidad, (item.precio_unitario / item.cantidad) * cantidad, item.id]
       );
     }
@@ -1054,6 +1054,11 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     `;
     await pool.query(insertRegistroQuery, [id, nuevoEstado]);
 
+    if(rol === 'agente'){
+      return res.status(200).json({
+        message: `En breve sera notificado sobre la cancelacion del pedido #${id} `,
+      });
+    }
     res.json({
       message: `Pedido actualizado al estado ${nuevoEstado}`,
       pedido: updatedRows[0],
