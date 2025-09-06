@@ -2,6 +2,7 @@ import logging
 import requests
 import os
 from agente_clientes.auth import solicitud_con_token
+from agente_clientes.utils.error_parser import parse_http_error
 
 api_url = os.getenv("API_DICA_URL", "http://localhost:3000")
 
@@ -19,17 +20,8 @@ def get_customer_information(tel: str) -> str:
 
     get_customer_url = f"{api_url}/api/clientes/{tel}"
 
-    try:
-        resultado = solicitud_con_token(get_customer_url, "GET")
-        return resultado
-
-    except requests.RequestException as e:
-        msg = e.response.text
-        return msg
-
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al obtener cliente por telefono"
+    resultado = solicitud_con_token(get_customer_url, "GET")
+    return resultado
 
 def update_customer_name_and_diet(tel: str, nombre: str, dieta: str) -> str:
     """
@@ -53,17 +45,8 @@ def update_customer_name_and_diet(tel: str, nombre: str, dieta: str) -> str:
         "dieta":dieta
     }
 
-    try:
-        resultado = solicitud_con_token(update_customer_url, "PUT",body)
-        return resultado
-
-    except requests.RequestException as e:
-        print(f"Error al obtener el cliente por tel: {e}")
-        return "error al obtener cliente por telefono"
-
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al obtener cliente por telefono"
+    resultado = solicitud_con_token(update_customer_url, "PUT",body)
+    return resultado
 
 def add_preference(tel: str, preference: str)->str:
     """
@@ -80,16 +63,10 @@ def add_preference(tel: str, preference: str)->str:
     body = {
         "preferencia": preference
     }
-    try:
-        resultado = solicitud_con_token(add_preference_url,"POST", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al intentar agregar la preferencia: {e}")
-        return "error al intentar agregar la preferencia"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar agregar la preferencia"
 
+    resultado = solicitud_con_token(add_preference_url,"POST", body)
+    return resultado
+    
 def update_preference(tel: str, old_preference: str, new_preference: str)->str:
     """
     Modifica o cambia una preferencia existente por una nueva
@@ -107,17 +84,9 @@ def update_preference(tel: str, old_preference: str, new_preference: str)->str:
         "preferenciaAntigua": old_preference,
         "nuevaPreferencia": new_preference
     }
-    try:
-        resultado = solicitud_con_token(add_preference_url,"PUT", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al intentar modificar la preferencia: {e}")
-        return "error al intentar modificar la preferencia"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar modificar la preferencia"
 
-
+    resultado = solicitud_con_token(add_preference_url,"PUT", body)
+    return resultado
 
 def create_suggestion(tel: str, descripcion: str)->str:
     """
@@ -134,14 +103,8 @@ def create_suggestion(tel: str, descripcion: str)->str:
     body = {
         "descripcion":descripcion
     }
-    try:
-        resultado = solicitud_con_token(create_suggestion_url, "POST", body)
-    except requests.RequestException as e:
-        print(f"Error al intentar crear la sugerencia: {e}")
-        return "error al intentar crear la sugerencia"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar crear la sugerencia"
+    resultado = solicitud_con_token(create_suggestion_url, "POST", body)
+    return resultado
 
 def get_menu():
     """
@@ -153,15 +116,8 @@ def get_menu():
 
     get_menu_url = f"{api_url}/api/menu"
 
-    try:
-        resultado = solicitud_con_token(get_menu_url, "GET")
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al obtener la lista del menu: {e}")
-        return e
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar crear la sugerencia"
+    resultado = solicitud_con_token(get_menu_url, "GET")
+    return resultado
 
 def send_menu_image(tel: str) -> str:
     """
@@ -178,15 +134,8 @@ def send_menu_image(tel: str) -> str:
         "to": tel
     }
 
-    try:
-        resultado = solicitud_con_token(get_menu_url, "GET", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al enviar la lista del menu: {e}")
-        return e
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar enviar la lista del menu"
+    resultado = solicitud_con_token(get_menu_url, "GET", body)
+    return resultado
 
 #Crear un nuevo pedido en estado "En construccion"
 #API: business rule, no puede haber mas de dos pedidos en estado "En construccion"
@@ -199,24 +148,12 @@ def create_new_cart(tel: str)->str:
     Returns:
         Un string con la informacion sobre la solicitud de creacion del nuevo carrito 
     """
-
     create_cart_url = f"{api_url}/api/pedido"
 
+    body = {"fk_cliente": tel}
 
-    body = {
-        "fk_cliente": tel, 
-    }
-
-    try:
-        resultado = solicitud_con_token(create_cart_url, "POST", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al crear el carrito: {e}")
-        return f"Error al crear el carrito: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar crear el carrito"
-
+    resultado = solicitud_con_token(create_cart_url, "POST", body)
+    return resultado
 
 #API: business rule, no puede haber mas de dos pedidos en estado "En construccion"
 def get_active_cart(tel: str):
@@ -230,16 +167,8 @@ def get_active_cart(tel: str):
 
     get_cart_url = f"{api_url}/api/pedido/en_construccion/{tel}"
 
-    try:
-        resultado = solicitud_con_token(get_cart_url, "GET")
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al obtener el carrito activo: {e}")
-        return f"Error al obtener el carrito activo: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar obtener el carrito activo"
-
+    resultado = solicitud_con_token(get_cart_url, "GET")
+    return resultado
 
 def add_menu_to_cart(tel: str, cartID: int, menuID: int, cantidad: int) -> str:
     """
@@ -262,15 +191,8 @@ def add_menu_to_cart(tel: str, cartID: int, menuID: int, cantidad: int) -> str:
         "cantidad": cantidad
     }
 
-    try:
-        resultado = solicitud_con_token(add_menu_url, "POST", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al agregar el menu al carrito: {e}")
-        return f"Error al agregar el menu al carrito: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar agregar el menu al carrito"
+    resultado = solicitud_con_token(add_menu_url, "POST", body)
+    return resultado
 
 def remove_menu_from_cart(tel: str, cartID: int, menuID: int, cantidad: int) ->str:
     """
@@ -293,16 +215,8 @@ def remove_menu_from_cart(tel: str, cartID: int, menuID: int, cantidad: int) ->s
 
     remove_menu_url= f"{api_url}/api/pedido/un_item/{cartID}"
 
-    try:
-        resultado = solicitud_con_token(remove_menu_url, "DELETE", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al quitar el menu del carrito: {e}")
-        return f"Error al quitar el menu del carrito: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar quitar el menu del carrito"
-
+    resultado = solicitud_con_token(remove_menu_url, "DELETE", body)
+    return resultado
 
 # Esta funcion en realidad actualiza el pedido ya creado pero el agente no lo sabe jiji
 def create_order(tel: str, ubicacion: str, observacion: str):
@@ -323,16 +237,8 @@ def create_order(tel: str, ubicacion: str, observacion: str):
     # API: Buscar el unico pedido que corresponde al cliente y que tenga el estado "En construccion"
     create_order_url= f"{api_url}/api/pedido/agente_estado/{tel}"
 
-    try:
-        resultado = solicitud_con_token(create_order_url, "PUT", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al crear el pedido: {e}")
-        return f"Error al crear el pedido: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar crear el pedido"
-
+    resultado = solicitud_con_token(create_order_url, "PUT", body)
+    return resultado
 
 def cancel_order(tel: str, orderID: int):
     """
@@ -345,18 +251,11 @@ def cancel_order(tel: str, orderID: int):
 
     cancel_order_url= f"{api_url}/api/pedido/cancelar/{orderID}"
 
-    try:
-        resultado = solicitud_con_token(cancel_order_url, "POST", body)
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al cancelar el pedido: {e}")
-        return f"Error al cancelar el pedido: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar cancelar el pedido"
+    resultado = solicitud_con_token(cancel_order_url, "PUT", body)
+    return resultado
 
 # vacia los items del pedido "En construccion"
-def cancel_cart(tel: str):
+def empty_cart(tel: str):
     """
     Vacia el carrito para futuras modificaciones
     Args:
@@ -368,16 +267,8 @@ def cancel_cart(tel: str):
     #API: vaciar el pedido donde num = tel y estado = "En construccion"
     cancel_cart_url= f"{api_url}/api/pedido/vaciar_item/{tel}"
 
-    try:
-        resultado = solicitud_con_token(cancel_cart_url, "DELETE")
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al cancelar el carrito: {e}")
-        return f"Error al cancelar el carrito: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al intentar cancelar el carrito"
-
+    resultado = solicitud_con_token(cancel_cart_url, "DELETE")
+    return resultado
 
 #permite ver todas las ordenes no canceladas/finalizadas asociadas al cliente
 def check_active_orders(tel: str):
@@ -387,13 +278,5 @@ def check_active_orders(tel: str):
 
     check_orders_url= f"{api_url}/api/pedido/telefono_cliente/{tel}"
 
-    try:
-        resultado = solicitud_con_token(check_orders_url, "GET")
-        return resultado
-    except requests.RequestException as e:
-        print(f"Error al revisar las ordenes del cliente: {e}")
-        return f"Error al revisar las ordenes del cliente: {e}"
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return "error inesperado al revisar las ordenes del cliente"
-
+    resultado = solicitud_con_token(check_orders_url, "GET")
+    return resultado

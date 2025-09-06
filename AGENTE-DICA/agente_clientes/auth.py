@@ -28,39 +28,51 @@ def obtener_token():
     except requests.RequestException as e:
         print(f"Error en login: {e}")
 
-
-def solicitud_con_token(url, method: str, body = {}, max_reintentos=2):
+def solicitud_con_token(url, method: str, body = None, max_reintentos=2):
     token = os.environ.get("jwt")
     if not token:
         raise ValueError("Token JWT no encontrado en las variables de entorno.")
 
     intentos = 0
-
     while intentos <= max_reintentos:
         headers = {"Authorization": f"Bearer {token}"}
-        if method == "GET":
+        method_upper = method.upper()
+        response = None
+
+        if method_upper == "GET":
             response = requests.get(url, headers=headers, json=body)
-        if method == "PUT":
+        elif method_upper == "PUT":
             response = requests.put(url, headers=headers, json=body)
-        if method == "POST":
-            response = requests.post(url, headers=headers,json=body)
-        if method == "DELETE":
-            response = requests.delete(url, headers=headers,json=body)
+        elif method_upper == "POST":
+            response = requests.post(url, headers=headers, json=body)
+        elif method_upper == "DELETE":
+            response = requests.delete(url, headers=headers, json=body)
+        else:
+            raise ValueError(f"Método HTTP no soportado: {method}")
 
         print(f"Status: {response.status_code}")
         print(f"Respuesta: {response.text}")
 
-        if response.status_code == 200:
-            return response.text
+        if 200 <= response.status_code < 300:
+            # Intentamos devolver JSON si existe, sino texto
+            try:
+                return {"status_code": response.status_code, "body": response.json()}
+            except ValueError:
+                return {"status_code": response.status_code, "body": response.text}
 
-        elif response.status_code == 401 and intentos < max_reintentos:
+        if response.status_code == 401 and intentos < max_reintentos:
             print("Token expirado o inválido. Renovando...")
             token = obtener_token()
             intentos += 1
             continue
 
-        else:
-            response.raise_for_status()
-            break
+        # Para otros códigos (4xx/5xx) devolvemos el cuerpo parseado en lugar de lanzar directamente
+        try:
+            parsed = response.json()
+        except ValueError:
+            parsed = response.text
 
-    return "[]"
+        return {"status_code": response.status_code, "body": parsed}
+
+    # si salimos del loop
+    return {"status_code": None, "body": None}

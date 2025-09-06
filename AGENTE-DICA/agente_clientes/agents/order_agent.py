@@ -5,7 +5,7 @@
 from google.adk.agents import Agent
 from agente_clientes.prompts import GLOBAL_INSTRUCTION, ORDER_SERVICE_INSTRUCTION
 from agente_clientes.tools import get_menu, get_active_cart, add_menu_to_cart, remove_menu_from_cart, create_order, cancel_order
-from agente_clientes.tools import cancel_cart, check_active_orders, create_new_cart
+from agente_clientes.tools import empty_cart, check_active_orders, create_new_cart
 
 order_service_agent = Agent(
     name="order_agent",
@@ -21,7 +21,7 @@ order_service_agent = Agent(
         remove_menu_from_cart,
         create_order,
         cancel_order,
-        cancel_cart,
+        empty_cart,
         check_active_orders
     ]
 )

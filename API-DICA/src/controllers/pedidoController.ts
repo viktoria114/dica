@@ -18,7 +18,7 @@ export const crearPedido = async (req: Request, res: Response) => {
     // 🚨 Validación: Si es agente, verificar si ya existe un pedido activo en estado 6 o 7
     if (rol === 'agente' && fk_cliente) {
       const validacionQuery = `
-        SELECT id 
+        SELECT id, id_estado
         FROM pedidos 
         WHERE id_cliente = $1 
         AND id_estado IN (6,7)
@@ -36,7 +36,7 @@ export const crearPedido = async (req: Request, res: Response) => {
         if (id_estado === 6) {
           mensaje = "El cliente ya cuenta con un carrito activo. Usa la herramienta correspondiente para obtener informacion"
         } else if (id_estado === 7) {
-          mensaje = "El cliente tiene un pedido pendiente de confirmación. Hay que esperar que un empleado lo acepte.";
+          mensaje = "El cliente tiene un pedido pendiente de confirmación. No puedes crear uno nuevo. Hay que esperar que un empleado lo acepte.";
         }
 
         return res.status(400).json({ message: mensaje });
@@ -250,16 +250,15 @@ export const getListaPedidosPorTelefono = async (
   const { telefono } = req.params;
 
   try {
-    // Verificar si el cliente existe
-    const clienteQuery = `SELECT telefono FROM clientes WHERE telefono = $1;`;
-    const clienteResult = await pool.query(clienteQuery, [telefono]);
 
-    if (clienteResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Cliente no existente' });
-    }
-
-    // Buscar pedidos del cliente
-    const pedidosQuery = `SELECT * FROM pedidos WHERE id_cliente = $1 AND id_estado NOT IN (6,8,9);`;
+    // Buscar pedidos del cliente con nombre del estado
+    const pedidosQuery = `
+      SELECT p.id, p.fecha, p.hora, p.ubicacion, p.observaciones, e.nombre AS estado_nombre
+      FROM pedidos p
+      JOIN estados e ON e.id = p.id_estado
+      WHERE p.id_cliente = $1
+        AND p.id_estado NOT IN (6,8,9);
+    `;
     const pedidosResult = await pool.query(pedidosQuery, [telefono]);
 
     if (pedidosResult.rows.length === 0) {
@@ -268,8 +267,17 @@ export const getListaPedidosPorTelefono = async (
         .json({ message: 'El cliente no tiene pedidos asignados' });
     }
 
-    // Devolver pedidos
-    res.json(pedidosResult.rows);
+    const menuQuery = `
+      SELECT m.nombre, pm.cantidad, pm.precio_unitario AS precio_item
+      FROM pedidos_menu pm
+      INNER JOIN menu m ON m.id = pm.menu_id
+      WHERE pm.fk_pedido = $1; 
+    `
+
+    const menuResult = await pool.query(menuQuery, [pedidosResult.rows[0].id])
+
+    // Devolver pedidos con estado_nombre ya incorporado
+    res.json({order: pedidosResult.rows, items: menuResult.rows});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al obtener los pedidos' });
@@ -281,9 +289,10 @@ export const getPedidosEnConstruccion = async(req: Request, res: Response) =>{
     const { tel } = req.params
 
    const query = `
-      SELECT p.id AS cart_id, pm.fk_menu AS menu_id, pm.precio_unitario, pm.cantidad
+      SELECT p.id AS cart_id, m.nombre, pm.precio_unitario as precio_item, pm.cantidad
       FROM pedidos p
-      LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido 
+      LEFT JOIN menu m ON pm.fk_menu = m.id
       WHERE p.id_estado = 6 AND p.id_cliente = $1;
     `;
 
@@ -293,22 +302,35 @@ export const getPedidosEnConstruccion = async(req: Request, res: Response) =>{
       return res.status(200).json({message: "Actualmente el cliente no cuenta con un carrito activo"})
     }
 
-
     const { cart_id } = result.rows[0];
     const items = result.rows
       .filter(row => row.menuid !== null) 
-      .map(({ menu_id, precio_unitario, cantidad }) => ({
-        menuID: menu_id,
-        precio_total: precio_unitario,
+      .map(({ nombre, precio_item, cantidad }) => ({
+        nombre,
+        precio_item,
         cantidad
       }));
 
-    res.status(200).json({ cartID: cart_id, items });
+    let total = 0;
+    for (const item of items) {
+      total += item.precio_item * item.cantidad;
+    }
 
+    res.status(200).json({ cartID: cart_id, items, PrecioTotal: total });
 
   }catch(err: any){
     console.error(err);
     res.status(500).json('Error al obtener el carrito activo del cliente')
+  }
+}
+
+export const getPedidosPorConfirmar = async (req:Request, res: Response) =>{
+  try{
+    const { rows } = await pool.query('SELECT * FROM pedidos WHERE id_estado = 7')
+    res.status(200).json(rows)
+  }catch(err: any){
+    console.log(err)
+    res.status(500).json("error al obtener los pedidos por confirmar")
   }
 }
 

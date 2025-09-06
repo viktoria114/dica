@@ -8,6 +8,8 @@ import {
   getListaCompletaPedidos,
   restaurarPedido,
   getListaPedidosPorTelefono,
+  getPedidosEnConstruccion,
+  getPedidosPorConfirmar,
   getPedidosCanceladosHoy,
   agregarItemPedido,
   agregarUnItemPedido,
@@ -21,7 +23,6 @@ import {
   deshacerCancelarPedido,
   pedidoPagado,
   agenteEstadoPedido,
-  getPedidosEnConstruccion
 } from '../controllers/pedidoController';
 const router = Router();
 
@@ -33,6 +34,8 @@ router.delete('/:id', eliminarPedido);
 router.put('/restaurar/:id', restaurarPedido);
 router.get('/telefono_cliente/:telefono', getListaPedidosPorTelefono);
 router.get('/en_construccion/:tel', getPedidosEnConstruccion)
+router.get('/por_confirmar',getPedidosPorConfirmar)
+
 router.get('/cancelados_hoy', getPedidosCanceladosHoy);
 
 //Logica de negocio
