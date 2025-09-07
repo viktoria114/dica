@@ -1240,10 +1240,10 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
 
     //obtener el monto total del pedido
     const {rows: menuPedidoRows} = await client.query("SELECT precio_unitario FROM pedidos_menu WHERE fk_pedido = $1", [pedido_id])
-    let total = 0
+    let total : number = 0
 
     for (let row of menuPedidoRows){
-      total += row.precio_unitario
+      total += parseInt(row.precio_unitario)
     }
 
     //si es transferencia se registra el pago asociado el cual debe ser verificado
