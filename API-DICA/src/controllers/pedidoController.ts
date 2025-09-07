@@ -178,6 +178,9 @@ export const crearPedido = async (req: Request, res: Response) => {
     }
 
     await client.query('COMMIT');
+    if (rol === 'agente'){
+      res.status(200).json({id: pedidoId, message: 'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte'})
+    }
     res.status(201).json({ id: pedidoId, message: 'Pedido creado con éxito' });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -313,7 +316,7 @@ export const getPedidosEnConstruccion = async(req: Request, res: Response) =>{
 
     let total = 0;
     for (const item of items) {
-      total += item.precio_item * item.cantidad;
+      total += item.precio_item
     }
 
     res.status(200).json({ cartID: cart_id, items, PrecioTotal: total });
@@ -1190,14 +1193,17 @@ export const pedidoPagado = async (req: Request, res: Response) => {
 
 export const agenteEstadoPedido = async (req: Request, res: Response) => {
   const { tel } = req.params;
-  const { ubicacion, observacion } = req.body;
+  const { ubicacion, observacion, metodo_pago, efectivo_entregado, comprobante_pago} = req.body;
   const client = await pool.connect();
+
+  //mensaje del payload como respuesta
+  let message
 
   try {
     await client.query('BEGIN');
 
     const pedidoQuery = `
-      SELECT * 
+      SELECT id 
       FROM pedidos
       WHERE id_cliente = $1 AND id_estado = 6
       LIMIT 1;
@@ -1218,23 +1224,56 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       RETURNING *;
     `;
 
+    const observaciones = metodo_pago == 'efectivo' ? observacion + " .Efectivo entregado: " +efectivo_entregado : observacion
+
     const { rows: updatedRows } = await client.query(updateQuery, [
       ubicacion,
-      observacion,
+      observaciones,
       pedido_id,
     ]);
     // Insertamos el registro en "registro_de_estados"
     const insertRegistroQuery = `
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
-      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME(0))
     `;
     await client.query(insertRegistroQuery, [pedido_id, 7]);
+
+    //obtener el monto total del pedido
+    const {rows: menuPedidoRows} = await client.query("SELECT precio_unitario FROM pedidos_menu WHERE fk_pedido = $1", [pedido_id])
+    let total = 0
+
+    for (let row of menuPedidoRows){
+      total += row.precio_unitario
+    }
+
+    //si es transferencia se registra el pago asociado el cual debe ser verificado
+    //el pago de efectivo se registra cuando el delivery entrega y finaliza el pedido
+    if (metodo_pago == "transferencia"){
+      const pagoQuery = `
+      INSERT INTO pagos (monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_TIME(0))
+      `
+      await client.query(pagoQuery, [total, metodo_pago, comprobante_pago, false, pedido_id])
+      message = 'Pedido creado correctamente. Por favor, espera mientras validamos tu transferencia. Seras notificado en breve'
+    }
+
     await client.query('COMMIT');
 
-    res.json({
-      message: 'Pedido creado correctamente',
-      pedido: updatedRows[0],
-    });
+    if (!message){
+      message = 'Pedido creado correctamente. Recuerda que puedes consultar el estado de tu pedido en todo momento'
+    }
+
+    const payload = {
+      message: message,
+      orderID: updatedRows[0].id,
+      location: ubicacion,
+      paymentMethod: metodo_pago,
+      orderState: "proceso de validacion",
+      totalPrice: total,
+    }
+
+    res.status(200).json({payload});
+
   } catch (error) {
     try {
       await client.query('ROLLBACK');

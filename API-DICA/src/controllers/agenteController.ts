@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { pool } from '../config/db';
-// Ajusta o habilita las importaciones reales según tu proyecto (pool, fetch, etc.).
-// import pool from './db';
 
 // ---- Configurables ----
 const BUFFER_WINDOW_MS = parseInt(process.env.BUFFER_WINDOW_MS || '1000', 10);
@@ -131,7 +129,7 @@ async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Pro
 export const gestionarMensajes = async (req: Request, res: Response): Promise<Response> => {
   try {
     const body = req.body;
-    if (body?.object !== 'whatsapp_business_account') {
+    if (body?.object !== "whatsapp_business_account") {
       return res.sendStatus(404);
     }
 
@@ -153,27 +151,43 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
             const timestampStr = message.timestamp;
             if (timestampStr) {
               const ts = parseInt(timestampStr, 10);
-              if (!isNaN(ts) && (ahora - ts) > 60) {
-                console.warn(`Mensaje descartado por retraso (${ahora - ts}s) de ${message.from}`);
+              if (!isNaN(ts) && ahora - ts > 60) {
+                console.warn(
+                  `Mensaje descartado por retraso (${ahora - ts}s) de ${message.from}`
+                );
                 continue;
               }
             }
 
             const numeroEntrada = message.from as string;
             if (!numeroEntrada) {
-              console.warn('Número de origen no definido. Se omite.');
+              console.warn("Número de origen no definido. Se omite.");
               continue;
             }
 
             // 1) Intentar extraer URL de Google Maps
             const mapsUrl = extractGoogleMapsUrl(message);
             if (mapsUrl) {
-              console.log("URL de Google Maps recibida:", mapsUrl);
               reiniciarTemporizadorYEncolar(numeroEntrada, mapsUrl);
               continue;
             }
 
-            // 2) Si no es Google Maps, procesar como texto normal
+            // 2) Procesar imagen (extraer URL temporal de descarga)
+            if (message.type === "image" && message.image?.id) {
+              const mediaId = message.image.id;
+              const accessToken = process.env.ACCESS_TOKEN as string;
+
+              const mediaUrl = await obtenerUrlMedia(mediaId, accessToken);
+              if (mediaUrl) {
+                console.log("URL temporal de imagen recibida:", mediaUrl);
+                reiniciarTemporizadorYEncolar(numeroEntrada, mediaUrl);
+              } else {
+                console.warn("No se pudo obtener la URL de la imagen.");
+              }
+              continue;
+            }
+
+            // 3) procesar como texto normal
             const mensajeTexto = message.text?.body as string | undefined;
             if (mensajeTexto) {
               const palabras = countWords(mensajeTexto);
@@ -186,10 +200,13 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
                 try {
                   await enviarMensajeWhatsApp(
                     numeroEntrada,
-                    'Su mensaje excede el límite de 50 palabras (≈220 caracteres) y no fue procesado. Por favor envíe un texto más corto.'
+                    "Su mensaje excede el límite de 50 palabras (≈220 caracteres) y no fue procesado. Por favor envíe un texto más corto."
                   );
                 } catch (notifyErr) {
-                  console.error('Error al notificar al usuario sobre límite de longitud:', notifyErr);
+                  console.error(
+                    "Error al notificar al usuario sobre límite de longitud:",
+                    notifyErr
+                  );
                 }
                 continue;
               }
@@ -198,11 +215,10 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
               continue;
             }
 
-            // 3) Si no hay texto ni URL de Maps
-            console.warn('Mensaje sin texto ni link de Google Maps. Se omite.');
-
+            // 4) Si no hay nada procesable
+            console.warn("Mensaje sin texto, imagen ni link de Google Maps. Se omite.");
           } catch (innerErr) {
-            console.error('Error interno procesando un mensaje:', innerErr);
+            console.error("Error interno procesando un mensaje:", innerErr);
           }
         }
       }
@@ -210,8 +226,8 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
 
     return res.sendStatus(200);
   } catch (error) {
-    console.error('Error en gestionar el mensaje al agente:', error);
-    return res.status(500).send('Error interno del servidor');
+    console.error("Error en gestionar el mensaje al agente:", error);
+    return res.status(500).send("Error interno del servidor");
   }
 };
 
@@ -433,4 +449,30 @@ function extractGoogleMapsUrl(message: any): string | null {
   }
 
   return null;
+}
+
+//procesa el mensaje de la imagen y obtiene la URL asociada como string
+
+async function obtenerUrlMedia(mediaId: string, accessToken: string): Promise<string | null> {
+  const endpoint = `https://graph.facebook.com/v20.0/${mediaId}`;
+
+  try {
+    const resp = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!resp.ok) {
+      console.error(`Error al obtener media (${resp.status}):`, await resp.text());
+      return null;
+    }
+
+    const data = await resp.json();
+    return data.url || null;
+  } catch (err) {
+    console.error("Error al hacer fetch de media:", err);
+    return null;
+  }
 }
