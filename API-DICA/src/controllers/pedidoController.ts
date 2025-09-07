@@ -1246,23 +1246,17 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       total += parseInt(row.precio_unitario)
     }
 
+    //reglas de negocio crear objeto "pagos"
+    //...
     //si es transferencia se registra el pago asociado el cual debe ser verificado
-    //el pago de efectivo se registra cuando el delivery entrega y finaliza el pedido
-    if (metodo_pago == "transferencia"){
-      const pagoQuery = `
-      INSERT INTO pagos (monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_TIME(0))
-      `
-      await client.query(pagoQuery, [total, metodo_pago, comprobante_pago, false, pedido_id])
-      message = 'Pedido creado correctamente. Por favor, espera mientras validamos tu transferencia. Seras notificado en breve'
-    }
+    const pagoQuery = `
+    INSERT INTO pagos (monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora)
+    VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_TIME(0))
+    `
+    await client.query(pagoQuery, [total, metodo_pago, comprobante_pago, false, pedido_id])
+    message = 'Pedido creado correctamente. Por favor, espera mientras validamos tu solicitud. Seras notificado en breve'
 
     await client.query('COMMIT');
-
-    if (!message){
-      message = 'Pedido creado correctamente. Recuerda que puedes consultar el estado de tu pedido en todo momento'
-    }
-
     const payload = {
       message: message,
       orderID: updatedRows[0].id,
