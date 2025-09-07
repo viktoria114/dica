@@ -219,22 +219,54 @@ def remove_menu_from_cart(tel: str, cartID: int, menuID: int, cantidad: int) ->s
     return resultado
 
 # Esta funcion en realidad actualiza el pedido ya creado pero el agente no lo sabe jiji
-def create_order(tel: str, ubicacion: str, observacion: str):
+def create_order_cash(tel: str, ubicacion: str, observacion: str, efectivo_entregado: str):
     """
-    Crea un nuevo pedido para ser procesado
+    Crea un nuevo pedido con efectivo para ser procesado
 
     Args:
         tel(str): Numero de telefono del cliente
         ubicacion(str): Lugar donde entregar el pedido
         observacions(str): detalles extra sobre el pedido especificadas (preferencias, referencias del lugar de entrega, etc)
+        efectivo_entregado(str): dinero disponible del cliente al momento de pagar
+    Returns:
+        Informacion sobre el pedido creado
+    """
+
+    if not observacion:
+        observacion = ""
+
+    body = {
+        "metodo_pago": "efectivo",
+        "ubicacion": ubicacion,
+        "observacion": observacion,
+        "efectivo_entregado": efectivo_entregado
+    }
+    # API: Buscar el unico pedido que corresponde al cliente y que tenga el estado "En construccion"
+    create_order_url= f"{api_url}/api/pedido/agente_estado/{tel}"
+
+    resultado = solicitud_con_token(create_order_url, "PUT", body)
+    return resultado
+
+
+def create_order_transfer(tel: str, ubicacion: str, observacion: str, comprobante_pago: str):
+    """
+    Crea un nuevo pedido con transferencia para ser procesado
+
+    Args:
+        tel(str): Numero de telefono del cliente
+        ubicacion(str): Lugar donde entregar el pedido
+        observacions(str): detalles extra sobre el pedido especificadas (preferencias, referencias del lugar de entrega, etc)
+        comprobante_pago(str): referencia al comprobante de pago enviado
     Returns:
         Informacion sobre el pedido creado
     """
     body = {
+        "metodo_pago": "transferencia",
         "ubicacion": ubicacion,
-        "observacion": observacion
+        "observacion": observacion,
+        "comprobante_pago": comprobante_pago
     }
-    # API: Buscar el unico pedido que corresponde al cliente y que tenga el estado "En construccion"
+
     create_order_url= f"{api_url}/api/pedido/agente_estado/{tel}"
 
     resultado = solicitud_con_token(create_order_url, "PUT", body)
