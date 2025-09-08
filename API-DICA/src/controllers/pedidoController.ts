@@ -179,7 +179,7 @@ export const crearPedido = async (req: Request, res: Response) => {
 
     await client.query('COMMIT');
     if (rol === 'agente'){
-      res.status(200).json({id: pedidoId, message: 'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte'})
+      return res.status(200).json({id: pedidoId, message: 'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte'})
     }
     res.status(201).json({ id: pedidoId, message: 'Pedido creado con éxito' });
   } catch (error) {

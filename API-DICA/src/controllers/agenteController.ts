@@ -168,7 +168,7 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
             // 1) Intentar extraer URL de Google Maps
             const mapsUrl = extractGoogleMapsUrl(message);
             if (mapsUrl) {
-              reiniciarTemporizadorYEncolar(numeroEntrada, mapsUrl);
+              reiniciarTemporizadorYEncolar(numeroEntrada, "Google Maps link: "+ mapsUrl);
               continue;
             }
 
@@ -179,8 +179,7 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
 
               const mediaUrl = await obtenerUrlMedia(mediaId, accessToken);
               if (mediaUrl) {
-                console.log("URL temporal de imagen recibida:", mediaUrl);
-                reiniciarTemporizadorYEncolar(numeroEntrada, mediaUrl);
+                reiniciarTemporizadorYEncolar(numeroEntrada, "image link: "+mediaUrl);
               } else {
                 console.warn("No se pudo obtener la URL de la imagen.");
               }
