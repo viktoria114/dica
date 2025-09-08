@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PoolClient } from 'pg';
 import { pool } from '../config/db';
 import { Pedido } from '../models/pedido';
+import { descargarImagen, subirADropbox } from '../utils/image';
 
 export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
@@ -1246,6 +1247,21 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       total += parseInt(row.precio_unitario)
     }
 
+    const dropboxToken = process.env.DROPBOX_TOKEN as string
+    const accessToken = process.env.ACCESS_TOKEN as string
+    let rutaDropbox
+
+    if (metodo_pago == "transferencia"){
+      const imagenBuffer = await descargarImagen(comprobante_pago, accessToken);
+      if (!imagenBuffer) return;
+
+      const nombreArchivo = `comprobante_${Date.now()}.jpg` 
+      rutaDropbox = await subirADropbox(nombreArchivo, imagenBuffer, dropboxToken);
+
+    if (!rutaDropbox) return;
+
+    }
+
     //reglas de negocio crear objeto "pagos"
     //...
     //si es transferencia se registra el pago asociado el cual debe ser verificado
@@ -1253,7 +1269,7 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
     INSERT INTO pagos (monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora)
     VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_TIME(0))
     `
-    await client.query(pagoQuery, [total, metodo_pago, comprobante_pago, false, pedido_id])
+    await client.query(pagoQuery, [total, metodo_pago, rutaDropbox, false, pedido_id])
     message = 'Pedido creado correctamente. Por favor, espera mientras validamos tu solicitud. Seras notificado en breve'
 
     await client.query('COMMIT');
