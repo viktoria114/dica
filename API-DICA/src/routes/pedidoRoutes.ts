@@ -19,11 +19,10 @@ import {
   getItemPedido,
   actualizarEstadoPedido,
   retrocederEstadoPedido,
-  cancelarPedido,
-  deshacerCancelarPedido,
   pedidoPagado,
   agenteEstadoPedido,
 } from '../controllers/pedidoController';
+import { cancelarPedido, deshacerCancelarPedido } from '../controllers/cancelacionesController';
 const router = Router();
 
 router.post('/', verifyToken, crearPedido);
