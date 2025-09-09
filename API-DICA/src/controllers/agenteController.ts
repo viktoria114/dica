@@ -96,6 +96,7 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
 
             // 4) Si no hay nada procesable
             console.warn("Mensaje sin texto, imagen ni link de Google Maps. Se omite.");
+            await enviarMensajeWhatsApp(numeroEntrada, "Lo siento, no puedo escuchar audios ni entender imágenes. Por favor, utiliza solo texto.")
           } catch (innerErr) {
             console.error("Error interno procesando un mensaje:", innerErr);
           }

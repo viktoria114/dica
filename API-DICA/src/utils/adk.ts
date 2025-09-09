@@ -224,6 +224,7 @@ export const enviarMensajeAdk = async (
                     if (!nuevaSesion) {
                         throw new Error('faltan campos obligatorios');
                     }
+                    await enviarMensajeWhatsApp(telefono, "Por seguridad, esta conversación quedará registrada. Por favor, utiliza nuestro sistema con moderación.")
                     return await enviarMensajeAdk(mensaje, telefono, nuevaSesion, esCliente, intento + 1);
                 }
 

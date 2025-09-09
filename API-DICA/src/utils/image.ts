@@ -81,11 +81,3 @@ export async function subirADropbox(
     return null;
   }
 }
-
-// Guardar referencia en PostgreSQL
-export async function guardarReferencia(nombre: string, link: string) {
-  await pool.query(
-    'INSERT INTO imagenes (nombre, ruta) VALUES ($1, $2)',
-    [nombre, link]
-  );
-}
