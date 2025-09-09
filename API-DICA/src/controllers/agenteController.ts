@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import * as adk from '../utils/adk';
 import { enviarMensajeWhatsApp } from '../utils/whatsapp';
 import { extractGoogleMapsUrl } from '../utils/gmaps';
-import { obtenerUrlMedia, descargarImagen } from '../utils/image';
+import { obtenerUrlMedia } from '../utils/image';
+import config from '../config/config';
 
 // ----------------------- Endpoint principal -----------------------
 
@@ -27,6 +28,7 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
 
         for (const message of messages) {
           try {
+
             const ahora = Math.floor(Date.now() / 1000);
             const timestampStr = message.timestamp;
             if (timestampStr) {
@@ -40,6 +42,14 @@ export const gestionarMensajes = async (req: Request, res: Response): Promise<Re
             }
 
             const numeroEntrada = message.from as string;
+
+            //el servicio de agente esta apagado
+            if(!config.agent_service){
+              await enviarMensajeWhatsApp(numeroEntrada, "Mi servicio no se encuentra disponible en este momento. Disculpe las molestias")
+              continue;
+            }
+
+            //el numero de entrada esta vacio
             if (!numeroEntrada) {
               console.warn("Número de origen no definido. Se omite.");
               continue;
@@ -133,3 +143,13 @@ export const gestionarVerificacion = async (req: Request, res: Response): Promis
         return res.status(500).send('Error interno del servidor');
     }
 };
+
+export const toggleActivity = async (req: Request, res: Response) => {
+    config.agent_service = !config.agent_service
+
+    if(config.agent_service){
+      res.status(200).json("Servicio de agente encendido correctamente")
+    }else{
+      res.status(200).json("Servicio de agente apagado correctamente")
+    }
+}
