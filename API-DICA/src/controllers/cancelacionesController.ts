@@ -4,6 +4,8 @@ import { pool } from '../config/db';
 export const cancelarPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
+  const idEmpleado = (req as any).dni; // solo viene si es empleado
+  const { motivo } = req.body;
 
   try {
     // Verificar que el pedido exista y obtener su estado actual
@@ -22,10 +24,16 @@ export const cancelarPedido = async (req: Request, res: Response) => {
 
     // Determinar el nuevo estado según el rol
     let nuevoEstado: number;
+    let confirmado = false;
+    let empleadoId: number | null = null;
+
     if (rol === 'agente') {
       nuevoEstado = 8; // Por Cancelar
+      confirmado = false;
     } else {
       nuevoEstado = 9; // Cancelado
+      confirmado = true;
+      empleadoId = idEmpleado;
     }
 
     // Si ya está en ese estado, no hacemos nada
@@ -35,7 +43,7 @@ export const cancelarPedido = async (req: Request, res: Response) => {
       });
     }
 
-    // Actualizamos el estado
+    // Actualizamos el estado del pedido
     const updateQuery = `
       UPDATE pedidos
       SET id_estado = $1
@@ -54,13 +62,21 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     `;
     await pool.query(insertRegistroQuery, [id, nuevoEstado]);
 
-    if(rol === 'agente'){
+    // Insertamos el registro en "cancelaciones"
+    const cancelacionQuery = `
+      INSERT INTO cancelaciones (motivo, id_pedido, id_empleado, id_fecha, hora, confirmado)
+      VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_TIME, $4)
+    `;
+    await pool.query(cancelacionQuery, [motivo, id, empleadoId, confirmado]);
+
+    if (rol === 'agente') {
       return res.status(200).json({
-        message: `En breve sera notificado sobre la cancelacion del pedido #${id} `,
+        message: `En breve será revisada la cancelación del pedido #${id}.`,
       });
     }
+
     res.json({
-      message: `Pedido actualizado al estado ${nuevoEstado}`,
+      message: `Pedido cancelado con éxito`,
       pedido: updatedRows[0],
     });
   } catch (error) {
@@ -76,10 +92,8 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
     // 1. Verificar estado actual
     const estadoActualQuery = `
       SELECT id_estado
-      FROM registro_de_estados
-      WHERE id_pedido = $1
-      ORDER BY id_fecha DESC, hora DESC
-      LIMIT 1;
+      FROM pedidos
+      WHERE id = $1
     `;
     const { rows: estadoActualRows } = await pool.query(estadoActualQuery, [
       id,
@@ -101,13 +115,14 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
 
     // 2. Buscar el último estado ANTES de entrar en 8 o 9
     const estadoAnteriorQuery = `
-      SELECT id_estado
-      FROM registro_de_estados
-      WHERE id_pedido = $1
-      AND id_estado NOT IN (8, 9)
-      ORDER BY id_fecha DESC, hora DESC
-      LIMIT 1;
-    `;
+      UPDATE cancelaciones
+  SET anulada = TRUE
+  WHERE id = (
+    SELECT id
+    FROM cancelaciones
+    WHERE id_pedido = $1
+    ORDER BY id_fecha DESC, hora DESC
+    LIMIT 1);`;
     const { rows: estadoAnteriorRows } = await pool.query(estadoAnteriorQuery, [
       id,
     ]);
@@ -138,6 +153,14 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME);
     `;
     await pool.query(insertRegistroQuery, [id, estadoAnterior]);
+
+    // 5. Marcar cancelaciones como anuladas
+    const updateCancelacionQuery = `
+      UPDATE cancelaciones
+      SET anulada = TRUE
+      WHERE id_pedido = $1
+    `;
+    await pool.query(updateCancelacionQuery, [id]);
 
     res.json({
       message: `Pedido restaurado al estado ${estadoAnterior}`,
