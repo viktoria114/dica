@@ -1249,6 +1249,9 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
 
     const dropboxToken = process.env.DROPBOX_TOKEN as string
     const accessToken = process.env.ACCESS_TOKEN as string
+    const dropboxRefreshToken = process.env.DROPBOX_REFRESH_TOKEN as string
+    const dropboxClientID = process.env.DROPBOX_CLIENTID as string
+    const dropboxClientSecret = process.env.DROPBOX_CLIENTSECRET as string
     let rutaDropbox
 
     if (metodo_pago == "transferencia"){
@@ -1256,7 +1259,7 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       if (!imagenBuffer) return;
 
       const nombreArchivo = `comprobante_${Date.now()}.jpg` 
-      rutaDropbox = await subirADropbox(nombreArchivo, imagenBuffer, dropboxToken);
+      rutaDropbox = await subirADropbox(nombreArchivo, imagenBuffer, dropboxToken,dropboxRefreshToken,dropboxClientID, dropboxClientSecret);
 
     if (!rutaDropbox) return;
 

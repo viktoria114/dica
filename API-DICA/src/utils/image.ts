@@ -44,22 +44,42 @@ export async function descargarImagen(mediaUrl: string, accessToken: string): Pr
   }
 }
 
-// Función para subir imagen a Dropbox
+// Refrescar access_token usando refresh_token
+async function refrescarToken(refreshToken: string, clientId: string, clientSecret: string) {
+  const params = new URLSearchParams();
+  params.append("grant_type", "refresh_token");
+  params.append("refresh_token", refreshToken);
+  params.append("client_id", clientId);
+  params.append("client_secret", clientSecret);
+
+  const res = await fetch("https://api.dropboxapi.com/oauth2/token", {
+    method: "POST",
+    body: params,
+  });
+
+  if (!res.ok) throw new Error(`Error al refrescar token: ${res.statusText}`);
+  return await res.json(); // contiene { access_token, expires_in, ... }
+}
+
+// Función para subir imagen a Dropbox con manejo de token expirado
 export async function subirADropbox(
   nombreArchivo: string,
   bufferImagen: Buffer,
-  dropboxToken: string
+  accessToken: string,
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string
 ): Promise<string | null> {
   const dropboxEndpoint = "https://content.dropboxapi.com/2/files/upload";
 
-  try {
-    const resp = await fetch(dropboxEndpoint, {
+  async function intentoSubida(token: string) {
+    return await fetch(dropboxEndpoint, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${dropboxToken}`,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/octet-stream",
         "Dropbox-API-Arg": JSON.stringify({
-          path: `/${nombreArchivo}`, // ruta y nombre en Dropbox
+          path: `/${nombreArchivo}`,
           mode: "add",
           autorename: true,
           mute: false,
@@ -67,6 +87,26 @@ export async function subirADropbox(
       },
       body: bufferImagen,
     });
+  }
+
+  try {
+    let resp = await intentoSubida(accessToken);
+
+    // si el token está vencido o inválido
+    if (resp.status === 401) {
+      const error = await resp.json().catch(() => ({}));
+      if (
+        error.error_summary?.includes("invalid_access_token") ||
+        error.error_summary?.includes("expired_access_token")
+      ) {
+        console.warn("Token expirado, intentando refrescar...");
+        const nuevo = await refrescarToken(refreshToken, clientId, clientSecret);
+        accessToken = nuevo.access_token;
+
+        // reintentar subida con token nuevo
+        resp = await intentoSubida(accessToken);
+      }
+    }
 
     if (!resp.ok) {
       console.error("Error al subir a Dropbox:", await resp.text());
@@ -74,7 +114,6 @@ export async function subirADropbox(
     }
 
     const data = await resp.json();
-    // Retorna la ruta compartida de la imagen
     return data.path_display || null;
   } catch (err) {
     console.error("Error al subir a Dropbox:", err);
