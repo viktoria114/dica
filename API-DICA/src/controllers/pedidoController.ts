@@ -14,7 +14,7 @@ export const crearPedido = async (req: Request, res: Response) => {
       items_menu = [],
     } = req.body;
     const rol = (req as any).rol;
-    const fk_empleado = (req as any).dni;
+    let dni_empleado = (req as any).dni;
 
     // 🚨 Validación: Si es agente, verificar si ya existe un pedido activo en estado 6 o 7
     if (rol === 'agente' && fk_cliente) {
@@ -121,38 +121,38 @@ export const crearPedido = async (req: Request, res: Response) => {
     let estadoInicial = 1; // pendiente
     if (rol === 'agente') {
       estadoInicial = 6; // en construccion
+      dni_empleado = null
     }
 
     // Crear pedido
     const pedidoQuery = `
-      INSERT INTO pedidos (fecha, hora, id_estado, dni_empleado, id_cliente, ubicacion, observaciones, visibilidad, pagado)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO pedidos (fecha, hora, id_estado, id_cliente, ubicacion, observaciones, visibilidad)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id;
     `;
     const { rows: pedidoRows } = await client.query(pedidoQuery, [
       new Date(),
       new Date().toLocaleTimeString(),
       estadoInicial,
-      fk_empleado,
       fk_cliente, // Puede ir null
       ubicacion, // Puede ir null
       observacion, // Puede ir null
       true,
-      false,
     ]);
 
     const pedidoId = pedidoRows[0].id;
 
     // Registro de estado
     const registroEstadoQuery = `
-      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
-      VALUES ($1, $2, $3, $4);
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
+      VALUES ($1, $2, $3, $4, $5);
     `;
     await client.query(registroEstadoQuery, [
       pedidoId,
       estadoInicial,
       new Date(),
       new Date().toLocaleTimeString(),
+      dni_empleado
     ]);
 
     // Insertar ítems solo si hay
@@ -195,13 +195,13 @@ export const crearPedido = async (req: Request, res: Response) => {
 export const actualizarPedido = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { fk_empleado, fk_cliente, ubicacion, observacion, fk_estado } =
+    const {fk_cliente, ubicacion, observacion, fk_estado } =
       req.body;
 
     const query = `
             UPDATE pedidos
-            SET id_estado = $1, dni_empleado = $2, id_cliente = $3, ubicacion = $4, observaciones = $5
-            WHERE id = $6
+            SET id_estado = $1, id_cliente = $2, ubicacion = $3, observaciones = $4
+            WHERE id = $5
             RETURNING *;
         `;
 
@@ -210,7 +210,6 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       null,
       null,
       fk_estado,
-      fk_empleado,
       fk_cliente,
       ubicacion,
       observacion,
@@ -218,7 +217,6 @@ export const actualizarPedido = async (req: Request, res: Response) => {
 
     const { rows } = await pool.query(query, [
       pedido.fk_estado,
-      pedido.fk_empleado,
       pedido.fk_cliente,
       pedido.ubicacion,
       pedido.observacion,
@@ -728,6 +726,8 @@ export const getItemPedido = async (req: Request, res: Response) => {
 export const actualizarEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
+  const dni_empleado = (req as any).dni
+
   const client = await pool.connect();
 
   try {
@@ -853,10 +853,10 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
 
     // Insertamos el registro en "registro_de_estados"
     const insertRegistroQuery = `
-      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
-      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME, $3)
     `;
-    await client.query(insertRegistroQuery, [id, nuevaTransicion]);
+    await client.query(insertRegistroQuery, [id, nuevaTransicion, dni_empleado]);
 
     await client.query('COMMIT');
 
@@ -877,6 +877,7 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
   const client = await pool.connect();
+  const dni_empleado = (req as any).dni
 
   try {
     await client.query('BEGIN');
@@ -985,10 +986,10 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
 
     // Registro del nuevo estado
     const insertRegistroQuery = `
-      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
-      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME, $3)
     `;
-    await client.query(insertRegistroQuery, [id, nuevaTransicion]);
+    await client.query(insertRegistroQuery, [id, nuevaTransicion, dni_empleado]);
 
     await client.query('COMMIT');
 
@@ -1008,6 +1009,7 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
 export const cancelarPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
+  let dni_empleado = (req as any).dni
 
   try {
     // Verificar que el pedido exista y obtener su estado actual
@@ -1028,6 +1030,7 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     let nuevoEstado: number;
     if (rol === 'agente') {
       nuevoEstado = 8; // Por Cancelar
+      dni_empleado = null
     } else {
       nuevoEstado = 9; // Cancelado
     }
@@ -1053,10 +1056,10 @@ export const cancelarPedido = async (req: Request, res: Response) => {
 
     // Insertamos el registro en "registro_de_estados"
     const insertRegistroQuery = `
-      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
-      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME)
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME, $3)
     `;
-    await pool.query(insertRegistroQuery, [id, nuevoEstado]);
+    await pool.query(insertRegistroQuery, [id, nuevoEstado, dni_empleado]);
 
     if(rol === 'agente'){
       return res.status(200).json({
@@ -1075,6 +1078,7 @@ export const cancelarPedido = async (req: Request, res: Response) => {
 
 export const deshacerCancelarPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const dni_empleado = (req as any).dni
 
   try {
     // 1. Verificar estado actual
@@ -1138,10 +1142,10 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
 
     // 4. Insertar registro en historial
     const insertRegistroQuery = `
-      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora)
-      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME);
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
+      VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME, $3);
     `;
-    await pool.query(insertRegistroQuery, [id, estadoAnterior]);
+    await pool.query(insertRegistroQuery, [id, estadoAnterior, dni_empleado]);
 
     res.json({
       message: `Pedido restaurado al estado ${estadoAnterior}`,
@@ -1152,43 +1156,6 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ message: 'Error al deshacer la cancelación del pedido' });
-  }
-};
-
-export const pedidoPagado = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  try {
-    // Verificar que el pedido exista
-    const pedidoQuery = `
-       SELECT pagado 
-       FROM pedidos
-       WHERE id = $1;
-     `;
-    let { rows } = await pool.query(pedidoQuery, [id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Pedido no encontrado' });
-    }
-
-    let pagado = Boolean(rows[0].pagado);
-    pagado = !pagado;
-    // Actualizamos el estado a "Pagado"
-    const updateQuery = `
-       UPDATE pedidos
-       SET pagado = $1
-       WHERE id = $2
-       RETURNING *;
-     `;
-    const { rows: updatedRows } = await pool.query(updateQuery, [pagado, id]);
-
-    res.json({
-      message: 'Pedido marcado como pagado',
-      pedido: updatedRows[0],
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error al marcar el pedido como pagado' });
   }
 };
 

@@ -21,7 +21,6 @@ import {
   retrocederEstadoPedido,
   cancelarPedido,
   deshacerCancelarPedido,
-  pedidoPagado,
   agenteEstadoPedido,
 } from '../controllers/pedidoController';
 const router = Router();
@@ -49,7 +48,6 @@ router.put('/estado/:id', verifyToken, actualizarEstadoPedido);
 router.put('/retroceder_estado/:id',verifyToken, retrocederEstadoPedido)
 router.put('/cancelar/:id',verifyToken, cancelarPedido);
 router.put('/deshacer_cancelar/:id',verifyToken, deshacerCancelarPedido);
-router.put('/pagado/:id', pedidoPagado);
 router.put('/agente_estado/:tel', agenteEstadoPedido)
 
 export default router;
