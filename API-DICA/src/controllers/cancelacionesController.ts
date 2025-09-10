@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/db';
+import { PEDIDO_FIELDS } from "./pedidoController";
+
 
 export const cancelarPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -204,5 +206,118 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ message: 'Error al deshacer la cancelación del pedido' });
+  }
+};
+
+export const getPedidosCanceladosEmpleadoHoy = async (req: Request, res: Response) => {
+  const idEmpleado = (req as any).dni;
+  try {
+    const query = `
+      SELECT 
+      ${PEDIDO_FIELDS},
+      c.motivo,
+      c.id_empleado
+      FROM pedidos p
+      INNER JOIN cancelaciones c 
+        ON p.id = c.id_pedido
+      LEFT JOIN pedidos_menu pm 
+        ON p.id = pm.fk_pedido
+      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      WHERE c.id_empleado = $1
+        AND p.visibilidad = TRUE
+        AND c.id_fecha = CURRENT_DATE
+        AND c.confirmado = TRUE
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, c.motivo, c.id_empleado
+      ORDER BY p.id;
+    `;
+    const { rows } = await pool.query(query, [idEmpleado]);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los Pedidos visible' });
+  }
+};
+
+export const getPedidosCanceladosEmpleado = async (req: Request, res: Response) => {
+  const idEmpleado = (req as any).dni;
+  try {
+    const query = `
+      SELECT 
+        ${PEDIDO_FIELDS},
+        c.motivo,
+        c.id_empleado
+      FROM pedidos p
+      INNER JOIN cancelaciones c 
+        ON p.id = c.id_pedido
+      LEFT JOIN pedidos_menu pm 
+        ON p.id = pm.fk_pedido
+      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      WHERE c.id_empleado = $1
+        AND p.visibilidad = TRUE
+        AND c.confirmado = TRUE
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, c.motivo, c.id_empleado
+      ORDER BY p.id;
+    `;
+    const { rows } = await pool.query(query, [idEmpleado]);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los Pedidos visible' });
+  }
+};
+
+export const getPedidosCancelados = async (req: Request, res: Response) => {
+  try {
+    const query = `
+    SELECT 
+      ${PEDIDO_FIELDS},
+      c.motivo,
+      c.id_empleado
+      FROM pedidos p
+      LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN cancelaciones c ON p.id = c.id_pedido
+      WHERE (p.id_estado = 8 OR p.id_estado = 9)
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, p.fecha, c.motivo, c.id_empleado
+      ORDER BY p.id;
+    `;
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los Pedidos visible' });
+  }
+};
+
+
+export const getPedidosCanceladosHoy = async (req: Request, res: Response) => {
+  try {
+    const query = `
+      SELECT 
+      ${PEDIDO_FIELDS},
+      c.motivo,
+      c.id_empleado
+      FROM pedidos p
+      LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN cancelaciones c ON p.id = c.id_pedido
+      WHERE (p.id_estado = 8 OR p.id_estado = 9)
+        AND p.fecha = CURRENT_DATE
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, p.fecha, c.motivo, c.id_empleado
+      ORDER BY p.id;
+    `;
+
+    const { rows } = await pool.query(query);
+
+    if (rows.length === 0) {
+      return res
+        .status(200)
+        .json({ message: 'No hay pedidos cancelados hoy' });
+    }
+
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los pedidos cancelados' });
   }
 };
