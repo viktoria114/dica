@@ -39,7 +39,7 @@ export const cancelarPedido = async (req: Request, res: Response) => {
     // Si ya está en ese estado, no hacemos nada
     if (estadoActual === nuevoEstado) {
       return res.status(400).json({
-        message: `El pedido ya está en el estado ${nuevoEstado}, no se puede volver a cancelar.`,
+        message: `El pedido ya está cancelado, no se puede volver a cancelar.`,
       });
     }
 
