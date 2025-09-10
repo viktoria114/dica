@@ -87,13 +87,11 @@ async function procesarMensaje(numeroEntrada: string, mensajeTexto: string): Pro
 
             if (!cliente) {
                 // Crear nuevo cliente
-                const sesionCliente = await crearSessionAdk(numeroEntrada, true);
-
                 const crearCliente = await pool.query(
                     `INSERT INTO clientes (telefono, nombre, dieta, ultima_compra, visibilidad, agent_session_id, preferencias)
                     VALUES ($1, $2, $3, $4, $5, $6, $7)
                     RETURNING *;`,
-                    [numeroEntrada,"sin asignar", "sin asignar", new Date(), true, sesionCliente, null]
+                    [numeroEntrada,"sin asignar", "sin asignar", new Date(), true, null, null]
                 );
 
                 if (crearCliente.rows.length === 0) {
@@ -224,6 +222,7 @@ export const enviarMensajeAdk = async (
                     if (!nuevaSesion) {
                         throw new Error('faltan campos obligatorios');
                     }
+                    await enviarMensajeWhatsApp(telefono, "Por seguridad, esta conversación quedará registrada. Por favor, utiliza nuestro sistema con moderación.")
                     return await enviarMensajeAdk(mensaje, telefono, nuevaSesion, esCliente, intento + 1);
                 }
 
