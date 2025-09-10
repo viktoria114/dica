@@ -4,6 +4,35 @@ import { pool } from '../config/db';
 import { Pedido } from '../models/pedido';
 import { descargarImagen, subirADropbox } from '../utils/image';
 
+// queryParts.ts
+export const PEDIDO_FIELDS = `
+    p.id AS pedido_id,
+    p.id_cliente,
+    p.ubicacion,
+    p.observaciones,
+    p.id_estado,
+    -- Items asociados
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_menu', pm.fk_menu,
+          'cantidad', pm.cantidad
+        )
+      ) FILTER (WHERE pm.fk_menu IS NOT NULL),
+      '[]'
+    ) AS items,
+    -- Promociones asociadas
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_promocion', pp.id_promocion,
+          'cantidad'
+        )
+      ) FILTER (WHERE pp.id_promocion IS NOT NULL),
+      '[]'
+    ) AS promociones
+`;
+
 export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
   try {
@@ -30,19 +59,21 @@ export const crearPedido = async (req: Request, res: Response) => {
         fk_cliente,
       ]);
 
-    if (pedidosExistentes.length > 0) {
+      if (pedidosExistentes.length > 0) {
         const { id_estado } = pedidosExistentes[0];
 
         let mensaje;
         if (id_estado === 6) {
-          mensaje = "El cliente ya cuenta con un carrito activo. Usa la herramienta correspondiente para obtener informacion"
+          mensaje =
+            'El cliente ya cuenta con un carrito activo. Usa la herramienta correspondiente para obtener informacion';
         } else if (id_estado === 7) {
-          mensaje = "El cliente tiene un pedido pendiente de confirmación. No puedes crear uno nuevo. Hay que esperar que un empleado lo acepte.";
+          mensaje =
+            'El cliente tiene un pedido pendiente de confirmación. No puedes crear uno nuevo. Hay que esperar que un empleado lo acepte.';
         }
 
         return res.status(400).json({ message: mensaje });
       }
-   }
+    }
 
     // 🔹 Validar items_menu solo si viene con datos
     if (items_menu && items_menu.length > 0) {
@@ -121,7 +152,7 @@ export const crearPedido = async (req: Request, res: Response) => {
     let estadoInicial = 1; // pendiente
     if (rol === 'agente') {
       estadoInicial = 6; // en construccion
-      dni_empleado = null
+      dni_empleado = null;
     }
 
     // Crear pedido
@@ -152,7 +183,7 @@ export const crearPedido = async (req: Request, res: Response) => {
       estadoInicial,
       new Date(),
       new Date().toLocaleTimeString(),
-      dni_empleado
+      dni_empleado,
     ]);
 
     // Insertar ítems solo si hay
@@ -179,8 +210,14 @@ export const crearPedido = async (req: Request, res: Response) => {
     }
 
     await client.query('COMMIT');
-    if (rol === 'agente'){
-      return res.status(200).json({id: pedidoId, message: 'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte'})
+    if (rol === 'agente') {
+      return res
+        .status(200)
+        .json({
+          id: pedidoId,
+          message:
+            'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte',
+        });
     }
     res.status(201).json({ id: pedidoId, message: 'Pedido creado con éxito' });
   } catch (error) {
@@ -195,8 +232,7 @@ export const crearPedido = async (req: Request, res: Response) => {
 export const actualizarPedido = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const {fk_cliente, ubicacion, observacion, fk_estado } =
-      req.body;
+    const { fk_cliente, ubicacion, observacion, fk_estado } = req.body;
 
     const query = `
             UPDATE pedidos
@@ -236,7 +272,17 @@ export const actualizarPedido = async (req: Request, res: Response) => {
 
 export const getListaPedidos = async (_req: Request, res: Response) => {
   try {
-    const query = `SELECT * FROM pedidos WHERE visibilidad = true ORDER BY id ASC;`;
+    const query = `
+  SELECT
+    ${PEDIDO_FIELDS}
+  FROM pedidos p
+  LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+  LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+  WHERE p.visibilidad = true
+  GROUP BY p.id
+  ORDER BY p.id ASC;
+`;
+
     const { rows } = await pool.query(query);
     res.json(rows);
   } catch (error) {
@@ -252,14 +298,17 @@ export const getListaPedidosPorTelefono = async (
   const { telefono } = req.params;
 
   try {
-
     // Buscar pedidos del cliente con nombre del estado
     const pedidosQuery = `
-      SELECT p.id, p.fecha, p.hora, p.ubicacion, p.observaciones, e.nombre AS estado_nombre
+      SELECT ${PEDIDO_FIELDS}, e.nombre AS estado_nombre
       FROM pedidos p
+      LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+    LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
       JOIN estados e ON e.id = p.id_estado
       WHERE p.id_cliente = $1
-        AND p.id_estado NOT IN (6,8,9);
+        AND p.id_estado NOT IN (6,8,9)
+        GROUP BY p.id, e.nombre
+  ORDER BY p.id ASC;
     `;
     const pedidosResult = await pool.query(pedidosQuery, [telefono]);
 
@@ -274,23 +323,23 @@ export const getListaPedidosPorTelefono = async (
       FROM pedidos_menu pm
       INNER JOIN menu m ON m.id = pm.fk_menu
       WHERE pm.fk_pedido = $1; 
-    `
+    `;
 
-    const menuResult = await pool.query(menuQuery, [pedidosResult.rows[0].id])
+    const menuResult = await pool.query(menuQuery, [pedidosResult.rows[0].id]);
 
     // Devolver pedidos con estado_nombre ya incorporado
-    res.json({order: pedidosResult.rows, items: menuResult.rows});
+    res.json({ order: pedidosResult.rows, items: menuResult.rows });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al obtener los pedidos' });
   }
 };
 
-export const getPedidosEnConstruccion = async(req: Request, res: Response) =>{
-  try{
-    const { tel } = req.params
+export const getPedidosEnConstruccion = async (req: Request, res: Response) => {
+  try {
+    const { tel } = req.params;
 
-   const query = `
+    const query = `
       SELECT p.id AS cart_id, m.nombre, pm.precio_unitario as precio_item, pm.cantidad
       FROM pedidos p
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido 
@@ -300,59 +349,46 @@ export const getPedidosEnConstruccion = async(req: Request, res: Response) =>{
 
     const result = await pool.query(query, [tel]);
 
-    if (result.rows.length === 0){
-      return res.status(200).json({message: "Actualmente el cliente no cuenta con un carrito activo"})
+    if (result.rows.length === 0) {
+      return res
+        .status(200)
+        .json({
+          message: 'Actualmente el cliente no cuenta con un carrito activo',
+        });
     }
 
     const { cart_id } = result.rows[0];
     const items = result.rows
-      .filter(row => row.menuid !== null) 
+      .filter((row) => row.menuid !== null)
       .map(({ nombre, precio_item, cantidad }) => ({
         nombre,
         precio_item,
-        cantidad
+        cantidad,
       }));
 
     let total = 0;
     for (const item of items) {
-      total += item.precio_item
+      total += item.precio_item;
     }
 
     res.status(200).json({ cartID: cart_id, items, PrecioTotal: total });
-
-  }catch(err: any){
+  } catch (err: any) {
     console.error(err);
-    res.status(500).json('Error al obtener el carrito activo del cliente')
+    res.status(500).json('Error al obtener el carrito activo del cliente');
   }
-}
+};
 
-export const getPedidosPorConfirmar = async (req:Request, res: Response) =>{
-  try{
-    const { rows } = await pool.query('SELECT * FROM pedidos WHERE id_estado = 7')
-    res.status(200).json(rows)
-  }catch(err: any){
-    console.log(err)
-    res.status(500).json("error al obtener los pedidos por confirmar")
-  }
-}
-
-export const getPedidosCanceladosHoy = async (req: Request, res: Response) => {
+export const getPedidosPorConfirmar = async (req: Request, res: Response) => {
   try {
-    // Buscar pedidos del cliente
-    const pedidosQuery = `SELECT * FROM pedidos WHERE id_estado = 9 AND fecha = CURRENT_DATE;`;
-    const pedidosResult = await pool.query(pedidosQuery);
-
-    if (pedidosResult.rows.length === 0) {
-      return res
-        .status(200)
-        .json({ message: 'No hay pedidos cancelados hoy' });
-    }
-
-    // Devolver pedidos
-    res.json(pedidosResult.rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error al obtener los pedidos' });
+    const { rows } = await pool.query(`
+    SELECT ${PEDIDO_FIELDS} FROM pedidos 
+    LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+    LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido 
+    WHERE id_estado = 7`);
+    res.status(200).json(rows);
+  } catch (err: any) {
+    console.log(err);
+    res.status(500).json('error al obtener los pedidos por confirmar');
   }
 };
 
@@ -381,7 +417,13 @@ export const eliminarPedido = async (req: Request, res: Response) => {
 
 export const getListaCompletaPedidos = async (_req: Request, res: Response) => {
   try {
-    const query = `SELECT * FROM pedidos ORDER BY id ASC;`;
+    const query = `
+      SELECT ${PEDIDO_FIELDS} FROM pedidos P
+      LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      GROUP BY p.id
+      ORDER BY p.id ASC;
+    `;
     const { rows } = await pool.query(query);
     res.json(rows);
   } catch (error) {
@@ -478,7 +520,6 @@ export const agregarItemPedido = async (req: Request, res: Response) => {
 export const agregarUnItemPedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-
     const { id } = req.params; // id del pedido
     const { tel, id_menu, cantidad } = req.body; // un solo ítem
     const pedidoId = id;
@@ -486,9 +527,16 @@ export const agregarUnItemPedido = async (req: Request, res: Response) => {
     await client.query('BEGIN'); // Iniciamos transacción
 
     //verificar si existe un pedido "en construccion" para el cliente
-    const exists = await client.query("SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6", [pedidoId, tel])
-    if (exists.rows.length === 0){
-      return res.status(404).json(`No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`)
+    const exists = await client.query(
+      'SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6',
+      [pedidoId, tel],
+    );
+    if (exists.rows.length === 0) {
+      return res
+        .status(404)
+        .json(
+          `No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`,
+        );
     }
 
     // Validar que la cantidad sea correcta
@@ -515,43 +563,48 @@ export const agregarUnItemPedido = async (req: Request, res: Response) => {
     const precioUnitario = precio * cantidad;
 
     //verificar si ya existe un item de pedidos_menu para ese pedido
-    const entry_pedidos_menu = await client.query("SELECT id FROM pedidos_menu WHERE fk_menu = $1 AND fk_pedido = $2", [id_menu, pedidoId])
+    const entry_pedidos_menu = await client.query(
+      'SELECT id FROM pedidos_menu WHERE fk_menu = $1 AND fk_pedido = $2',
+      [id_menu, pedidoId],
+    );
 
-    let itemAgregado
+    let itemAgregado;
 
     //si no existe
-    if(entry_pedidos_menu.rows.length === 0){
-
-    //Insertar el nuevo ítem al pedido
+    if (entry_pedidos_menu.rows.length === 0) {
+      //Insertar el nuevo ítem al pedido
       const pedido_menuQuery = `
         INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
         VALUES ($1, $2, $3, $4)
         RETURNING fk_pedido AS cartID, fk_menu AS menuID, cantidad, precio_unitario AS precio_item;
       `;
-  
+
       itemAgregado = await client.query(pedido_menuQuery, [
         pedidoId,
         id_menu,
         precioUnitario,
         cantidad,
       ]);
-   }else{
-      const pedido_menuID = entry_pedidos_menu.rows[0].id
+    } else {
+      const pedido_menuID = entry_pedidos_menu.rows[0].id;
 
       //si existe, se actualizan las cantidades anteriores
-      itemAgregado = await client.query(`
+      itemAgregado = await client.query(
+        `
         UPDATE pedidos_menu
         SET precio_unitario = precio_unitario + $1, cantidad = cantidad + $2
         WHERE id = $3
         RETURNING fk_pedido AS cartID, fk_menu AS menuID, cantidad, precio_unitario AS precio_item;
-        `, [precioUnitario, cantidad, pedido_menuID])
-   }
+        `,
+        [precioUnitario, cantidad, pedido_menuID],
+      );
+    }
 
     await client.query('COMMIT'); // Confirmamos todo
 
     res.status(200).json({
       message: 'Ítem agregado con éxito',
-      carrito: itemAgregado.rows[0]
+      carrito: itemAgregado.rows[0],
     });
   } catch (error) {
     await client.query('ROLLBACK'); // Si hay error, revertimos todo
@@ -562,8 +615,6 @@ export const agregarUnItemPedido = async (req: Request, res: Response) => {
   }
 };
 
-
-
 export const eliminarUnItemPedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
@@ -572,23 +623,23 @@ export const eliminarUnItemPedido = async (req: Request, res: Response) => {
     const pedidoId = id;
 
     //respuesta del estado del pedido
-    let itemActualizado
+    let itemActualizado;
 
     // Verificar que exista un pedido en construcción para el cliente
     const exists = await client.query(
-      "SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6",
-      [pedidoId, tel]
+      'SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6',
+      [pedidoId, tel],
     );
     if (exists.rows.length === 0) {
       return res.status(200).json({
-        message: `No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`
+        message: `No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`,
       });
     }
 
     // Validar que la cantidad sea correcta
     if (!Number.isInteger(cantidad) || cantidad <= 0) {
       return res.status(200).json({
-        message: `La cantidad a quitar para el ítem con id_menu=${id_menu} debe ser mayor a 0`
+        message: `La cantidad a quitar para el ítem con id_menu=${id_menu} debe ser mayor a 0`,
       });
     }
 
@@ -596,14 +647,14 @@ export const eliminarUnItemPedido = async (req: Request, res: Response) => {
 
     // Verificar si el ítem existe en el pedido
     const entry = await client.query(
-      "SELECT id, cantidad, precio_unitario FROM pedidos_menu WHERE fk_pedido = $1 AND fk_menu = $2",
-      [pedidoId, id_menu]
+      'SELECT id, cantidad, precio_unitario FROM pedidos_menu WHERE fk_pedido = $1 AND fk_menu = $2',
+      [pedidoId, id_menu],
     );
 
     if (entry.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({
-        message: `El ítem con id_menu=${id_menu} no existe en el pedido ${pedidoId}`
+        message: `El ítem con id_menu=${id_menu} no existe en el pedido ${pedidoId}`,
       });
     }
 
@@ -611,7 +662,7 @@ export const eliminarUnItemPedido = async (req: Request, res: Response) => {
 
     if (item.cantidad <= cantidad) {
       // Si la cantidad a quitar es igual o mayor, borramos el ítem
-      await client.query("DELETE FROM pedidos_menu WHERE id = $1", [item.id]);
+      await client.query('DELETE FROM pedidos_menu WHERE id = $1', [item.id]);
     } else {
       // Si la cantidad es menor, actualizamos restando
       itemActualizado = await client.query(
@@ -620,7 +671,7 @@ export const eliminarUnItemPedido = async (req: Request, res: Response) => {
              precio_unitario = precio_unitario - $2
          WHERE id = $3
          RETURNING fk_pedido AS cartID, fk_menu as menuID, cantidad, precio_unitario AS precio_item;`,
-        [cantidad, (item.precio_unitario / item.cantidad) * cantidad, item.id]
+        [cantidad, (item.precio_unitario / item.cantidad) * cantidad, item.id],
       );
     }
 
@@ -628,7 +679,7 @@ export const eliminarUnItemPedido = async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: 'Ítem quitado con éxito',
-      carrito: itemActualizado?.rows[0]
+      carrito: itemActualizado?.rows[0],
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -676,20 +727,20 @@ export const eliminarItemsPedido = async (req: Request, res: Response) => {
 //vacia todos los items del pedido "en construccion" del cliente
 export const vaciarItemsPedido = async (req: Request, res: Response) => {
   try {
-    const { tel } = req.params; 
-    
+    const { tel } = req.params;
+
     let query = `
             SELECT id FROM pedidos
             WHERE id_cliente = $1 AND id_estado = 6
         `;
-    
-    const result = await pool.query(query, [tel])
 
-    if (result.rows.length === 0 ){
-      return res.json("No hay un carrito asociado, considera crear uno nuevo")
+    const result = await pool.query(query, [tel]);
+
+    if (result.rows.length === 0) {
+      return res.json('No hay un carrito asociado, considera crear uno nuevo');
     }
 
-    const id_pedido = result.rows[0].id
+    const id_pedido = result.rows[0].id;
 
     query = `
             DELETE FROM pedidos_menu
@@ -726,7 +777,7 @@ export const getItemPedido = async (req: Request, res: Response) => {
 export const actualizarEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
-  const dni_empleado = (req as any).dni
+  const dni_empleado = (req as any).dni;
 
   const client = await pool.connect();
 
@@ -856,7 +907,11 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME, $3)
     `;
-    await client.query(insertRegistroQuery, [id, nuevaTransicion, dni_empleado]);
+    await client.query(insertRegistroQuery, [
+      id,
+      nuevaTransicion,
+      dni_empleado,
+    ]);
 
     await client.query('COMMIT');
 
@@ -877,7 +932,7 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
   const { id } = req.params;
   const rol = (req as any).rol;
   const client = await pool.connect();
-  const dni_empleado = (req as any).dni
+  const dni_empleado = (req as any).dni;
 
   try {
     await client.query('BEGIN');
@@ -989,7 +1044,11 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME, $3)
     `;
-    await client.query(insertRegistroQuery, [id, nuevaTransicion, dni_empleado]);
+    await client.query(insertRegistroQuery, [
+      id,
+      nuevaTransicion,
+      dni_empleado,
+    ]);
 
     await client.query('COMMIT');
 
@@ -1045,11 +1104,17 @@ export const pedidoPagado = async (req: Request, res: Response) => {
 
 export const agenteEstadoPedido = async (req: Request, res: Response) => {
   const { tel } = req.params;
-  const { ubicacion, observacion, metodo_pago, efectivo_entregado, comprobante_pago} = req.body;
+  const {
+    ubicacion,
+    observacion,
+    metodo_pago,
+    efectivo_entregado,
+    comprobante_pago,
+  } = req.body;
   const client = await pool.connect();
 
   //mensaje del payload como respuesta
-  let message
+  let message;
 
   try {
     await client.query('BEGIN');
@@ -1067,7 +1132,7 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
-    const pedido_id = rows[0].id
+    const pedido_id = rows[0].id;
 
     const updateQuery = `
       UPDATE pedidos
@@ -1076,7 +1141,10 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       RETURNING *;
     `;
 
-    const observaciones = metodo_pago == 'efectivo' ? observacion + " .Efectivo entregado: " +efectivo_entregado : observacion
+    const observaciones =
+      metodo_pago == 'efectivo'
+        ? observacion + ' .Efectivo entregado: ' + efectivo_entregado
+        : observacion;
 
     const { rows: updatedRows } = await client.query(updateQuery, [
       ubicacion,
@@ -1091,29 +1159,38 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
     await client.query(insertRegistroQuery, [pedido_id, 7]);
 
     //obtener el monto total del pedido
-    const {rows: menuPedidoRows} = await client.query("SELECT precio_unitario FROM pedidos_menu WHERE fk_pedido = $1", [pedido_id])
-    let total : number = 0
+    const { rows: menuPedidoRows } = await client.query(
+      'SELECT precio_unitario FROM pedidos_menu WHERE fk_pedido = $1',
+      [pedido_id],
+    );
+    let total: number = 0;
 
-    for (let row of menuPedidoRows){
-      total += parseInt(row.precio_unitario)
+    for (let row of menuPedidoRows) {
+      total += parseInt(row.precio_unitario);
     }
 
-    const dropboxToken = process.env.DROPBOX_TOKEN as string
-    const accessToken = process.env.ACCESS_TOKEN as string
-    const dropboxRefreshToken = process.env.DROPBOX_REFRESH_TOKEN as string
-    const dropboxClientID = process.env.DROPBOX_CLIENTID as string
-    const dropboxClientSecret = process.env.DROPBOX_CLIENTSECRET as string
-    let rutaDropbox
+    const dropboxToken = process.env.DROPBOX_TOKEN as string;
+    const accessToken = process.env.ACCESS_TOKEN as string;
+    const dropboxRefreshToken = process.env.DROPBOX_REFRESH_TOKEN as string;
+    const dropboxClientID = process.env.DROPBOX_CLIENTID as string;
+    const dropboxClientSecret = process.env.DROPBOX_CLIENTSECRET as string;
+    let rutaDropbox;
 
-    if (metodo_pago == "transferencia"){
+    if (metodo_pago == 'transferencia') {
       const imagenBuffer = await descargarImagen(comprobante_pago, accessToken);
       if (!imagenBuffer) return;
 
-      const nombreArchivo = `comprobante_${Date.now()}.jpg` 
-      rutaDropbox = await subirADropbox(nombreArchivo, imagenBuffer, dropboxToken,dropboxRefreshToken,dropboxClientID, dropboxClientSecret);
+      const nombreArchivo = `comprobante_${Date.now()}.jpg`;
+      rutaDropbox = await subirADropbox(
+        nombreArchivo,
+        imagenBuffer,
+        dropboxToken,
+        dropboxRefreshToken,
+        dropboxClientID,
+        dropboxClientSecret,
+      );
 
-    if (!rutaDropbox) return;
-
+      if (!rutaDropbox) return;
     }
 
     //reglas de negocio crear objeto "pagos"
@@ -1122,9 +1199,16 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
     const pagoQuery = `
     INSERT INTO pagos (monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora)
     VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, CURRENT_TIME(0))
-    `
-    await client.query(pagoQuery, [total, metodo_pago, rutaDropbox, false, pedido_id])
-    message = 'Pedido creado correctamente. Por favor, espera mientras validamos tu solicitud. Seras notificado en breve'
+    `;
+    await client.query(pagoQuery, [
+      total,
+      metodo_pago,
+      rutaDropbox,
+      false,
+      pedido_id,
+    ]);
+    message =
+      'Pedido creado correctamente. Por favor, espera mientras validamos tu solicitud. Seras notificado en breve';
 
     await client.query('COMMIT');
     const payload = {
@@ -1132,12 +1216,11 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
       orderID: updatedRows[0].id,
       location: ubicacion,
       paymentMethod: metodo_pago,
-      orderState: "proceso de validacion",
+      orderState: 'proceso de validacion',
       totalPrice: total,
-    }
+    };
 
-    res.status(200).json({payload});
-
+    res.status(200).json({ payload });
   } catch (error) {
     try {
       await client.query('ROLLBACK');
