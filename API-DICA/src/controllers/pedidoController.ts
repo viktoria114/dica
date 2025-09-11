@@ -1065,43 +1065,6 @@ export const retrocederEstadoPedido = async (req: Request, res: Response) => {
   }
 };
 
-export const pedidoPagado = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  try {
-    // Verificar que el pedido exista
-    const pedidoQuery = `
-       SELECT pagado 
-       FROM pedidos
-       WHERE id = $1;
-     `;
-    let { rows } = await pool.query(pedidoQuery, [id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Pedido no encontrado' });
-    }
-
-    let pagado = Boolean(rows[0].pagado);
-    pagado = !pagado;
-    // Actualizamos el estado a "Pagado"
-    const updateQuery = `
-       UPDATE pedidos
-       SET pagado = $1
-       WHERE id = $2
-       RETURNING *;
-     `;
-    const { rows: updatedRows } = await pool.query(updateQuery, [pagado, id]);
-
-    res.json({
-      message: 'Pedido marcado como pagado',
-      pedido: updatedRows[0],
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error al marcar el pedido como pagado' });
-  }
-};
-
 export const agenteEstadoPedido = async (req: Request, res: Response) => {
   const { tel } = req.params;
   const {
