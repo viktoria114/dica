@@ -321,3 +321,39 @@ export const getPedidosCanceladosHoy = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error al obtener los pedidos cancelados' });
   }
 };
+
+export const actualizarCancelacion = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { motivo, id_empleado, confirmado } = req.body;
+
+  try {
+    const query = `
+  UPDATE cancelaciones
+  SET 
+    motivo = COALESCE($1, motivo),
+    id_empleado = COALESCE($2, id_empleado),
+    confirmado = COALESCE($3, confirmado)
+  WHERE id = (
+    SELECT id
+    FROM cancelaciones
+    WHERE id_pedido = $4  
+    ORDER BY id DESC
+    LIMIT 1
+  )
+  RETURNING *;
+`;
+
+    const values = [motivo, id_empleado, confirmado, id];
+    const { rows } = await pool.query(query, values);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No se encontró cancelación para este pedido" });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error al actualizar la última cancelación" });
+  }
+};
+
