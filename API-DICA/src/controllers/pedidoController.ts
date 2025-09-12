@@ -26,7 +26,7 @@ export const PEDIDO_FIELDS = `
       json_agg(
         DISTINCT jsonb_build_object(
           'fk_promocion', pp.id_promocion,
-          'cantidad'
+          'cantidad', pp.cantidad
         )
       ) FILTER (WHERE pp.id_promocion IS NOT NULL),
       '[]'
