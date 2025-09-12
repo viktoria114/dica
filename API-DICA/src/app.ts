@@ -1,43 +1,47 @@
 import express from 'express';
 import empleadoRoutes from './routes/empleadoRoutes';
 import clienteRoutes from './routes/clienteRoutes';
-import sugerenciaRoutes from './routes/sugerenciaRoutes'
-import authRoutes from "./routes/authRoutes";
-import agenteRoutes from './routes/agenteRoutes'
-import stockRoutes from './routes/stockRoutes'
-import menuRoutes from './routes/menuRoutes'
-import pedidoRoutes from './routes/pedidoRoutes'
-import gastosRoutes from './routes/gastosRoutes'
+import sugerenciaRoutes from './routes/sugerenciaRoutes';
+import authRoutes from './routes/authRoutes';
+import agenteRoutes from './routes/agenteRoutes';
+import stockRoutes from './routes/stockRoutes';
+import menuRoutes from './routes/menuRoutes';
+import pedidoRoutes from './routes/pedidoRoutes';
+import gastosRoutes from './routes/gastosRoutes';
+import promocionesRoutes from './routes/promocionesRoutes';
 import pagoRoutes from './routes/pagoRoutes'
 import { errorHandler } from './middlewares/errorHandler';
-import cors from 'cors'
+import cors from 'cors';
 
 const app = express();
 
 app.use(express.json());
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-  exposedHeaders: ["Authorization"], 
-}));
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+    exposedHeaders: ['Authorization'],
+  }),
+);
 // Routes
 app.use('/api/empleados', empleadoRoutes);
 app.use('/api/clientes', clienteRoutes);
-app.use('/api/sugerencias', sugerenciaRoutes)
-app.use("/api/auth", authRoutes);
+app.use('/api/sugerencias', sugerenciaRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/agente', agenteRoutes);
-app.use('/api/stock', stockRoutes)
+app.use('/api/stock', stockRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/pedido', pedidoRoutes);
-app.use('/api/gastos', gastosRoutes)
+app.use('/api/gastos', gastosRoutes);
+app.use('/api/promociones', promocionesRoutes);
 app.use('/api/pagos', pagoRoutes)
 
+
 app.get('/', (req, res) => {
-    res.send('¡Bienvenido a mi API: DICA');
-  });
+  res.send('¡Bienvenido a mi API: DICA');
+});
 
 // Global error handler (should be after routes)
 app.use(errorHandler);
-
 
 export default app;

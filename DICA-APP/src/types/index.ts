@@ -7,3 +7,12 @@ export interface Empleado {
   password: string;
   rol: string;
 }
+
+export interface Cliente {
+telefono: number | null,
+nombre: string,
+dieta: string | null,
+preferencias: string[] | null,
+agentSessionID: string | null,
+ultimaCompra: Date,
+}
