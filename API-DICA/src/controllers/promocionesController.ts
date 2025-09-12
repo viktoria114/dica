@@ -404,78 +404,83 @@ export const eliminarItemPromocion = async (req: Request, res: Response) => {
 export const agregarPromocionPedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-    const { id } = req.params; // id del pedido
-    const { tel, id_promocion, cantidad } = req.body; // cantidad opcional
+    const { id } = req.params;
+    const { tel, promociones } = req.body; // promociones: [{ id_promocion, cantidad }, ...]
     const pedidoId = id;
 
-    await client.query('BEGIN'); // Iniciamos transacción
+    // Validaciones básicas
+    if (!Array.isArray(promociones)) {
+      return res.status(400).json({ message: 'El campo "promociones" debe ser un array' });
+    }
 
-    // 1. Verificar si existe un pedido "en construcción" para el cliente
+    for (const promo of promociones) {
+      if (!Number.isInteger(promo.cantidad) || promo.cantidad <= 0) {
+        return res.status(400).json({
+          message: `La cantidad para la promoción con id_promocion=${promo.id_promocion} debe ser un entero mayor a 0`,
+        });
+      }
+    }
+
+    await client.query('BEGIN');
+
+    // 1) Verificar que el pedido exista y esté en estado 1 o 6
     const exists = await client.query(
-      'SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6',
+      'SELECT id FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado IN (1, 6)',
       [pedidoId, tel],
     );
     if (exists.rows.length === 0) {
-      return res.status(404).json(
-        `No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`,
-      );
-    }
-
-    // 2. Validar cantidad
-    const cantidadFinal = Number.isInteger(cantidad) && cantidad > 0 ? cantidad : 1;
-
-    // 3. Verificar que la promoción exista
-    const promo = await client.query(
-      'SELECT * FROM promociones WHERE id = $1',
-      [id_promocion],
-    );
-    if (promo.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(400).json({
-        message: `La promoción con id=${id_promocion} no existe`,
-      });
-    }
-
-    // 4. Verificar si ya existe esa promo en el pedido
-    const entry = await client.query(
-      'SELECT id, cantidad FROM pedido_promocion WHERE id_pedido = $1 AND id_promocion = $2',
-      [pedidoId, id_promocion],
-    );
-
-    let promoAgregada;
-
-    if (entry.rows.length === 0) {
-      // Insertar nueva promo
-      const insertQuery = `
-        INSERT INTO pedido_promocion (id_pedido, id_promocion, cantidad)
-        VALUES ($1, $2, $3)
-        RETURNING id, id_pedido AS cartID, id_promocion AS promoID, cantidad;
-      `;
-      promoAgregada = await client.query(insertQuery, [pedidoId, id_promocion, cantidadFinal]);
-    } else {
-      // Si ya existe, sumamos a la cantidad
-      const idPedidoPromo = entry.rows[0].id;
-      promoAgregada = await client.query(
-        `
-        UPDATE pedido_promocion
-        SET cantidad = cantidad + $1
-        WHERE id = $2
-        RETURNING id, id_pedido AS cartID, id_promocion AS promoID, cantidad;
-        `,
-        [cantidadFinal, idPedidoPromo],
+      return res.status(404).json(
+        `No existe un pedido con id: ${pedidoId} para el cliente: ${tel} en estado 1 o 6`,
       );
     }
 
-    await client.query('COMMIT'); // Confirmamos todo
+    // 2) Insertar o actualizar promociones
+    for (const promo of promociones) {
+      // Verificar que la promoción exista
+      const promoExists = await client.query(
+        'SELECT id FROM promociones WHERE id = $1',
+        [promo.id_promocion],
+      );
+      if (promoExists.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          message: `La promoción con id=${promo.id_promocion} no existe`,
+        });
+      }
 
-    res.status(200).json({
-      message: 'Promoción agregada con éxito',
-      carrito: promoAgregada.rows[0],
+      // Verificar si ya está en el pedido
+      const already = await client.query(
+        'SELECT cantidad FROM pedidos_promociones WHERE id_pedido = $1 AND id_promocion = $2',
+        [pedidoId, promo.id_promocion],
+      );
+
+      if (already.rows.length > 0) {
+        // Ya existe → incrementamos cantidad
+        const nuevaCantidad = already.rows[0].cantidad + promo.cantidad;
+        await client.query(
+          'UPDATE pedidos_promociones SET cantidad = $1 WHERE id_pedido = $2 AND id_promocion = $3',
+          [nuevaCantidad, pedidoId, promo.id_promocion],
+        );
+      } else {
+        // No existe → insertamos
+        await client.query(
+          'INSERT INTO pedidos_promociones (id_pedido, id_promocion, cantidad) VALUES ($1, $2, $3)',
+          [pedidoId, promo.id_promocion, promo.cantidad],
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      id: pedidoId,
+      message: 'Promociones agregadas con éxito',
     });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ message: 'Error al agregar promoción al pedido' });
+    res.status(500).json({ message: 'Error al agregar promociones al pedido' });
   } finally {
     client.release();
   }
@@ -484,73 +489,78 @@ export const agregarPromocionPedido = async (req: Request, res: Response) => {
 export const eliminarPromocionPedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-    const { id } = req.params; // id del pedido
-    const { tel, id_promocion, cantidad } = req.body; // cantidad opcional
+    const { id } = req.params;
+    const { tel, promociones } = req.body; // promociones: [{ id_promocion, cantidad }, ...]
     const pedidoId = id;
 
-    await client.query('BEGIN'); // Iniciamos transacción
+    // Validaciones básicas
+    if (!Array.isArray(promociones)) {
+      return res.status(400).json({ message: 'El campo "promociones" debe ser un array' });
+    }
 
-    // 1. Verificar que el pedido exista y esté en construcción
+    for (const promo of promociones) {
+      if (!Number.isInteger(promo.cantidad) || promo.cantidad <= 0) {
+        return res.status(400).json({
+          message: `La cantidad a eliminar para la promoción con id_promocion=${promo.id_promocion} debe ser un entero mayor a 0`,
+        });
+      }
+    }
+
+    await client.query('BEGIN');
+
+    // 1) Verificar que el pedido exista y esté en estado 1 o 6
     const exists = await client.query(
-      'SELECT * FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado = 6',
+      'SELECT id FROM pedidos WHERE id = $1 AND id_cliente = $2 AND id_estado IN (1, 6)',
       [pedidoId, tel],
     );
     if (exists.rows.length === 0) {
-      return res.status(404).json(
-        `No existe un carrito con id: ${pedidoId} para el cliente: ${tel}. Considera crear uno nuevo`,
-      );
-    }
-
-    // 2. Determinar cantidad a restar (mínimo 1)
-    const cantidadRestar = Number.isInteger(cantidad) && cantidad > 0 ? cantidad : 1;
-
-    // 3. Verificar si existe esa promo en el pedido
-    const entry = await client.query(
-      'SELECT id, cantidad FROM pedido_promocion WHERE id_pedido = $1 AND id_promocion = $2',
-      [pedidoId, id_promocion],
-    );
-
-    if (entry.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({
-        message: `La promoción con id=${id_promocion} no está en el pedido ${pedidoId}`,
-      });
-    }
-
-    const { id: idPedidoPromo, cantidad: cantidadActual } = entry.rows[0];
-
-    let promoActualizada;
-
-    if (cantidadActual > cantidadRestar) {
-      // 4. Restamos cantidad
-      promoActualizada = await client.query(
-        `
-        UPDATE pedido_promocion
-        SET cantidad = cantidad - $1
-        WHERE id = $2
-        RETURNING id, id_pedido AS cartID, id_promocion AS promoID, cantidad;
-        `,
-        [cantidadRestar, idPedidoPromo],
+      return res.status(404).json(
+        `No existe un pedido con id: ${pedidoId} para el cliente: ${tel} en estado 1 o 6`,
       );
-    } else {
-      // 5. Si llega a 0 o menos, eliminamos la fila
-      await client.query('DELETE FROM pedido_promocion WHERE id = $1', [idPedidoPromo]);
-      promoActualizada = { rows: [] };
     }
 
-    await client.query('COMMIT'); // Confirmamos todo
+    // 2) Procesar eliminaciones
+    for (const promo of promociones) {
+      const current = await client.query(
+        'SELECT cantidad FROM pedidos_promociones WHERE id_pedido = $1 AND id_promocion = $2',
+        [pedidoId, promo.id_promocion],
+      );
+
+      if (current.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          message: `La promoción con id=${promo.id_promocion} no está asociada al pedido`,
+        });
+      }
+
+      const nuevaCantidad = current.rows[0].cantidad - promo.cantidad;
+
+      if (nuevaCantidad > 0) {
+        // Solo actualizamos la cantidad
+        await client.query(
+          'UPDATE pedidos_promociones SET cantidad = $1 WHERE id_pedido = $2 AND id_promocion = $3',
+          [nuevaCantidad, pedidoId, promo.id_promocion],
+        );
+      } else {
+        // Eliminamos la fila porque ya no queda nada
+        await client.query(
+          'DELETE FROM pedidos_promociones WHERE id_pedido = $1 AND id_promocion = $2',
+          [pedidoId, promo.id_promocion],
+        );
+      }
+    }
+
+    await client.query('COMMIT');
 
     res.status(200).json({
-      message:
-        promoActualizada.rows.length > 0
-          ? 'Cantidad de la promoción actualizada'
-          : 'Promoción eliminada del pedido',
-      carrito: promoActualizada.rows[0] || null,
+      id: pedidoId,
+      message: 'Promociones eliminadas con éxito',
     });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ message: 'Error al eliminar promoción del pedido' });
+    res.status(500).json({ message: 'Error al eliminar promociones del pedido' });
   } finally {
     client.release();
   }
@@ -559,7 +569,7 @@ export const eliminarPromocionPedido = async (req: Request, res: Response) => {
 export const getPromocionesDePedido = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-    const { id } = req.params; // id del pedido
+    const { id } = req.params;
 
     const query = `
       SELECT 
@@ -584,7 +594,7 @@ export const getPromocionesDePedido = async (req: Request, res: Response) => {
     }
 
     res.status(200).json({
-      message: 'Promociones encontradas con éxito',
+      pedido_id: id,
       promociones: result.rows,
     });
   } catch (error) {
