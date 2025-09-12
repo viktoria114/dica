@@ -8,6 +8,7 @@ import stockRoutes from './routes/stockRoutes'
 import menuRoutes from './routes/menuRoutes'
 import pedidoRoutes from './routes/pedidoRoutes'
 import gastosRoutes from './routes/gastosRoutes'
+import pagoRoutes from './routes/pagoRoutes'
 import { errorHandler } from './middlewares/errorHandler';
 import cors from 'cors'
 
@@ -29,6 +30,7 @@ app.use('/api/stock', stockRoutes)
 app.use('/api/menu', menuRoutes);
 app.use('/api/pedido', pedidoRoutes);
 app.use('/api/gastos', gastosRoutes)
+app.use('/api/pagos', pagoRoutes)
 
 app.get('/', (req, res) => {
     res.send('¡Bienvenido a mi API: DICA');
