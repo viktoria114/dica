@@ -66,6 +66,13 @@ export  const actualizarPago = async (req: Request, res: Response): Promise<void
 
         const resultado = await pool.query(query,valores);
 
+        if (resultado.rows.length === 0) {
+            res.status(404).json({
+                mensaje: `No se encontró ningún pago con el id ${id}`,
+            });
+            return;
+        }        
+
         res.status(200).json({
             mensaje: 'Pago actualizado correctamente',
             pago: resultado.rows[0],
