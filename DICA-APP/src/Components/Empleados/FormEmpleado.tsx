@@ -18,6 +18,7 @@ const empleadoFields: FieldConfig<Empleado>[] = [
       { value: "admin", label: "Admin" },
       { value: "cajero", label: "Cajero" },
       { value: "repartidor", label: "Repartidor" },
+      { value: "cocinero", label: "Cocinero" },
     ],
   },
 ];

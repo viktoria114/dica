@@ -61,8 +61,8 @@ export const Perfil = () => {
       >
         <TabContext value={value}>
           <TabList onChange={handleChange} aria-label="perfil tabs">
-            <Tab label="Información Personal" value="1" />
-            <Tab label="Cambiar Contraseña" value="2" />
+            <Tab label="Información Personal" value="1" sx={{color:"#808080ff"}}/>
+            <Tab label="Cambiar Contraseña" value="2" sx={{color:"#808080ff"}}   />
           </TabList>
 
           <TabPanel value="1">

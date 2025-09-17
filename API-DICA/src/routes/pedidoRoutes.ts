@@ -18,7 +18,6 @@ import {
   getItemPedido,
   actualizarEstadoPedido,
   retrocederEstadoPedido,
-  pedidoPagado,
   agenteEstadoPedido,
 } from '../controllers/pedidoController';
 import {
