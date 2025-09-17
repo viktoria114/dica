@@ -6,6 +6,7 @@ import { ModalBase } from "../common/ModalBase";
 import EmpleadoForm from "./FormEmpleado";
 import { useCallback, useState } from "react";
 import { useEmpleados } from "../../hooks/useEmpleados";
+import { Pagination } from "../common/Pagination";
 
 const styleBox1 = {
   bgcolor: "primary.main",
@@ -22,10 +23,14 @@ const styleBox1 = {
 
 export const ListaEmpleados = () => {
  const { empleados, loading, error, modoPapelera, toggleInvisibles } = useEmpleados();
+ const rowsPerPageOptions:number[] = [9, 15, 21]
 
   // ✅ Estado para búsqueda
   const [empleadosMostrados, setEmpleadosMostrados] = useState<Empleado[]>([]);
   const getLabel = useCallback((e: Empleado) => e.nombre_completo, []);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(9);
 
   // ✅ Estado para modal de creación
   const [showForm, setShowForm] = useState(false);
@@ -35,6 +40,10 @@ export const ListaEmpleados = () => {
   const listaParaRenderizar =
     empleadosMostrados.length > 0 ? empleadosMostrados : empleados;
 
+      const paginatedEmpleados = listaParaRenderizar.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
   return (
     <>
       {loading && <LinearProgress color="inherit" />}
@@ -52,7 +61,7 @@ export const ListaEmpleados = () => {
         />
 
         <Box sx={styleBox1}>
-          {listaParaRenderizar.map((empleado) => (
+          {paginatedEmpleados.map((empleado) => (
             <FichaEmpleado
               key={empleado.dni}
               empleado={empleado}
@@ -60,6 +69,14 @@ export const ListaEmpleados = () => {
             />
           ))}
         </Box>
+         <Pagination
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={listaParaRenderizar.length}
+          rowsPerPageOptions = {rowsPerPageOptions}
+        />
       </Container>
 
       <ModalBase open={showForm} onClose={() => setShowForm(false)}>

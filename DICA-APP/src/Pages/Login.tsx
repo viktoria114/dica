@@ -14,7 +14,6 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 import LockIcon from "@mui/icons-material/Lock";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { TextFieldSearchBar } from "../Components/TextFieldSearchBar";
 
 const Login = () => {
   const [username, setUsername] = useState("");
