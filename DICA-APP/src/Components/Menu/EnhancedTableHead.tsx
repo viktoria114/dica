@@ -24,6 +24,7 @@ type Props = {
   order: "asc" | "desc";
   orderBy: string;
   rowCount: number;
+  modoPapelera: boolean;
 };
 
 // Ejemplo de tus columnas, puedes importarlo si lo tienes en otro archivo
@@ -46,17 +47,20 @@ export const EnhancedTableHead: React.FC<Props> = ({
   numSelected,
   rowCount,
   onRequestSort,
+  modoPapelera,
 }) => {
   const createSortHandler =
     (property: keyof ItemsMenu) => (event: React.MouseEvent<unknown>) => {
       onRequestSort(event, property);
     };
+    
 
   return (
     <TableHead>
       <TableRow>
         <TableCell padding="checkbox">
           <Checkbox
+           disabled={modoPapelera}
             color="primary"
             indeterminate={numSelected > 0 && numSelected < rowCount}
             checked={rowCount > 0 && numSelected === rowCount}

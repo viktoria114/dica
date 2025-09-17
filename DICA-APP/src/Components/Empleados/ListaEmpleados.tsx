@@ -1,7 +1,7 @@
 import { Box, Container, LinearProgress } from "@mui/material";
 import { FichaEmpleado } from "./FichaEmpleado";
 import type { Empleado } from "../../types";
-import { TextFieldSearchBar } from "../TextFieldSearchBar";
+import { TextFieldSearchBar } from "../common/TextFieldSearchBar";
 import { ModalBase } from "../common/ModalBase";
 import EmpleadoForm from "./FormEmpleado";
 import { useCallback, useState } from "react";
