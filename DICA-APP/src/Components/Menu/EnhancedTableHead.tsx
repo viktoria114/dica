@@ -29,7 +29,7 @@ type Props = {
 
 // Ejemplo de tus columnas, puedes importarlo si lo tienes en otro archivo
 const headCells: readonly {
-  id: keyof ItemsMenu | "acciones";
+  id: keyof ItemsMenu | "Detalles";
   numeric: boolean;
   label: string;
 }[] = [
@@ -37,7 +37,7 @@ const headCells: readonly {
   { id: "categoria", numeric: false, label: "Categoría" },
   { id: "precio", numeric: true, label: "Precio ($)" },
   { id: "descripcion", numeric: false, label: "Descripción" },
-  { id: "acciones", numeric: false, label: "Acciones" },
+  { id: "Detalles", numeric: false, label: "" },
 ];
 
 export const EnhancedTableHead: React.FC<Props> = ({
@@ -74,7 +74,7 @@ export const EnhancedTableHead: React.FC<Props> = ({
           <TableCell
             key={headCell.id}
             align={
-              headCell.id === "acciones"
+              headCell.id === "Detalles"
                 ? "center"
                 : headCell.numeric
                 ? "right"
@@ -82,7 +82,7 @@ export const EnhancedTableHead: React.FC<Props> = ({
             }
             sortDirection={orderBy === headCell.id ? order : false}
           >
-            {headCell.id === "acciones" ? (
+            {headCell.id === "Detalles" ? (
               headCell.label
             ) : (
               <TableSortLabel

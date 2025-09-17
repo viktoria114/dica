@@ -8,16 +8,14 @@ import TableContainer from "@mui/material/TableContainer";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Checkbox from "@mui/material/Checkbox";
-import IconButton from "@mui/material/IconButton";
-import EditIcon from "@mui/icons-material/Edit"; // ✅ nuevo
-import DeleteIcon from "@mui/icons-material/Delete"; // ✅ nuevo
-import { Container, LinearProgress } from "@mui/material";
+import { Button, Container, LinearProgress } from "@mui/material";
 import { TextFieldSearchBar } from "../Components/common/TextFieldSearchBar";
 import type { ItemsMenu } from "../types";
 import { EnhancedTableHead } from "../Components/Menu/EnhancedTableHead";
 import { EnhancedTableToolbar } from "../Components/Menu/EnhancedTableToolbar";
 import { Pagination } from "../Components/common/Pagination";
 import { useMenu } from "../hooks/useMenu";
+import InfoIcon from '@mui/icons-material/Info';
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -49,8 +47,6 @@ export const Menu = () => {
   React.useEffect(() => {
     setFilteredRows(menus);
   }, [menus]);
-
-  console.log(menus);
 
   const [categoryFilter, setCategoryFilter] = React.useState<string | null>(
     null
@@ -114,6 +110,12 @@ export const Menu = () => {
         .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
     [order, orderBy, page, rowsPerPage, filteredRows]
   );
+
+const VerInfodeMenu = (id: number) => {
+  console.log("ola " + id);
+  // acá podés abrir tu modal y pasar los datos
+};
+
 
   return (
     <>
@@ -198,14 +200,10 @@ export const Menu = () => {
                         <TableCell align="right">${row.precio}</TableCell>
                         <TableCell align="left">{row.descripcion}</TableCell>
 
-                        {/* ✅ Nueva columna Acciones */}
                         <TableCell align="center">
-                          <IconButton size="small" color="primary">
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" color="error">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                          <Button   size="small" variant="contained"  onClick={() => VerInfodeMenu(row.id)} endIcon={<InfoIcon />}>
+  Ver Info
+</Button>
                         </TableCell>
                       </TableRow>
                     );
