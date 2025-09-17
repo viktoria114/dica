@@ -46,21 +46,22 @@ function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
 
 type Order = 'asc' | 'desc';
 
-function getComparator<Key extends PropertyKey>(
+function getComparator<Key extends keyof ItemsMenu>(
   order: Order,
   orderBy: Key,
-): (a: { [key in Key]: number | string }, b: { [key in Key]: number | string }) => number {
+): (a: ItemsMenu, b: ItemsMenu) => number {
   return order === 'desc'
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
+
 
 export const Menu = () => {
   const [order, setOrder] = React.useState<Order>('asc');
   const [orderBy, setOrderBy] = React.useState<keyof ItemsMenu>('precio');
   const [selected, setSelected] = React.useState<readonly number[]>([]);
   const [page, setPage] = React.useState(0);
-  const [dense, setDense] = React.useState(false);
+  const [dense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
    const rowsPerPageOptions:number[] = [5, 10, 25]
 
@@ -78,7 +79,7 @@ export const Menu = () => {
     setPage(0); // reiniciar a la primera página
   };
 
-  const handleRequestSort = (event: React.MouseEvent<unknown>, property: keyof ItemsMenu) => {
+  const handleRequestSort = (_event: React.MouseEvent<unknown>, property: keyof ItemsMenu) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
@@ -93,7 +94,7 @@ export const Menu = () => {
     setSelected([]);
   };
 
-  const handleClick = (event: React.MouseEvent<unknown>, id: number) => {
+  const handleClick = (_event: React.MouseEvent<unknown>, id: number) => {
     const selectedIndex = selected.indexOf(id);
     let newSelected: readonly number[] = [];
 
