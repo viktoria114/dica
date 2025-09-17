@@ -144,14 +144,14 @@ export const getListaMenu = async (_req: Request, res: Response) => {
     }
 };
 
-export const getListaCompletaMenu = async (_req: Request, res: Response) => {
+export const getListaInvisibleMenu = async (_req: Request, res: Response) => {
     try {
-        const query = `SELECT * FROM menu ORDER BY id ASC;`;
+        const query = `SELECT * FROM menu WHERE visibilidad = false ORDER BY id ASC;`;
         const { rows } = await pool.query(query);
         res.json(rows);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error al obtener el menú completo" });
+        res.status(500).json({ message: "Error al obtener el menú invisible" });
     }
 };
 
