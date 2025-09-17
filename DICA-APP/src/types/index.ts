@@ -16,3 +16,12 @@ preferencias: string[] | null,
 agentSessionID: string | null,
 ultimaCompra: Date,
 }
+
+export interface ItemsMenu {
+ id: number,
+  nombre: string;
+  precio: number,
+  descripcion: string,
+  categoria: string,
+  visibilidad: boolean
+}
