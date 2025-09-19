@@ -23,5 +23,6 @@ export interface ItemsMenu {
   precio: number,
   descripcion: string,
   categoria: string,
-  visibilidad: boolean
+  visibilidad: boolean,
+  stocks: { id_stock: number; cantidad_necesaria: number }[];
 }

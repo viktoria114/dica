@@ -29,6 +29,7 @@ interface GenericFormProps<T> {
   onCancel?: () => void;
   isSaving?: boolean;
   disabledFields?: (keyof T)[];
+   children?: React.ReactNode;
 }
 
 function GenericForm<T>({
@@ -42,6 +43,7 @@ function GenericForm<T>({
   onCancel,
   isSaving,
   disabledFields = [],
+  children,
 }: GenericFormProps<T>) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +95,7 @@ function GenericForm<T>({
                 </TextField>
               );
             })}
-
+ {children}
             <Box
               sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}
             >

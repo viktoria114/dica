@@ -16,6 +16,8 @@ import { EnhancedTableToolbar } from "../Components/Menu/EnhancedTableToolbar";
 import { Pagination } from "../Components/common/Pagination";
 import { useMenu } from "../hooks/useMenu";
 import InfoIcon from '@mui/icons-material/Info';
+import { MenuForm } from "../Components/Menu/FormMenu";
+import { crearMenu } from "../api/menu";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -116,6 +118,34 @@ const VerInfodeMenu = (id: number) => {
   // acá podés abrir tu modal y pasar los datos
 };
 
+const [open, setOpen] = React.useState(false);
+const [formValues, setFormValues] = React.useState<ItemsMenu>({
+  id: 0,
+  nombre: "",
+  precio: 0,
+  descripcion: "",
+  categoria: "sanguche",
+  visibilidad: true,
+});
+
+const handleSubmit = async (values: ItemsMenu) => {
+  try {
+    await crearMenu({
+      nombre: values.nombre,
+      precio: values.precio,
+      descripcion: values.descripcion,
+      categoria: values.categoria,
+      stocks: [
+        { id_stock: 1, cantidad_necesaria: 2 },
+        { id_stock: 3, cantidad_necesaria: 1 },
+      ], // 👉 estos los vas a traer de tu form de stocks
+    });
+    alert("Menú creado con éxito!");
+  } catch (error) {
+    console.error(error);
+    alert("Error al crear el menú");
+  }
+};
 
   return (
     <>
@@ -226,7 +256,24 @@ const VerInfodeMenu = (id: number) => {
             />
           </Paper>
         </Box>
-      </Container>
+
+
+ <MenuForm
+      modo="crear"
+      values={formValues}
+      formErrors={{}}
+      onChange={(field, value) =>
+        setFormValues((prev) => ({ ...prev, [field]: value }))
+      }
+      onSubmit={(values) => {
+        console.log("Guardar en backend:", values);
+        handleSubmit(values);
+        setOpen(false);
+      }}
+      onCancel={() => setOpen(false)}
+    />     
+    
+     </Container>
     </>
   );
 };

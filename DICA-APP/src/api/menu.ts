@@ -63,3 +63,29 @@ export const restaurarMenu = async (id: number): Promise<ItemsMenu> => {
     throw err;
   }
 };
+
+// POST Crear Menú
+export interface CrearMenuPayload {
+  nombre: string;
+  precio: number;
+  descripcion: string;
+  categoria: string;
+  stocks: { id_stock: number; cantidad_necesaria: number }[];
+}
+
+export const crearMenu = async (payload: CrearMenuPayload): Promise<{ id: number; message: string }> => {
+  try {
+    const res = await api.post<{ id: number; message: string }>(
+      `${MENU_URL}`,
+      payload
+    );
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al crear Menú"
+      );
+    }
+    throw err;
+  }
+};
