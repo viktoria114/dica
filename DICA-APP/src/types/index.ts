@@ -2,8 +2,8 @@ export interface Empleado {
   dni: string;
   username: string;
   nombre_completo: string;
-  correo: string | null;
-  telefono: string | null;
+  correo: string;
+  telefono: string;
   password: string;
   rol: string;
 }

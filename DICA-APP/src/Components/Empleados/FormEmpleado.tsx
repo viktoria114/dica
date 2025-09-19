@@ -23,17 +23,20 @@ const empleadoFields: FieldConfig<Empleado>[] = [
   },
 ];
 
-const EmpleadoForm = ({
-  modo,
-  initialValues,
-  onSuccess,
-  onCancel,
-}: {
+type EmpleadoFormProps = {
   modo: "crear" | "editar";
   initialValues: Empleado;
   onSuccess: () => void;
   onCancel?: () => void;
+};
+
+const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
+  modo,
+  initialValues,
+  onSuccess,
+  onCancel,
 }) => {
+
   const { formErrors, editValues, handleChange, handleGuardar, isSaving } =
     useFormEmpleado(initialValues, onSuccess, modo);
 

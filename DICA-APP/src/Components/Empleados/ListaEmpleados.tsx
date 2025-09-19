@@ -1,11 +1,13 @@
 import { Box, Container, LinearProgress } from "@mui/material";
-import { FichaEmpleado } from "./FichaEmpleado";
+//import { FichaEmpleado } from "./FichaEmpleado";
+import { FichaItem } from "../common/FichaItem";
 import type { Empleado } from "../../types";
 import { TextFieldSearchBar } from "../TextFieldSearchBar";
 import { ModalBase } from "../common/ModalBase";
 import EmpleadoForm from "./FormEmpleado";
 import { useCallback, useState } from "react";
 import { useEmpleados } from "../../hooks/useEmpleados";
+import { ModalEmpleado } from "./ModalEmpleado";
 
 const styleBox1 = {
   bgcolor: "primary.main",
@@ -21,7 +23,8 @@ const styleBox1 = {
 };
 
 export const ListaEmpleados = () => {
- const { empleados, loading, error, modoPapelera, toggleInvisibles } = useEmpleados();
+  const { empleados, loading, error, modoPapelera, toggleInvisibles } =
+    useEmpleados();
 
   // ✅ Estado para búsqueda
   const [empleadosMostrados, setEmpleadosMostrados] = useState<Empleado[]>([]);
@@ -53,9 +56,16 @@ export const ListaEmpleados = () => {
 
         <Box sx={styleBox1}>
           {listaParaRenderizar.map((empleado) => (
-            <FichaEmpleado
+            <FichaItem
               key={empleado.dni}
-              empleado={empleado}
+              item={empleado}
+              titulo={(e) => e.nombre_completo}
+              campos={[
+                { label: "Teléfono", value: (e) => e.telefono },
+                { label: "Rol", value: (e) => e.rol },
+                { label: "dni", value: (e) => e.dni },
+              ]}
+              ModalComponent={ModalEmpleado}
               modoPapelera={modoPapelera}
             />
           ))}

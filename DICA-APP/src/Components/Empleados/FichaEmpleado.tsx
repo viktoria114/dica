@@ -51,7 +51,7 @@ export const FichaEmpleado: React.FC<FichaEmpleadoProps> = ({ empleado, modoPape
       <ModalEmpleado
         open={open}
         handleClose={handleClose}
-        empleado={empleado}
+        item={empleado}
         modoPapelera= {modoPapelera}
       />
     </>
