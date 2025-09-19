@@ -4,7 +4,7 @@ const router = Router()
 
 router.post('/', crearMenu)
 router.put('/:id', actualizarMenu)
-router.get('/:id', getMenuDetalles)
+router.get('/detalles/:id', getMenuDetalles)
 router.get('/', getListaMenu)
 router.get('/invisibles', getListaInvisibleMenu)
 router.delete('/:id', eliminarMenu)
