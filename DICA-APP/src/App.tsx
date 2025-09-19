@@ -26,7 +26,9 @@ function App() {
         <Route
           element={
             <PrivateRoute>
-              <AppLayout /> {/* NavBar + Outlet */}
+              <>
+                <AppLayout /> {/* NavBar + Outlet */}
+              </>
             </PrivateRoute>
           }
         >

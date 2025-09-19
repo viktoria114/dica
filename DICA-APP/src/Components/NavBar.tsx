@@ -11,16 +11,35 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const pages = [
-  { text: "Inicio", path: "/inicio" },
-  { text: "Menú", path: "menu" },
-  { text: "Pedidos", path: "/pedidos" },
-  { text: "Stock", path: "/stock" },
-  { text: "Estadísticas", path: "estadisticas" },
-  { text: "Empleados", path: "/empleados" },
-    { text: "Clientes", path: "/clientes" },
+  {
+    text: "Inicio",
+    path: "/inicio",
+    roles: ["admin", "gerente", "cajero", "cocinero", "repartidor"],
+  },
+  { text: "Menú", path: "/menu", roles: ["admin", "gerente", "cajero"] },
+  {
+    text: "Promociones",
+    path: "/promociones",
+    roles: ["admin", "gerente", "cajero"],
+  },
+  {
+    text: "Pedidos",
+    path: "/pedidos",
+    roles: ["admin", "gerente", "cajero", "cocinero", "repartidor"],
+  },
+  { text: "Stock", path: "/stock", roles: ["admin", "gerente"] },
+  { text: "Balance", path: "/balance", roles: ["admin"] },
+  { text: "Estadísticas", path: "/estadisticas", roles: ["admin", "gerente"] },
+  { text: "Empleados", path: "/empleados", roles: ["admin"] },
+  {
+    text: "Clientes",
+    path: "/clientes",
+    roles: ["admin", "gerente", "cajero"],
+  },
 ];
 const settings = [
   { text: "Perfil", path: "/perfil" },
@@ -28,10 +47,14 @@ const settings = [
 ];
 
 export const NavBar = () => {
+  const { usuario } = useAuth(); // user.rol viene del token
+  const rol: string = usuario?.rol ?? "";
+
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
     null
   );
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -43,79 +66,85 @@ export const NavBar = () => {
 
   return (
     <>
-        {/* Encabezado fijo */}
-        <Box sx={{ backgroundColor: "primary.main", textAlign: "center", py: 4 }}>
-          <Typography variant="h2" sx={{ color: "white", fontWeight: "800" }}>
-            DICA
-          </Typography>
-        </Box>
+      {/* Encabezado fijo */}
+      <Box sx={{ backgroundColor: "primary.main", textAlign: "center", py: 4 }}>
+        <Typography variant="h2" sx={{ color: "white", fontWeight: "800" }}>
+          DICA
+        </Typography>
+      </Box>
 
-        {/* Barra de navegación */}
-        <AppBar
-          position="sticky"
-          sx={{
-            backgroundColor: "primary.main",
-            borderTop: "4px solid #f0f8ff",
-          }}
-        >
-          <Toolbar sx={{ justifyContent: "center" }}>
-            {/* Botones centrados con separadores */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {pages.map(({ text, path }, index) => (
+      {/* Barra de navegación */}
+      <AppBar
+        position="sticky"
+        sx={{
+          backgroundColor: "primary.main",
+          borderTop: "4px solid #f0f8ff",
+        }}
+      >
+        <Toolbar sx={{ justifyContent: "center" }}>
+          {/* Botones centrados con separadores */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {pages
+              .filter(({ roles }) => roles.includes(rol))
+              .map(({ text, path }, index, arr) => {
+                const isActive = location.pathname.startsWith(path);
+                return (
                 <React.Fragment key={text}>
                   <Button
-                    sx={{ color: "white", px: 1 }}
+                    sx={{  bgcolor:  isActive ? "white" : "transparent", color:  isActive ? "black" :"white",px: 1 }}
                     onClick={() => navigate(path)}
                   >
                     {text}
                   </Button>
-                  {index < pages.length - 1 && (
-                    <Typography sx={{ color: "white" }}>|</Typography>
-                  )}
+                   {index < arr.length - 1 && (
+          <Typography sx={{ color: "white" }}>|</Typography>
+        )}
                 </React.Fragment>
-              ))}
-            </Box>
+              );
+            })}
+          </Box>
 
-            {/* Menú de usuario a la derecha */}
-            <Box sx={{ position: "absolute", right: 16 }}>
-              <Tooltip title="Abrir configuración">
-                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Avatar alt="Usuario" />
-                </IconButton>
-              </Tooltip>
-              <Menu
-                sx={{ mt: "45px" }}
-                anchorEl={anchorElUser}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
-                open={Boolean(anchorElUser)}
-                onClose={handleCloseUserMenu}
-              >
-                {settings.map(({ text, path }) => (
-                  <MenuItem key={text} onClick={() => {
-      if (text === "Cerrar Sesión") {
-        localStorage.removeItem("token"); 
-        navigate(path);
-      } else {
-        navigate(path);
-      }
-      handleCloseUserMenu(); // cierra el menú
-    }}
-  >
-                    <Typography textAlign="center">{text}</Typography>
-                  </MenuItem>
-                ))}
-              </Menu>
-            </Box>
-          </Toolbar>
-        </AppBar>
-     
+          {/* Menú de usuario a la derecha */}
+          <Box sx={{ position: "absolute", right: 16 }}>
+            <Tooltip title="Abrir configuración">
+              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                <Avatar alt="Usuario" />
+              </IconButton>
+            </Tooltip>
+            <Menu
+              sx={{ mt: "45px" }}
+              anchorEl={anchorElUser}
+              anchorOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              open={Boolean(anchorElUser)}
+              onClose={handleCloseUserMenu}
+            >
+              {settings.map(({ text, path }) => (
+                <MenuItem
+                  key={text}
+                  onClick={() => {
+                    if (text === "Cerrar Sesión") {
+                      localStorage.removeItem("token");
+                      navigate(path);
+                    } else {
+                      navigate(path);
+                    }
+                    handleCloseUserMenu(); // cierra el menú
+                  }}
+                >
+                  <Typography textAlign="center">{text}</Typography>
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
     </>
   );
 };
