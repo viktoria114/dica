@@ -3,8 +3,10 @@ import { Box, Grid, Typography } from "@mui/material";
 import { ModalBase } from "../common/ModalBase";
 import type { Empleado } from "../../types";
 import EmpleadoForm from "./FormEmpleado";
-import { ButtonsNormalEmpleado } from "./ButtonsNormalEmpleado";
-import { ButtonsPapeleraEmpleado } from "./ButtonsPapeleraEmpleado";
+
+import { ActionButtons } from "../common/ActionButtons";
+import { useBorrarEmpleado } from "../../hooks/useBorrarEmpleado";
+import { useRestaurarEmpleado } from "../../hooks/useRestaurarEmpleado";
 
 interface ModalEmpleadoProps {
   open: boolean;
@@ -20,6 +22,9 @@ export const ModalEmpleado = ({
   modoPapelera,
 }: ModalEmpleadoProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
+
+    const { borrarEmpleado, isDeleting } = useBorrarEmpleado(handleClose);
+  const { restaurar, isRestoring } = useRestaurarEmpleado(handleClose);
 
   return (
     <ModalBase open={open} onClose={handleClose}>
@@ -54,20 +59,25 @@ export const ModalEmpleado = ({
         </Box>
       </Grid>
 
-      {!isEditMode && !modoPapelera && (
-        <ButtonsNormalEmpleado
-          setIsEditMode={() => setIsEditMode(true)}
-          handleClose={handleClose}
-          empleadoDni={empleado.dni}
-        />
-      )}
-
-      {/* Si está en modo papelera y no en edición */}
-      {!isEditMode && modoPapelera && (
-        <ButtonsPapeleraEmpleado
-          handleClose={handleClose}
-          empleadoDni={empleado.dni}
-        />
+      {!isEditMode && (
+        <>
+        {modoPapelera ? (
+            <ActionButtons
+              mode="papelera"
+              onRestore={() => restaurar(empleado.dni)}
+              onCancel={handleClose}
+              loadingRestore={isRestoring}
+            />
+          ) : (
+            <ActionButtons
+              mode="edicion"
+              onEdit={() => setIsEditMode(true)}
+              onDelete={() => borrarEmpleado(empleado.dni)}
+              onCancel={handleClose}
+              loadingDelete={isDeleting}
+            />
+          )}
+        </>
       )}
     </ModalBase>
   );

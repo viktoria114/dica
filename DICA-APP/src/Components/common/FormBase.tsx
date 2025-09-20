@@ -4,10 +4,8 @@ import {
   Grid,
   Typography,
   Box,
-  Button,
 } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import CloseIcon from "@mui/icons-material/Close";
+import { ActionButtons } from "./ActionButtons";
 
 export interface FieldConfig<T> {
   name: keyof T;
@@ -96,30 +94,13 @@ function GenericForm<T>({
               );
             })}
  {children}
-            <Box
-              sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}
-            >
-              <Button
-                type="submit"
-                variant="contained"
-                color="success"
-                startIcon={<SaveIcon />}
-                disabled={isSaving}
-                sx={{ height: 50 }}
-              >
-                {modo === "crear" ? "Crear" : "Guardar"}
-              </Button>
-              {onCancel && (
-                <Button
-                  variant="outlined"
-                  sx={{ height: 50 }}
-                  onClick={onCancel}
-                  startIcon={<CloseIcon />}
-                >
-                  Cancelar
-                </Button>
-              )}
-            </Box>
+            <ActionButtons
+                mode="form"
+                labelSave={modo === "crear" ? "Crear" : "Guardar"}
+                onSave={() => onSubmit(values)}
+                onCancel={onCancel}
+                loadingSave={isSaving}
+              />
           </form>
         </Grid>
       </Grid>
