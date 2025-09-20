@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Box, Grid, Typography } from "@mui/material";
 import { ModalBase } from "../common/ModalBase";
 import type { Empleado } from "../../types";
-import EmpleadoForm from "./FormEmpleado";
 
 import { ActionButtons } from "../common/ActionButtons";
 import { useBorrarEmpleado } from "../../hooks/useBorrarEmpleado";
 import { useRestaurarEmpleado } from "../../hooks/useRestaurarEmpleado";
+import GenericForm from "../common/FormBase";
+import { useFormEmpleado } from "../../hooks/useFormEmpleado";
 
 interface ModalEmpleadoProps {
   open: boolean;
@@ -23,8 +24,17 @@ export const ModalEmpleado = ({
 }: ModalEmpleadoProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
 
-    const { borrarEmpleado, isDeleting } = useBorrarEmpleado(handleClose);
+  const { borrarEmpleado, isDeleting } = useBorrarEmpleado(handleClose);
   const { restaurar, isRestoring } = useRestaurarEmpleado(handleClose);
+  const initialValues = empleado;
+
+  const onSuccess = () => {
+    //refetchEmpleados?.();
+    setIsEditMode(false);
+  };
+
+  const { formErrors, editValues, handleChange, handleGuardar, isSaving, empleadoFields } =
+    useFormEmpleado(initialValues, onSuccess, "editar");
 
   return (
     <ModalBase open={open} onClose={handleClose}>
@@ -37,18 +47,25 @@ export const ModalEmpleado = ({
 
         <Box sx={{ ml: { sm: 0, xs: 2 } }}>
           {isEditMode ? (
-            <EmpleadoForm
+            <GenericForm<Empleado>
+              entityName="Empleado"
+               fields={empleadoFields}
               modo="editar"
-              initialValues={empleado}
-              onSuccess={() => {
-                //refetchEmpleados?.();
-                setIsEditMode(false);
-              }}
+              formErrors={formErrors}
+              values={editValues}
               onCancel={() => setIsEditMode(false)}
+              onChange={handleChange}
+              onSubmit={handleGuardar}
+              isSaving={isSaving}
             />
+
+
           ) : (
             <>
-              <Typography>  ● Nombre Completo: {empleado.nombre_completo} </Typography>
+              <Typography>
+                {" "}
+                ● Nombre Completo: {empleado.nombre_completo}{" "}
+              </Typography>
               <Typography>● DNI: {empleado.dni}</Typography>
               <Typography>● Usuario: {empleado.username}</Typography>
               <Typography>● Correo: {empleado.correo || "-"}</Typography>
@@ -61,7 +78,7 @@ export const ModalEmpleado = ({
 
       {!isEditMode && (
         <>
-        {modoPapelera ? (
+          {modoPapelera ? (
             <ActionButtons
               mode="papelera"
               onRestore={() => restaurar(empleado.dni)}

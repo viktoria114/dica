@@ -18,12 +18,12 @@ export interface FieldConfig<T> {
 interface GenericFormProps<T> {
   entityName: string; // ej: "Empleado", "Cliente"
   modo: "crear" | "editar";
-  fields: FieldConfig<T>[];
+  fields?: FieldConfig<T>[];
   formErrors: Partial<Record<keyof T, string>>;
   values: T;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onChange: (field: keyof T, value: any) => void;
-  onSubmit: (values: T) => void;   // 👈 ahora devuelve los valores, no el evento
+  onChange?: (field: keyof T, value: any) => void;
+  onSubmit?: (values: T) => void;   // 👈 ahora devuelve los valores, no el evento
   onCancel?: () => void;
   isSaving?: boolean;
   disabledFields?: (keyof T)[];
@@ -45,7 +45,7 @@ function GenericForm<T>({
 }: GenericFormProps<T>) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(values);  // 👈 ahora el padre recibe los values directamente
+    onSubmit?.(values);  // 👈 ahora el padre recibe los values directamente
   };
 
   return (
@@ -63,7 +63,7 @@ function GenericForm<T>({
 
         <Grid sx={{ ml: { sm: 0, xs: 7 } }}>
           <form onSubmit={handleSubmit}>
-            {fields.map((field) => {
+            {fields?.map((field) => {
               if (field.onlyInCreate && modo !== "crear") return null;
 
               return (
@@ -74,7 +74,7 @@ function GenericForm<T>({
                   type={field.type ?? "text"}
                   value={values[field.name] ?? ""}
                   onChange={(e) =>
-                    onChange(field.name, e.target.value as unknown)
+                    onChange?.(field.name, e.target.value as unknown)
                   }
                   margin="dense"
                   variant="standard"
@@ -97,7 +97,7 @@ function GenericForm<T>({
             <ActionButtons
                 mode="form"
                 labelSave={modo === "crear" ? "Crear" : "Guardar"}
-                onSave={() => onSubmit(values)}
+                onSave={() => onSubmit?.(values)}
                 onCancel={onCancel}
                 loadingSave={isSaving}
               />

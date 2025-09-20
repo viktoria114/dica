@@ -5,8 +5,9 @@ import type { Empleado } from "../types";
 import { SearchBar } from "../Components/common/SearchBar";
 import { FichaEmpleado } from "../Components/Empleados/FichaEmpleado";
 import { ModalBase } from "../Components/common/ModalBase";
-import EmpleadoForm from "../Components/Empleados/FormEmpleado";
 import { Paginacion } from "../Components/common/Paginacion";
+import GenericForm from "../Components/common/FormBase";
+import { useFormEmpleado } from "../hooks/useFormEmpleado";
 
 const styleBox1 = {
   bgcolor: "primary.main",
@@ -21,9 +22,30 @@ const styleBox1 = {
   mb: 2,
 };
 
+const initialValues = {
+  nombre_completo: "",
+  username: "",
+  password: "",
+  correo: "",
+  telefono: "",
+  rol: "cajero", // valor por defecto
+  dni: "", // si es requerido por el tipo Empleado
+};
+
 export const Empleados = () => {
- const { empleados, loading, error, modoPapelera, toggleInvisibles } = useEmpleados();
- const rowsPerPageOptions:number[] = [9, 15, 21]
+  const { empleados, loading, error, modoPapelera, toggleInvisibles } =
+    useEmpleados();
+  const rowsPerPageOptions: number[] = [9, 15, 21];
+
+  const onSuccess = () => {
+    // refetchEmpleados?.();
+    setShowForm(false);
+  };
+
+  const onCancel = () => setShowForm(false);
+
+  const { formErrors, editValues, handleChange, handleGuardar, isSaving, empleadoFields } =
+    useFormEmpleado(initialValues, onSuccess, "crear");
 
   // ✅ Estado para búsqueda
   const [empleadosMostrados, setEmpleadosMostrados] = useState<Empleado[]>([]);
@@ -40,7 +62,7 @@ export const Empleados = () => {
   const listaParaRenderizar =
     empleadosMostrados.length > 0 ? empleadosMostrados : empleados;
 
-      const paginatedEmpleados = listaParaRenderizar.slice(
+  const paginatedEmpleados = listaParaRenderizar.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -69,35 +91,32 @@ export const Empleados = () => {
             />
           ))}
         </Box>
-         <Paginacion
-                  page={page}
-                  setPage={setPage}
-                  rowsPerPage={rowsPerPage}
-                  setRowsPerPage={setRowsPerPage}
-                  count={listaParaRenderizar.length}
-                  rowsPerPageOptions = {rowsPerPageOptions}
-                />
+        <Paginacion
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={listaParaRenderizar.length}
+          rowsPerPageOptions={rowsPerPageOptions}
+        />
       </Container>
 
       <ModalBase open={showForm} onClose={() => setShowForm(false)}>
-        <EmpleadoForm
-          modo="crear"
-          initialValues={{
-            nombre_completo: "",
-            username: "",
-            password: "",
-            correo: "",
-            telefono: "",
-            rol: "cajero", // valor por defecto
-            dni: "", // si es requerido por el tipo Empleado
-          }}
-          onSuccess={() => {
-            // refetchEmpleados?.();
-            setShowForm(false);
-          }}
-          onCancel={() => setShowForm(false)}
-        />
+         <GenericForm<Empleado>
+        entityName="Empleado"
+        modo="crear"
+        fields={empleadoFields}
+        formErrors={formErrors}
+        values={editValues}
+        onChange={handleChange}
+        onSubmit={handleGuardar}
+        onCancel={onCancel}
+        isSaving={isSaving}
+      />
       </ModalBase>
+
+
+     
     </>
   );
 };
