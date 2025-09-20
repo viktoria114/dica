@@ -17,7 +17,7 @@ export interface FieldConfig<T> {
   onlyInCreate?: boolean; // campos visibles solo en modo "crear"
 }
 
-interface GenericFormProps<T> {
+interface FormBaseProps<T> {
   entityName: string; // ej: "Empleado", "Cliente"
   modo: "crear" | "editar";
   fields: FieldConfig<T>[];
@@ -31,7 +31,7 @@ interface GenericFormProps<T> {
   disabledFields?: (keyof T)[];
 }
 
-function GenericForm<T>({
+function FormBase<T>({
   entityName,
   modo,
   fields,
@@ -42,7 +42,7 @@ function GenericForm<T>({
   onCancel,
   isSaving,
   disabledFields = [],
-}: GenericFormProps<T>) {
+}: FormBaseProps<T>) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(values);  // 👈 ahora el padre recibe los values directamente
@@ -125,4 +125,4 @@ function GenericForm<T>({
   );
 }
 
-export default GenericForm;
+export default FormBase;

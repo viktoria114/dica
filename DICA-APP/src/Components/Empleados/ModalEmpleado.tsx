@@ -1,4 +1,4 @@
-import { ModalItem } from "../common/ModalItem";
+import { ModalBase } from "../common/ModalBase";
 import EmpleadoForm from "./FormEmpleado";
 import { ButtonsNormalEmpleado } from "./ButtonsNormalEmpleado";
 import { ButtonsPapeleraEmpleado } from "./ButtonsPapeleraEmpleado";
@@ -11,7 +11,7 @@ export const ModalEmpleado = (props: {
   modoPapelera?: boolean;
 }) => {
   return (
-    <ModalItem
+    <ModalBase
       {...props}
       title="Detalles del Empleado"
       campos={[

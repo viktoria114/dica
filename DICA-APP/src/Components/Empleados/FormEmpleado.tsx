@@ -1,7 +1,7 @@
 import { useFormEmpleado } from "../../hooks/useFormEmpleado";
 import type { Empleado } from "../../types";
 import type { FieldConfig } from "../common/FormBase";
-import GenericForm from "../common/FormBase";
+import FormBase from "../common/FormBase";
 
 const empleadoFields: FieldConfig<Empleado>[] = [
   { name: "nombre_completo", label: "Nombre Completo" },
@@ -41,7 +41,7 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     useFormEmpleado(initialValues, onSuccess, modo);
 
   return (
-    <GenericForm<Empleado>
+    <FormBase<Empleado>
       entityName="Empleado"
       modo={modo}
       fields={empleadoFields}

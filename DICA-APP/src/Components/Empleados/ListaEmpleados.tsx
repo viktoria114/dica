@@ -1,13 +1,14 @@
-import { Box, Container, LinearProgress } from "@mui/material";
+import { Box, Container, LinearProgress, Modal } from "@mui/material";
 //import { FichaEmpleado } from "./FichaEmpleado";
 import { FichaItem } from "../common/FichaItem";
 import type { Empleado } from "../../types";
 import { TextFieldSearchBar } from "../TextFieldSearchBar";
-import { ModalBase } from "../common/ModalBase";
+
 import EmpleadoForm from "./FormEmpleado";
 import { useCallback, useState } from "react";
 import { useEmpleados } from "../../hooks/useEmpleados";
 import { ModalEmpleado } from "./ModalEmpleado";
+import { ModalBase } from "../common/ModalBase";
 
 const styleBox1 = {
   bgcolor: "primary.main",
@@ -65,6 +66,23 @@ export const ListaEmpleados = () => {
                 { label: "Rol", value: (e) => e.rol },
                 { label: "dni", value: (e) => e.dni },
               ]}
+              modo="crear"
+              initialValues={{
+            nombre_completo: "",
+            username: "",
+            password: "",
+            correo: "",
+            telefono: "",
+            rol: "cajero", // valor por defecto
+            dni: "", // si es requerido por el tipo Empleado
+          }}
+          onSuccess={() => {
+            // refetchEmpleados?.();
+            setShowForm(false);
+          }}
+          onCancel={() => setShowForm(false)}
+
+
               ModalComponent={ModalEmpleado}
               modoPapelera={modoPapelera}
             />
@@ -72,7 +90,7 @@ export const ListaEmpleados = () => {
         </Box>
       </Container>
 
-      <ModalBase open={showForm} onClose={() => setShowForm(false)}>
+      <ModalBase open={showForm} handleClose={() => setShowForm(false)}>
         <EmpleadoForm
           modo="crear"
           initialValues={{
@@ -91,6 +109,28 @@ export const ListaEmpleados = () => {
           onCancel={() => setShowForm(false)}
         />
       </ModalBase>
+      <ModalEmpleado
+  open={showForm}
+  handleClose={() => setShowForm(false)}
+  modo="crear"
+  initialValues={{
+    nombre_completo: "",
+    username: "",
+    password: "",
+    correo: "",
+    telefono: "",
+    rol: "cajero",
+    dni: "",
+  }}
+  onChange={(field, value) => {
+    // actualizás tu estado acá
+    console.log(field, value);
+  }}
+  onSuccess={() => setShowForm(false)}
+  onCancel={() => setShowForm(false)}
+/>
+
+        
     </>
   );
 };

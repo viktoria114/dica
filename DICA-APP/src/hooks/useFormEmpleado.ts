@@ -28,7 +28,7 @@ useEffect(() => {
 }, [initialValues]);
 
 
-  const handleChange = (field: keyof Empleado, value: string) => {
+  const handleChange = (field: keyof Empleado, value: unknown) => {
     setEditValues((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -84,8 +84,8 @@ useEffect(() => {
   try {
     const payload = {
       ...values,
-      telefono: values.telefono?.trim() || null,
-      correo: values.correo?.trim() || null,
+      telefono: values.telefono?.trim() || "",
+      correo: values.correo?.trim() || "",
       visibilidad: true,
     };
 

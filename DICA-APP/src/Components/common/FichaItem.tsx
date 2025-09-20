@@ -1,5 +1,8 @@
 import { Card, CardActionArea, CardContent, Typography } from "@mui/material";
 import { useState } from "react";
+import type { Empleado } from "../../types";
+import { useFormEmpleado } from "../../hooks/useFormEmpleado";
+import type { FieldConfig } from "./FormBase";
 
 interface Campo<T> {
   label: string;
@@ -19,16 +22,42 @@ interface FichaItemProps<T> {
   modoPapelera?: boolean;
 }
 
+const empleadoFields: FieldConfig<Empleado>[] = [
+  { name: "nombre_completo", label: "Nombre Completo" },
+  { name: "username", label: "Usuario" },
+  { name: "correo", label: "Correo" },
+  { name: "telefono", label: "Teléfono" },
+  { name: "dni", label: "DNI", onlyInCreate: true },
+  { name: "password", label: "Contraseña", type: "password", onlyInCreate: true },
+  {
+    name: "rol",
+    label: "Rol",
+    type: "select",
+    options: [
+      { value: "admin", label: "Admin" },
+      { value: "cajero", label: "Cajero" },
+      { value: "repartidor", label: "Repartidor" },
+      { value: "cocinero", label: "Cocinero" },
+    ],
+  },
+];
+
 export function FichaItem<T>({
   item,
   titulo,
   campos,
   ModalComponent,
   modoPapelera,
+  initialValues,
+  onSuccess,
+  modo = "editar",
 }: FichaItemProps<T>) {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+
+  const { formErrors, editValues, handleChange, handleGuardar, isSaving } =
+    useFormEmpleado(initialValues, onSuccess, modo);
 
   return (
     <>
@@ -55,6 +84,7 @@ export function FichaItem<T>({
       </Card>
 
       <ModalComponent
+        modo={"editar"}
         open={open}
         handleClose={handleClose}
         item={item}
