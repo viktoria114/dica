@@ -15,6 +15,7 @@ import theme from "./services/theme";
 import { PrivateRoute } from "./Components/PrivateRoute";
 import { AppLayout } from "./Components/AppLayout";
 import { Menu } from "./Pages/Menu";
+import { Pedidos } from "./Pages/Pedidos";
 
 function App() {
   const router = createBrowserRouter(
@@ -36,6 +37,7 @@ function App() {
           <Route path="/empleados" element={<Empleados />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
+           <Route path="/pedidos" element={<Pedidos />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

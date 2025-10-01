@@ -4,18 +4,34 @@ import Typography from "@mui/material/Typography";
 import CardActionArea from "@mui/material/CardActionArea";
 import { useState } from "react";
 import type { Empleado } from "../../types";
-import { ModalEmpleado } from "./ModalEmpleado";
+import { ModalBase } from "../common/ModalBase";
+import { useFormEmpleado } from "../../hooks/useFormEmpleado";
 
 interface FichaEmpleadoProps {
   empleado: Empleado;
   modoPapelera?: boolean;
 }
 
-export const FichaEmpleado: React.FC<FichaEmpleadoProps> = ({ empleado, modoPapelera }) => {
+export const FichaEmpleado: React.FC<FichaEmpleadoProps> = ({
+  empleado,
+  modoPapelera,
+}) => {
   const [open, setOpen] = useState(false);
 
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+
+  const initialValues = empleado;
+  const onSuccess = () => {
+    setOpen(false);
+  };
+  const {
+    formErrors,
+    editValues,
+    empleadoFields,
+    handleChange,
+    handleGuardar,
+    isSaving,
+  } = useFormEmpleado(initialValues, onSuccess, "editar");
 
   return (
     <>
@@ -48,11 +64,18 @@ export const FichaEmpleado: React.FC<FichaEmpleadoProps> = ({ empleado, modoPape
         </CardActionArea>
       </Card>
 
-      <ModalEmpleado
+      <ModalBase
         open={open}
-        handleClose={handleClose}
         empleado={empleado}
-        modoPapelera= {modoPapelera}
+        modoPapelera={modoPapelera}
+        modo="editar"
+        empleadoFields={empleadoFields}
+        formErrors={formErrors}
+        editValues={editValues}
+        handleChange={handleChange}
+        handleGuardar={handleGuardar}
+        handleClose={() => setOpen(false)}
+        isSaving={isSaving}
       />
     </>
   );

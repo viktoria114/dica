@@ -26,3 +26,14 @@ export interface ItemsMenu {
   visibilidad: boolean,
   stocks: { id_stock: number; cantidad_necesaria: number }[];
 }
+
+export interface Pedido {
+id: number | null,
+id_fecha: Date | null,
+hora: string | null,
+id_cliente: number | null,
+ ubicacion: string,
+ observacion: string,
+ visibilidad: boolean,
+ id_estado: number,
+}

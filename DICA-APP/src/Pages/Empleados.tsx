@@ -6,7 +6,6 @@ import { SearchBar } from "../Components/common/SearchBar";
 import { FichaEmpleado } from "../Components/Empleados/FichaEmpleado";
 import { ModalBase } from "../Components/common/ModalBase";
 import { Paginacion } from "../Components/common/Paginacion";
-import GenericForm from "../Components/common/FormBase";
 import { useFormEmpleado } from "../hooks/useFormEmpleado";
 
 const styleBox1 = {
@@ -42,10 +41,16 @@ export const Empleados = () => {
     setShowForm(false);
   };
 
-  const onCancel = () => setShowForm(false);
+  const handleClose = () => setShowForm(false);
 
-  const { formErrors, editValues, handleChange, handleGuardar, isSaving, empleadoFields } =
-    useFormEmpleado(initialValues, onSuccess, "crear");
+  const {
+    formErrors,
+    editValues,
+    handleChange,
+    handleGuardar,
+    isSaving,
+    empleadoFields,
+  } = useFormEmpleado(initialValues, onSuccess, "crear");
 
   // ✅ Estado para búsqueda
   const [empleadosMostrados, setEmpleadosMostrados] = useState<Empleado[]>([]);
@@ -101,22 +106,18 @@ export const Empleados = () => {
         />
       </Container>
 
-      <ModalBase open={showForm} onClose={() => setShowForm(false)}>
-         <GenericForm<Empleado>
-        entityName="Empleado"
+      <ModalBase
+        open={showForm}
+        handleClose={handleClose}
         modo="crear"
-        fields={empleadoFields}
+        entityName="Empleado"
+         editValues={editValues} 
+        empleadoFields={empleadoFields}   
         formErrors={formErrors}
-        values={editValues}
-        onChange={handleChange}
-        onSubmit={handleGuardar}
-        onCancel={onCancel}
+        handleChange={handleChange}
+       handleGuardar={handleGuardar}
         isSaving={isSaving}
-      />
-      </ModalBase>
-
-
-     
+      ></ModalBase>
     </>
   );
 };

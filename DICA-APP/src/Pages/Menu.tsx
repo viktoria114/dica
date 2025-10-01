@@ -9,13 +9,13 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Checkbox from "@mui/material/Checkbox";
 import { Button, Container, LinearProgress } from "@mui/material";
-import { TextFieldSearchBar } from "../Components/common/TextFieldSearchBar";
+import { SearchBar } from "../Components/common/SearchBar";
 import type { ItemsMenu } from "../types";
 import { EnhancedTableHead } from "../Components/Menu/EnhancedTableHead";
 import { EnhancedTableToolbar } from "../Components/Menu/EnhancedTableToolbar";
-import { Pagination } from "../Components/common/Pagination";
+import { Paginacion } from "../Components/common/Paginacion";
 import { useMenu } from "../hooks/useMenu";
-import InfoIcon from '@mui/icons-material/Info';
+import InfoIcon from "@mui/icons-material/Info";
 import { MenuForm } from "../Components/Menu/FormMenu";
 import { crearMenu } from "../api/menu";
 
@@ -113,39 +113,40 @@ export const Menu = () => {
     [order, orderBy, page, rowsPerPage, filteredRows]
   );
 
-const VerInfodeMenu = (id: number) => {
-  console.log("ola " + id);
-  // acá podés abrir tu modal y pasar los datos
-};
+  const VerInfodeMenu = (id: number) => {
+    console.log("ola " + id);
+    // acá podés abrir tu modal y pasar los datos
+  };
 
-const [open, setOpen] = React.useState(false);
-const [formValues, setFormValues] = React.useState<ItemsMenu>({
-  id: 0,
-  nombre: "",
-  precio: 0,
-  descripcion: "",
-  categoria: "sanguche",
-  visibilidad: true,
-});
+  const [open, setOpen] = React.useState(false);
+  const [formValues, setFormValues] = React.useState<ItemsMenu>({
+    id: 0,
+    nombre: "",
+    precio: 0,
+    descripcion: "",
+    categoria: "sanguche",
+    visibilidad: true,
+    stocks: [],
+  });
 
-const handleSubmit = async (values: ItemsMenu) => {
-  try {
-    await crearMenu({
-      nombre: values.nombre,
-      precio: values.precio,
-      descripcion: values.descripcion,
-      categoria: values.categoria,
-      stocks: [
-        { id_stock: 1, cantidad_necesaria: 2 },
-        { id_stock: 3, cantidad_necesaria: 1 },
-      ], // 👉 estos los vas a traer de tu form de stocks
-    });
-    alert("Menú creado con éxito!");
-  } catch (error) {
-    console.error(error);
-    alert("Error al crear el menú");
-  }
-};
+  const handleSubmit = async (values: ItemsMenu) => {
+    try {
+      await crearMenu({
+        nombre: values.nombre,
+        precio: values.precio,
+        descripcion: values.descripcion,
+        categoria: values.categoria,
+        stocks: [
+          { id_stock: 1, cantidad_necesaria: 2 },
+          { id_stock: 3, cantidad_necesaria: 1 },
+        ], // 👉 estos los vas a traer de tu form de stocks
+      });
+      alert("Menú creado con éxito!");
+    } catch (error) {
+      console.error(error);
+      alert("Error al crear el menú");
+    }
+  };
 
   return (
     <>
@@ -153,7 +154,7 @@ const handleSubmit = async (values: ItemsMenu) => {
       {error && <p>{error}</p>}
       <Container>
         {/* 🔎 Buscador conectado */}
-        <TextFieldSearchBar<ItemsMenu>
+        <SearchBar<ItemsMenu>
           baseList={menus}
           getLabel={(item) => item.nombre}
           placeholder={"Buscar menús por nombre..."}
@@ -231,9 +232,14 @@ const handleSubmit = async (values: ItemsMenu) => {
                         <TableCell align="left">{row.descripcion}</TableCell>
 
                         <TableCell align="center">
-                          <Button   size="small" variant="contained"  onClick={() => VerInfodeMenu(row.id)} endIcon={<InfoIcon />}>
-  Ver Info
-</Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => VerInfodeMenu(row.id)}
+                            endIcon={<InfoIcon />}
+                          >
+                            Ver Info
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -246,7 +252,7 @@ const handleSubmit = async (values: ItemsMenu) => {
                 </TableBody>
               </Table>
             </TableContainer>
-            <Pagination
+            <Paginacion
               page={page}
               setPage={setPage}
               rowsPerPage={rowsPerPage}
@@ -257,23 +263,21 @@ const handleSubmit = async (values: ItemsMenu) => {
           </Paper>
         </Box>
 
-
- <MenuForm
-      modo="crear"
-      values={formValues}
-      formErrors={{}}
-      onChange={(field, value) =>
-        setFormValues((prev) => ({ ...prev, [field]: value }))
-      }
-      onSubmit={(values) => {
-        console.log("Guardar en backend:", values);
-        handleSubmit(values);
-        setOpen(false);
-      }}
-      onCancel={() => setOpen(false)}
-    />     
-    
-     </Container>
+        <MenuForm
+          modo="crear"
+          values={formValues}
+          formErrors={{}}
+          onChange={(field, value) =>
+            setFormValues((prev) => ({ ...prev, [field]: value }))
+          }
+          onSubmit={(values) => {
+            console.log("Guardar en backend:", values);
+            handleSubmit(values);
+            setOpen(false);
+          }}
+          onCancel={() => setOpen(false)}
+        />
+      </Container>
     </>
   );
 };
