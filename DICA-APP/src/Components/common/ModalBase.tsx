@@ -1,25 +1,33 @@
 import { Modal, Box, Grid, Typography } from "@mui/material";
-import type { Empleado } from "../../types";
+
 import { useEffect, useState } from "react";
-import { useBorrarEmpleado } from "../../hooks/useBorrarEmpleado";
-import { useRestaurarEmpleado } from "../../hooks/useRestaurarEmpleado";
+
 import GenericForm, { type FieldConfig } from "./FormBase";
 import { ActionButtons } from "./ActionButtons";
-interface ModalBaseProps {
+
+interface DisplayField {
+  label: string;
+  value: string | number | null;
+}
+interface ModalBaseProps<T> {
   open: boolean;
   entityName?: string;
   onClose?: () => void;
   handleClose?: () => void;
-   fields?: FieldConfig<Empleado>[];
-    handleChange?: (field: keyof Empleado, value: string) => void;
-    handleGuardar?: (values: Empleado) => void;
-   isSaving?: boolean;
-  empleado?: Empleado;
+  fields?: FieldConfig<T>[];
+  handleChange?: (field: keyof T, value: string) => void;
+  handleGuardar?: (values: T) => void;
+  isSaving?: boolean;
+  values?: T;
   modoPapelera?: boolean;
-   modo: "crear" | "editar";
-   empleadoFields?: FieldConfig<Empleado>[]
-   formErrors: Partial<Record<keyof Empleado, string>>;
-   editValues?: Empleado;
+  modo: "crear" | "editar";
+  formErrors: Partial<Record<keyof T, string>>;
+  borrar?: (id: string) => void; // 👈 genérico
+  restaurar?: (id: string) => void; // 👈 genérico
+  idField?: keyof T;
+  isRestoring?: boolean; // 👈 nuevo prop
+  isDeleting?: boolean; // 👈 nuevo prop
+  displayFields?: DisplayField[];
 }
 
 const modalStyle = {
@@ -37,7 +45,7 @@ const modalStyle = {
   borderRadius: 2,
 };
 
-export function ModalBase({
+export function ModalBase<T>({
   open,
   entityName,
   handleChange,
@@ -45,20 +53,21 @@ export function ModalBase({
   handleClose,
   handleGuardar,
   isSaving,
-  empleado,
   modoPapelera,
   modo,
-  empleadoFields,
+  fields,
   formErrors,
-  editValues,
-}: ModalBaseProps) {
+  values,
+  borrar,
+  restaurar,
+  idField,
+  isRestoring,
+  isDeleting,
+  displayFields,
+}: ModalBaseProps<T>) {
+  const [isEditMode, setIsEditMode] = useState(modo === "crear");
 
-   const [isEditMode, setIsEditMode] = useState(modo === "crear");
-  
-    const { borrarEmpleado, isDeleting } = useBorrarEmpleado(handleClose);
-    const { restaurar, isRestoring } = useRestaurarEmpleado(handleClose ?? (() => {}));
-
-     useEffect(() => {
+  useEffect(() => {
     // Si el modo cambia a "crear", forzamos edición directa
     if (modo === "crear") {
       setIsEditMode(true);
@@ -69,36 +78,33 @@ export function ModalBase({
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle}>
         <Grid container spacing={2} direction="column">
-            {modo === "editar" && !isEditMode && (
+          {modo === "editar" && !isEditMode && (
             <Typography variant="h4" align="center" fontWeight={600}>
               Detalles del Empleado
             </Typography>
           )}
 
           <Box sx={{ ml: { sm: 0, xs: 2 } }}>
-             {(isEditMode || modo === "crear") ? (
-              <GenericForm<Empleado>
-                entityName={entityName || "Empleado"}
-                fields={empleadoFields}
+            {isEditMode || modo === "crear" ? (
+              <GenericForm
+                entityName={entityName || "Entidad"}
+                fields={fields}
                 modo={modo}
                 formErrors={formErrors}
-                values={editValues!}
-                 onCancel={handleClose}
+                values={values!}
+                onCancel={handleClose}
                 onChange={handleChange!}
                 onSubmit={handleGuardar!}
                 isSaving={isSaving}
               />
             ) : (
               <>
-                <Typography>
-                  {" "}
-                  ● Nombre Completo: {empleado?.nombre_completo}{" "}
-                </Typography>
-                <Typography>● DNI: {empleado?.dni}</Typography>
-                <Typography>● Usuario: {empleado?.username}</Typography>
-                <Typography>● Correo: {empleado?.correo || "-"}</Typography>
-                <Typography>● Teléfono: {empleado?.telefono || "-"}</Typography>
-                <Typography>● Rol: {empleado?.rol}</Typography>
+                {displayFields &&
+                  displayFields.map((field, i) => (
+                    <Typography key={i}>
+                      ● {field.label}: {field.value ?? "-"}
+                    </Typography>
+                  ))}
               </>
             )}
           </Box>
@@ -109,9 +115,11 @@ export function ModalBase({
             {modoPapelera ? (
               <ActionButtons
                 mode="papelera"
-                onRestore={() => {
-                  if (empleado?.dni) restaurar(empleado.dni);
-                }}
+                onRestore={() =>
+                  idField &&
+                  values?.[idField] &&
+                  restaurar?.(String(values[idField]))
+                }
                 onCancel={handleClose}
                 loadingRestore={isRestoring}
               />
@@ -119,7 +127,11 @@ export function ModalBase({
               <ActionButtons
                 mode="edicion"
                 onEdit={() => setIsEditMode(true)}
-                onDelete={() => empleado?.dni && borrarEmpleado(empleado.dni)}
+                onDelete={() =>
+                  idField &&
+                  values?.[idField] &&
+                  borrar?.(String(values[idField]))
+                }
                 onCancel={handleClose}
                 loadingDelete={isDeleting}
               />

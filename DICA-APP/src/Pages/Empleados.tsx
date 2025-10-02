@@ -3,10 +3,12 @@ import { useCallback, useState } from "react";
 import { useEmpleados } from "../hooks/useEmpleados";
 import type { Empleado } from "../types";
 import { SearchBar } from "../Components/common/SearchBar";
-import { FichaEmpleado } from "../Components/Empleados/FichaEmpleado";
+import { FichaItem} from "../Components/Empleados/FichaItem";
 import { ModalBase } from "../Components/common/ModalBase";
 import { Paginacion } from "../Components/common/Paginacion";
 import { useFormEmpleado } from "../hooks/useFormEmpleado";
+import { useBorrarEmpleado } from "../hooks/useBorrarEmpleado";
+import { useRestaurarEmpleado } from "../hooks/useRestaurarEmpleado";
 
 const styleBox1 = {
   bgcolor: "primary.main",
@@ -49,7 +51,7 @@ export const Empleados = () => {
     handleChange,
     handleGuardar,
     isSaving,
-    empleadoFields,
+    fields,
   } = useFormEmpleado(initialValues, onSuccess, "crear");
 
   // ✅ Estado para búsqueda
@@ -62,6 +64,11 @@ export const Empleados = () => {
   // ✅ Estado para modal de creación
   const [showForm, setShowForm] = useState(false);
   const handleAdd = useCallback(() => setShowForm(true), []);
+
+   const { borrarEmpleado, isDeleting } = useBorrarEmpleado(handleClose);
+    const { restaurar, isRestoring } = useRestaurarEmpleado(handleClose ?? (() => {})
+  );
+  
 
   // ✅ si hay búsqueda, mostramos resultados; si no, usamos los del hook
   const listaParaRenderizar =
@@ -88,13 +95,30 @@ export const Empleados = () => {
         />
 
         <Box sx={styleBox1}>
-          {paginatedEmpleados.map((empleado) => (
-            <FichaEmpleado
-              key={empleado.dni}
-              empleado={empleado}
-              modoPapelera={modoPapelera}
-            />
-          ))}
+           {paginatedEmpleados.map((empleado) => (
+    <FichaItem<Empleado>
+      key={empleado.dni}
+      entityName="Empleado"
+      item={empleado}
+      idField="dni"
+      modoPapelera={modoPapelera}
+      getTitle={(e) => e.nombre_completo}
+      getSubtitle={(e) => (e.telefono ? `Tel: ${e.telefono}` : null)}
+      useFormHook={useFormEmpleado}
+      borrar={borrarEmpleado}
+      restaurar={restaurar}
+      isDeleting={isDeleting}
+      isRestoring={isRestoring}
+      displayFields={[
+        { label: "Nombre Completo", value: empleado.nombre_completo },
+        { label: "DNI", value: empleado.dni },
+        { label: "Usuario", value: empleado.username },
+        { label: "Correo", value: empleado.correo },
+        { label: "Teléfono", value: empleado.telefono },
+        { label: "Rol", value: empleado.rol },
+      ]}
+    />
+  ))}
         </Box>
         <Paginacion
           page={page}
@@ -108,16 +132,20 @@ export const Empleados = () => {
 
       <ModalBase
         open={showForm}
-        handleClose={handleClose}
-        modo="crear"
         entityName="Empleado"
-         editValues={editValues} 
-        empleadoFields={empleadoFields}   
+        modo="crear"
+        fields={fields}
+        values={editValues}  
         formErrors={formErrors}
         handleChange={handleChange}
-       handleGuardar={handleGuardar}
+        handleGuardar={handleGuardar}
+        handleClose={handleClose}
         isSaving={isSaving}
+        idField="dni"
+        modoPapelera={modoPapelera}
+        
       ></ModalBase>
     </>
   );
 };
+

@@ -3,7 +3,7 @@ import { fetchActualizarEmpleado, fetchCrearEmpleado } from "../api/empleados";
 import type { Empleado } from "../types";
 import type { FieldConfig } from "../Components/common/FormBase";
 
-const empleadoFields: FieldConfig<Empleado>[] = [
+const fields: FieldConfig<Empleado>[] = [
   { name: "nombre_completo", label: "Nombre Completo" },
   { name: "username", label: "Usuario" },
   { name: "correo", label: "Correo" },
@@ -140,6 +140,6 @@ useEffect(() => {
     formErrors,
     isSaving,
     setEditValues,
-    empleadoFields,
+    fields,
   };
 };
