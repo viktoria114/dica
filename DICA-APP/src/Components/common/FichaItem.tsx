@@ -3,8 +3,8 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import CardActionArea from "@mui/material/CardActionArea";
 import { useState } from "react";
-import { ModalBase } from "../common/ModalBase";
-import type { FieldConfig } from "../common/FormBase";
+import { ModalBase } from "./ModalBase";
+import type { FieldConfig } from "./FormBase";
 
 interface DisplayField {
   label: string;

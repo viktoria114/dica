@@ -16,6 +16,7 @@ import { PrivateRoute } from "./Components/PrivateRoute";
 import { AppLayout } from "./Components/AppLayout";
 import { Menu } from "./Pages/Menu";
 import { Pedidos } from "./Pages/Pedidos";
+import { Clientes } from "./Pages/Clientes";
 
 function App() {
   const router = createBrowserRouter(
@@ -35,6 +36,7 @@ function App() {
         >
           <Route path="/inicio" element={<Inicio />} />
           <Route path="/empleados" element={<Empleados />} />
+          <Route path="/clientes" element={<Clientes />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
            <Route path="/pedidos" element={<Pedidos />} />

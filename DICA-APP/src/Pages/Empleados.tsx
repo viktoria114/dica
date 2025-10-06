@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { useEmpleados } from "../hooks/useEmpleados";
 import type { Empleado } from "../types";
 import { SearchBar } from "../Components/common/SearchBar";
-import { FichaItem} from "../Components/Empleados/FichaItem";
+import { FichaItem} from "../Components/common/FichaItem";
 import { ModalBase } from "../Components/common/ModalBase";
 import { Paginacion } from "../Components/common/Paginacion";
 import { useFormEmpleado } from "../hooks/useFormEmpleado";
