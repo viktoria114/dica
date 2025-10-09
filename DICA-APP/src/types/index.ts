@@ -13,8 +13,8 @@ telefono: number | null,
 nombre: string,
 dieta: string | null,
 preferencias: string[] | null,
-agentSessionID: string | null,
-ultimaCompra: Date,
+agent_session_id: string | null,
+ultima_compra: string | null,
 }
 
 export interface ItemsMenu {

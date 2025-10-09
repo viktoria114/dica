@@ -29,8 +29,8 @@ const initialValues = {
   telefono: null,
   dieta: null,
   preferencias: null,
-  agentSessionID: null,
-  ultimaCompra: new Date(),
+  agent_session_id: null,
+  ultima_compra: null,
 };
 
 export const Clientes = () => {
@@ -114,7 +114,7 @@ export const Clientes = () => {
  { label: "Teléfono", value: cliente.telefono },
         { label: "Dieta", value: cliente.dieta },
        { label: "Preferencias", value: cliente.preferencias?.join(", ") ?? "—" },
-{ label: "Última Compra", value: cliente.ultimaCompra ? new Date(cliente.ultimaCompra).toLocaleDateString() : "—" },
+{ label: "Última Compra", value: cliente.ultima_compra ? new Date(cliente.ultima_compra).toLocaleDateString() : "—" },
       ]}
     />
   ))}

@@ -11,13 +11,17 @@ const fields: FieldConfig<Cliente>[] = [
     label: "Dieta",
     type: "select",
     options: [
-      { value: "vegana", label: "Vegana" },
-      { value: "vegetariana", label: "Vegetariana" },
-      { value: "celiaca", label: "Celíaca" },
-      { value: "sin restricciones", label: "Sin restricciones" },
+      { value: "vegano", label: "Vegano" },
+      { value: "vegetariano", label: "Vegetariano" },
+     //{ value: "celiaco", label: "Celíaco" },
+     // { value: "hipertenso", label: "Hipertenso" },
+     // { value: "diabetico", label: "Diabético" },
+      { value: "neutra", label: "Neutra" },
+      { value: "sin asignar", label: "Sin asignar" },
     ],
   },
   { name: "preferencias", label: "Preferencias" },
+  { name: "ultima_compra", label: "Última compra"},
 ];
 
 export const useFormClientes = (

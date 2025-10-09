@@ -28,6 +28,7 @@ interface ModalBaseProps<T> {
   isRestoring?: boolean; // 👈 nuevo prop
   isDeleting?: boolean; // 👈 nuevo prop
   displayFields?: DisplayField[];
+  children?: React.ReactNode;
 }
 
 const modalStyle = {
@@ -64,6 +65,7 @@ export function ModalBase<T>({
   isRestoring,
   isDeleting,
   displayFields,
+  children,
 }: ModalBaseProps<T>) {
   const [isEditMode, setIsEditMode] = useState(modo === "crear");
 
@@ -80,7 +82,7 @@ export function ModalBase<T>({
         <Grid container spacing={2} direction="column">
           {modo === "editar" && !isEditMode && (
             <Typography variant="h4" align="center" fontWeight={600}>
-              Detalles del Empleado
+              Detalles del {entityName}
             </Typography>
           )}
 
@@ -96,7 +98,7 @@ export function ModalBase<T>({
                 onChange={handleChange!}
                 onSubmit={handleGuardar!}
                 isSaving={isSaving}
-              />
+              >{children}</GenericForm>
             ) : (
               <>
                 {displayFields &&
