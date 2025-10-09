@@ -5,6 +5,45 @@ import { Cliente } from '../models/cliente';
 import { pool } from '../config/db';
 import { Client } from 'pg';
 
+// Obtener todos los clientes visibles
+export const obtenerClientes = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const query = `
+      SELECT telefono, nombre, dieta, preferencias, ultima_compra, agent_session_id
+      FROM clientes
+      WHERE visibilidad = true
+      ORDER BY nombre ASC;
+    `;
+
+    const resultado = await pool.query(query);
+
+    res.status(200).json(resultado.rows);
+  } catch (error: any) {
+    console.error("Error al obtener clientes:", error.message);
+    res.status(500).json({ error: "Error interno al obtener clientes" });
+  }
+};
+
+// Obtener todos los clientes invisibles (soft deleted)
+export const obtenerClientesInvisibles = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const query = `
+      SELECT telefono, nombre, dieta, preferencias, ultima_compra, agent_session_id
+      FROM clientes
+      WHERE visibilidad = false
+      ORDER BY nombre ASC;
+    `;
+
+    const resultado = await pool.query(query);
+
+    res.status(200).json(resultado.rows);
+  } catch (error: any) {
+    console.error("Error al obtener clientes invisibles:", error.message);
+    res.status(500).json({ error: "Error interno al obtener clientes invisibles" });
+  }
+};
+
+
 export const crearCliente = async (req: Request, res: Response): Promise<void> => {
   try {
     const {telefono, nombre, dieta, preferencias } = req.body;
