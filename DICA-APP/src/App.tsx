@@ -15,7 +15,6 @@ import theme from "./services/theme";
 import { PrivateRoute } from "./Components/PrivateRoute";
 import { AppLayout } from "./Components/AppLayout";
 import { Menu } from "./Pages/Menu";
-import Footer from "./Components/common/Footer";
 
 function App() {
   const router = createBrowserRouter(
@@ -45,7 +44,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <RouterProvider router={router} />
-      <Footer />
+      
     </ThemeProvider>
   );
 }
