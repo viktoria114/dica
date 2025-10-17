@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { NavBar } from "./NavBar";
 import { useEffect } from "react";
+import Footer from "./common/Footer";
 
 export const AppLayout = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export const AppLayout = () => {
     <>
       <NavBar />
       <Outlet /> {/* Aquí se renderizan las páginas hijas */}
+      <Footer />
     </>
   );
 };

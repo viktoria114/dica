@@ -35,7 +35,7 @@ function App() {
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
         </Route>
-
+          
         <Route path="*" element={<Navigate to="/" replace />} />
       </>
     )
@@ -44,6 +44,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <RouterProvider router={router} />
+      
     </ThemeProvider>
   );
 }
