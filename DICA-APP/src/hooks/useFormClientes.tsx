@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { fetchActualizarCliente, fetchCrearCliente } from "../api/clientes";
 import type { Cliente } from "../types";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { Dayjs } from "dayjs";
 import type { FieldConfig } from "../Components/common/FormBase";
 
 const fields: FieldConfig<Cliente>[] = [
@@ -21,7 +25,33 @@ const fields: FieldConfig<Cliente>[] = [
     ],
   },
   { name: "preferencias", label: "Preferencias" },
-  { name: "ultima_compra", label: "Última compra"},
+  {
+    name: "ultima_compra",
+    label: "Última compra",
+    render: (value, handleChange, error) => (
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <DateTimePicker
+          label="Última compra"
+          // El valor que llega es el string del estado, lo convertimos a Dayjs
+          value={value ? dayjs(value) : null}
+          onChange={(newValue: Dayjs | null) => {
+            // Al cambiar, guardamos el string ISO en el estado
+            handleChange(
+              "ultima_compra",
+              newValue && newValue.isValid() ? newValue.toISOString() : null
+            );
+          }}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              error: !!error,
+              helperText: error,
+            },
+          }}
+        />
+      </LocalizationProvider>
+    ),
+  },
 ];
 
 export const useFormClientes = (

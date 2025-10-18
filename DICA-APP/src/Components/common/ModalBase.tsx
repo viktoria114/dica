@@ -98,7 +98,9 @@ export function ModalBase<T>({
                 onChange={handleChange!}
                 onSubmit={handleGuardar!}
                 isSaving={isSaving}
-              >{children}</GenericForm>
+              >
+                {children}
+              </GenericForm>
             ) : (
               <>
                 {displayFields &&

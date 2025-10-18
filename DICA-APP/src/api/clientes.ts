@@ -18,7 +18,7 @@ export const fetchCrearCliente = async (
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      throw new Error(err.response?.data?.message || "Error al crear Cliente");
+      throw new Error(err.response?.data?.message || "Error al crear Cliente" + JSON.stringify(data));
     }
     throw err;
   }

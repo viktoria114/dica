@@ -35,6 +35,7 @@ interface FichaItemProps<T> {
   restaurar?: (id: string) => void;
   isDeleting?: boolean;
   isRestoring?: boolean;
+  children?: React.ReactNode;
 }
 
 export function FichaItem<T>({
@@ -50,6 +51,7 @@ export function FichaItem<T>({
   restaurar,
   isDeleting,
   isRestoring,
+  children
 }: FichaItemProps<T>) {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
@@ -102,7 +104,9 @@ export function FichaItem<T>({
         isDeleting={isDeleting}
         isRestoring={isRestoring}
         displayFields={displayFields}
-      />
+      >
+        {children}
+        </ModalBase>
     </>
   );
 }

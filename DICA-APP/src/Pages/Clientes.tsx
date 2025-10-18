@@ -1,7 +1,7 @@
 import { Box, Container, LinearProgress } from "@mui/material";
 import { useCallback, useState } from "react";
 import { SearchBar } from "../Components/common/SearchBar";
-import { FichaItem} from "../Components/common/FichaItem";
+import { FichaItem } from "../Components/common/FichaItem";
 import { ModalBase } from "../Components/common/ModalBase";
 import { Paginacion } from "../Components/common/Paginacion";
 import { useClientes } from "../hooks/useClientes";
@@ -9,6 +9,7 @@ import type { Cliente } from "../types";
 import { useFormClientes } from "../hooks/useFormClientes";
 import { useBorrarCliente } from "../hooks/useBorrarCliente";
 import { useRestaurarCliente } from "../hooks/useRestaurarCliente";
+import dayjs from "dayjs";
 
 const styleBox1 = {
   bgcolor: "primary.main",
@@ -22,7 +23,6 @@ const styleBox1 = {
   justifyContent: "center",
   mb: 2,
 };
-
 
 const initialValues = {
   nombre: "",
@@ -38,11 +38,7 @@ export const Clientes = () => {
     useClientes();
   const rowsPerPageOptions: number[] = [9, 15, 21];
 
-  const onSuccess = () => {
-    // refetchClientes?.();
-    setShowForm(false);
-  };
-
+  const onSuccess = () => setShowForm(false);
   const handleClose = () => setShowForm(false);
 
   const {
@@ -54,23 +50,18 @@ export const Clientes = () => {
     fields,
   } = useFormClientes(initialValues, onSuccess, "crear");
 
-  // ✅ Estado para búsqueda
   const [clientesMostrados, setClientesMostrados] = useState<Cliente[]>([]);
   const getLabel = useCallback((e: Cliente) => e.nombre, []);
-
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(9);
-
-  // ✅ Estado para modal de creación
   const [showForm, setShowForm] = useState(false);
   const handleAdd = useCallback(() => setShowForm(true), []);
 
-   const { borrarCliente, isDeleting } = useBorrarCliente(handleClose);
-    const { restaurar, isRestoring } = useRestaurarCliente(handleClose ?? (() => {})
+  const { borrarCliente, isDeleting } = useBorrarCliente(handleClose);
+  const { restaurar, isRestoring } = useRestaurarCliente(
+    handleClose ?? (() => {})
   );
-  
 
-  // ✅ si hay búsqueda, mostramos resultados; si no, usamos los del hook
   const listaParaRenderizar =
     clientesMostrados.length > 0 ? clientesMostrados : clientes;
 
@@ -78,6 +69,7 @@ export const Clientes = () => {
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
+
   return (
     <>
       {loading && <LinearProgress color="inherit" />}
@@ -95,30 +87,41 @@ export const Clientes = () => {
         />
 
         <Box sx={styleBox1}>
-           {paginatedClientes.map((cliente) => (
-    <FichaItem<Cliente>
-      key={cliente.telefono}
-      entityName="Cliente"
-      item={cliente}
-      idField="telefono"
-      modoPapelera={modoPapelera}
-      getTitle={(e) => e.nombre}
-      getSubtitle={(e) => (e.telefono ? `Tel: ${e.telefono}` : null)}
-      useFormHook={useFormClientes}
-      borrar={borrarCliente}
-      restaurar={restaurar}
-      isDeleting={isDeleting}
-      isRestoring={isRestoring}
-      displayFields={[
-        { label: "Nombre", value: cliente.nombre},
- { label: "Teléfono", value: cliente.telefono },
-        { label: "Dieta", value: cliente.dieta },
-       { label: "Preferencias", value: cliente.preferencias?.join(", ") ?? "—" },
-{ label: "Última Compra", value: cliente.ultima_compra ? new Date(cliente.ultima_compra).toLocaleDateString() : "—" },
-      ]}
-    />
-  ))}
+          {paginatedClientes.map((cliente) => (
+            <FichaItem<Cliente>
+              key={cliente.telefono}
+              entityName="Cliente"
+              item={cliente}
+              idField="telefono"
+              modoPapelera={modoPapelera}
+              getTitle={(e) => e.nombre}
+              getSubtitle={(e) => (e.telefono ? `Tel: ${e.telefono}` : null)}
+              useFormHook={useFormClientes}
+              borrar={borrarCliente}
+              restaurar={restaurar}
+              isDeleting={isDeleting}
+              isRestoring={isRestoring}
+              displayFields={[
+                { label: "Nombre", value: cliente.nombre },
+                { label: "Teléfono", value: cliente.telefono },
+                { label: "Dieta", value: cliente.dieta },
+                {
+                  label: "Preferencias",
+                  value: cliente.preferencias?.join(", ") ?? "—",
+                },
+                {
+                  label: "Última Compra",
+                  value: cliente.ultima_compra
+                    ? dayjs(cliente.ultima_compra).format("DD/MM/YYYY HH:mm")
+                    : "—",
+                },
+              ]}
+            >
+             
+            </FichaItem>
+          ))}
         </Box>
+
         <Paginacion
           page={page}
           setPage={setPage}
@@ -129,12 +132,13 @@ export const Clientes = () => {
         />
       </Container>
 
+      {/* 🧭 Modal para crear cliente con calendario */}
       <ModalBase
         open={showForm}
         entityName="Cliente"
         modo="crear"
         fields={fields}
-        values={editValues}  
+        values={editValues}
         formErrors={formErrors}
         handleChange={handleChange}
         handleGuardar={handleGuardar}
@@ -142,9 +146,7 @@ export const Clientes = () => {
         isSaving={isSaving}
         idField="telefono"
         modoPapelera={modoPapelera}
-        
-      ></ModalBase>
+      />
     </>
   );
 };
-
