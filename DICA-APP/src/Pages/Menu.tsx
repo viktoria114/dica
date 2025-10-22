@@ -15,7 +15,7 @@ import { EnhancedTableHead } from "../Components/Menu/EnhancedTableHead";
 import { EnhancedTableToolbar } from "../Components/Menu/EnhancedTableToolbar";
 import { Pagination } from "../Components/common/Pagination";
 import { useMenu } from "../hooks/useMenu";
-import InfoIcon from '@mui/icons-material/Info';
+import InfoIcon from "@mui/icons-material/Info";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -111,11 +111,10 @@ export const Menu = () => {
     [order, orderBy, page, rowsPerPage, filteredRows]
   );
 
-const VerInfodeMenu = (id: number) => {
-  console.log("ola " + id);
-  // acá podés abrir tu modal y pasar los datos
-};
-
+  const VerInfodeMenu = (id: number) => {
+    console.log("ola " + id);
+    // acá podés abrir tu modal y pasar los datos
+  };
 
   return (
     <>
@@ -201,9 +200,14 @@ const VerInfodeMenu = (id: number) => {
                         <TableCell align="left">{row.descripcion}</TableCell>
 
                         <TableCell align="center">
-                          <Button   size="small" variant="contained"  onClick={() => VerInfodeMenu(row.id)} endIcon={<InfoIcon />}>
-  Ver Info
-</Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => VerInfodeMenu(row.id)}
+                            endIcon={<InfoIcon />}
+                          >
+                            Ver Info
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
