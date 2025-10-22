@@ -11,7 +11,7 @@ type Props = {
   rowsPerPageOptions?: number[];
 };
 
-export const Pagination: React.FC<Props> = ({
+export const Paginacion: React.FC<Props> = ({
   page,
   setPage,
   rowsPerPage,

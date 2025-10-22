@@ -15,7 +15,7 @@ interface SearchBarProps<T> {
   filterFn?: (item: T, input: string) => boolean; // filtro personalizado (si no se pasa, usa includes por defecto)
 }
 
-export function TextFieldSearchBar<T>({
+export function SearchBar<T>({
   baseList,
   getLabel,
   onResults,

@@ -1,29 +1,28 @@
+// api.ts
 import axios from "axios";
-import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
-// Crear instancia de axios
 const api = axios.create({
-  baseURL: "http://localhost:3000/api", // Ajustá a tu backend
+  baseURL: "http://localhost:3000/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Interceptor de request
+// Interceptor request
 api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("token");
+  (config) => {
+    const token = localStorage.getItem("token"); // centralizado en un futuro
     if (token) {
-      config.headers.set("Authorization", `Bearer ${token}`);
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Interceptor de response
+// Interceptor response
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       console.error("Sesión expirada o token inválido");
