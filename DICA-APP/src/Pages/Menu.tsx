@@ -16,8 +16,10 @@ import { EnhancedTableToolbar } from "../Components/Menu/EnhancedTableToolbar";
 import { Paginacion } from "../Components/common/Paginacion";
 import { useMenu } from "../hooks/useMenu";
 import InfoIcon from "@mui/icons-material/Info";
-import { MenuForm } from "../Components/Menu/FormMenu";
-import { crearMenu } from "../api/menu";
+import { useCallback, useState } from "react";
+import { ModalBase } from "../Components/common/ModalBase";
+import { StockSelector } from "../Components/Menu/StockSelector";
+import { useMenuForm } from "../hooks/useFormMenu";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -38,6 +40,18 @@ function getComparator<Key extends keyof ItemsMenu>(
 
 export const Menu = () => {
   const { menus, loading, error, modoPapelera, toggleInvisibles } = useMenu();
+  const {
+  open,
+  menuFields,
+  setOpen,
+  isSaving,
+  formValues,
+  setFormValues,
+  formErrors,
+  handleChange,
+  handleSubmit,
+} = useMenuForm();
+
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof ItemsMenu>("precio");
   const [selected, setSelected] = React.useState<readonly number[]>([]);
@@ -45,6 +59,9 @@ export const Menu = () => {
   const [dense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const rowsPerPageOptions: number[] = [5, 10, 25];
+    const [openEdit, setOpenEdit] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState<ItemsMenu | null>(null);
+
 
   React.useEffect(() => {
     setFilteredRows(menus);
@@ -112,41 +129,17 @@ export const Menu = () => {
         .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
     [order, orderBy, page, rowsPerPage, filteredRows]
   );
+  const handleAdd = useCallback(() => {
+    setFormValues({} as ItemsMenu);
+    setOpen(true);
+  }, [setFormValues, setOpen]);
 
-  const VerInfodeMenu = (id: number) => {
-    console.log("ola " + id);
-    // acá podés abrir tu modal y pasar los datos
+  const handleEdit = (menu: ItemsMenu) => {
+    setSelectedMenu(menu);
+    setFormValues(menu);
+    setOpenEdit(true);
   };
 
-  const [open, setOpen] = React.useState(false);
-  const [formValues, setFormValues] = React.useState<ItemsMenu>({
-    id: 0,
-    nombre: "",
-    precio: 0,
-    descripcion: "",
-    categoria: "sanguche",
-    visibilidad: true,
-    stocks: [],
-  });
-
-  const handleSubmit = async (values: ItemsMenu) => {
-    try {
-      await crearMenu({
-        nombre: values.nombre,
-        precio: values.precio,
-        descripcion: values.descripcion,
-        categoria: values.categoria,
-        stocks: [
-          { id_stock: 1, cantidad_necesaria: 2 },
-          { id_stock: 3, cantidad_necesaria: 1 },
-        ], // 👉 estos los vas a traer de tu form de stocks
-      });
-      alert("Menú creado con éxito!");
-    } catch (error) {
-      console.error(error);
-      alert("Error al crear el menú");
-    }
-  };
 
   return (
     <>
@@ -159,7 +152,7 @@ export const Menu = () => {
           getLabel={(item) => item.nombre}
           placeholder={"Buscar menús por nombre..."}
           onResults={setFilteredRows}
-          onAdd={() => console.log("Nuevo menú")}
+            onAdd={handleAdd}
           onShowInvisibles={toggleInvisibles}
           disableAdd={modoPapelera}
           papeleraLabel={modoPapelera ? "Volver" : "Papelera"}
@@ -235,7 +228,7 @@ export const Menu = () => {
                           <Button
                             size="small"
                             variant="contained"
-                            onClick={() => VerInfodeMenu(row.id)}
+                           onClick={() => handleEdit(row)}
                             endIcon={<InfoIcon />}
                           >
                             Ver Info
@@ -262,22 +255,62 @@ export const Menu = () => {
             />
           </Paper>
         </Box>
-
-        <MenuForm
-          modo="crear"
-          values={formValues}
-          formErrors={{}}
-          onChange={(field, value) =>
-            setFormValues((prev) => ({ ...prev, [field]: value }))
-          }
-          onSubmit={(values) => {
-            console.log("Guardar en backend:", values);
-            handleSubmit(values);
-            setOpen(false);
-          }}
-          onCancel={() => setOpen(false)}
-        />
       </Container>
+
+      <ModalBase
+  open={open}
+  entityName="Menú"
+  modo="crear"
+  fields={menuFields}
+  values={formValues}
+  formErrors={formErrors}
+  handleChange={handleChange}
+  handleGuardar={handleSubmit}
+  handleClose={() => setOpen(false)}
+  isSaving={isSaving}
+>
+   <StockSelector
+    availableStocks={[
+      { id_stock: 1, nombre: "Harina" },
+      { id_stock: 2, nombre: "Queso" },
+      { id_stock: 3, nombre: "Jamón" },
+    ]}
+    selectedStocks={formValues.stocks ?? []}
+    onChange={(newStocks) =>
+      handleChange("stocks", newStocks)
+    }
+  />
+</ModalBase>
+
+ <ModalBase
+        open={openEdit}
+        entityName="Menú"
+        modo="editar"
+        fields={menuFields}
+        values={formValues}
+        formErrors={formErrors}
+        handleChange={handleChange}
+        handleGuardar={handleSubmit}
+        handleClose={() => setOpenEdit(false)}
+        isSaving={isSaving}
+         displayFields={[
+        { label: "Nombre", value: formValues.nombre },
+        { label: "ID", value: formValues.id },
+        { label: "Categoría", value: formValues.categoria },
+        { label: "Precio", value: formValues.precio },
+        { label: "Descripción", value: formValues.descripcion },
+      ]}
+      >
+        <StockSelector
+          availableStocks={[
+            { id_stock: 1, nombre: "Harina" },
+            { id_stock: 2, nombre: "Queso" },
+            { id_stock: 3, nombre: "Jamón" },
+          ]}
+          selectedStocks={formValues.stocks ?? []}
+          onChange={(newStocks) => handleChange("stocks", newStocks)}
+        />
+      </ModalBase>
     </>
   );
 };

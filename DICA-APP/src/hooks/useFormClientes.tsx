@@ -43,6 +43,8 @@ const fields: FieldConfig<Cliente>[] = [
           }}
           slotProps={{
             textField: {
+               color: "primary",
+              focused: true,
               fullWidth: true,
               error: !!error,
               helperText: error,
