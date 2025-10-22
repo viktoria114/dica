@@ -1,34 +1,41 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   TextField,
   MenuItem,
   Grid,
   Typography,
   Box,
-  Button,
 } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import CloseIcon from "@mui/icons-material/Close";
+import { ActionButtons } from "./ActionButtons";
+import React from "react"; // Asegúrate de que React esté importado
 
+// 👇 PASO 1: ACTUALIZAR LA INTERFAZ
 export interface FieldConfig<T> {
   name: keyof T;
   label: string;
   type?: "text" | "password" | "select" | "number";
   options?: { value: string; label: string }[]; // para selects
   onlyInCreate?: boolean; // campos visibles solo en modo "crear"
+  // 👇 AÑADE ESTA PROPIEDAD
+  render?: (
+    value: any,
+    handleChange: (field: keyof T, value: any) => void,
+    error?: string
+  ) => React.ReactNode;
 }
 
 interface GenericFormProps<T> {
   entityName: string; // ej: "Empleado", "Cliente"
   modo: "crear" | "editar";
-  fields: FieldConfig<T>[];
+  fields?: FieldConfig<T>[];
   formErrors: Partial<Record<keyof T, string>>;
   values: T;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onChange: (field: keyof T, value: any) => void;
-  onSubmit: (values: T) => void;   // 👈 ahora devuelve los valores, no el evento
+  onChange?: (field: keyof T, value: any) => void;
+  onSubmit?: (values: T) => void; // 👈 ahora devuelve los valores, no el evento
   onCancel?: () => void;
   isSaving?: boolean;
   disabledFields?: (keyof T)[];
+  children?: React.ReactNode;
 }
 
 function GenericForm<T>({
@@ -42,10 +49,11 @@ function GenericForm<T>({
   onCancel,
   isSaving,
   disabledFields = [],
+  children,
 }: GenericFormProps<T>) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(values);  // 👈 ahora el padre recibe los values directamente
+    onSubmit?.(values); // 👈 ahora el padre recibe los values directamente
   };
 
   return (
@@ -63,9 +71,27 @@ function GenericForm<T>({
 
         <Grid sx={{ ml: { sm: 0, xs: 7 } }}>
           <form onSubmit={handleSubmit}>
-            {fields.map((field) => {
+            {/* 👇 PASO 2: ACTUALIZAR LA LÓGICA DE RENDERIZADO */}
+            {fields?.map((field) => {
               if (field.onlyInCreate && modo !== "crear") return null;
 
+              // 👇 SI EL CAMPO TIENE UN RENDERIZADOR PERSONALIZADO, ÚSALO
+              if (field.render && onChange) {
+                return (
+                  <Box
+                    key={String(field.name)}
+                    sx={{ mt: 2, mb: 1 }} // Damos un espaciado similar al 'dense'
+                  >
+                    {field.render(
+                      values[field.name],
+                      onChange,
+                      formErrors[field.name]
+                    )}
+                  </Box>
+                );
+              }
+
+              // 👇 SI NO, RENDERIZA EL TEXTFIELD NORMAL DE ANTES
               return (
                 <TextField
                   key={String(field.name)}
@@ -74,7 +100,7 @@ function GenericForm<T>({
                   type={field.type ?? "text"}
                   value={values[field.name] ?? ""}
                   onChange={(e) =>
-                    onChange(field.name, e.target.value as unknown)
+                    onChange?.(field.name, e.target.value as unknown)
                   }
                   margin="dense"
                   variant="standard"
@@ -82,7 +108,7 @@ function GenericForm<T>({
                   error={!!formErrors[field.name]}
                   helperText={formErrors[field.name]}
                   select={field.type === "select"}
-                  disabled={disabledFields.includes(field.name)} // 👈 se controla desde el padre
+                  disabled={disabledFields.includes(field.name)}
                 >
                   {field.type === "select" &&
                     field.options?.map((opt) => (
@@ -94,30 +120,15 @@ function GenericForm<T>({
               );
             })}
 
-            <Box
-              sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}
-            >
-              <Button
-                type="submit"
-                variant="contained"
-                color="success"
-                startIcon={<SaveIcon />}
-                disabled={isSaving}
-                sx={{ height: 50 }}
-              >
-                {modo === "crear" ? "Crear" : "Guardar"}
-              </Button>
-              {onCancel && (
-                <Button
-                  variant="outlined"
-                  sx={{ height: 50 }}
-                  onClick={onCancel}
-                  startIcon={<CloseIcon />}
-                >
-                  Cancelar
-                </Button>
-              )}
-            </Box>
+            {children}
+
+            <ActionButtons
+              mode="form"
+              labelSave={modo === "crear" ? "Crear" : "Guardar"}
+              onSave={() => onSubmit?.(values)}
+              onCancel={onCancel}
+              loadingSave={isSaving}
+            />
           </form>
         </Grid>
       </Grid>

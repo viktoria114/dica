@@ -15,6 +15,8 @@ import theme from "./services/theme";
 import { PrivateRoute } from "./Components/PrivateRoute";
 import { AppLayout } from "./Components/AppLayout";
 import { Menu } from "./Pages/Menu";
+import { Pedidos } from "./Pages/Pedidos";
+import { Clientes } from "./Pages/Clientes";
 
 function App() {
   const router = createBrowserRouter(
@@ -26,14 +28,18 @@ function App() {
         <Route
           element={
             <PrivateRoute>
-              <AppLayout /> {/* NavBar + Outlet */}
+              <>
+                <AppLayout /> {/* NavBar + Outlet */}
+              </>
             </PrivateRoute>
           }
         >
           <Route path="/inicio" element={<Inicio />} />
           <Route path="/empleados" element={<Empleados />} />
+          <Route path="/clientes" element={<Clientes />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
+           <Route path="/pedidos" element={<Pedidos />} />
         </Route>
           
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -4,6 +4,11 @@ import axios from "axios";
 
 const CLIENTES_URL = import.meta.env.VITE_CLIENTES;
 
+/* NO AGREGUE AUN...
+router.post('/preferencias/:tel', agregarPreferencia)
+router.put('/preferencias/:tel', modificarPreferencia)
+*/
+
 // POST Cliente
 export const fetchCrearCliente = async (
   data: Partial<Cliente>
@@ -13,7 +18,7 @@ export const fetchCrearCliente = async (
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      throw new Error(err.response?.data?.message || "Error al crear Cliente");
+      throw new Error(err.response?.data?.message || "Error al crear Cliente" + JSON.stringify(data));
     }
     throw err;
   }
@@ -55,7 +60,7 @@ export const fetchClientebyTel = async (
 ): Promise<{ mensaje: string; cliente: Cliente }> => {
   try {
     const res = await api.get<{ mensaje: string; cliente: Cliente }>(
-      `${CLIENTES_URL}/${tel}`
+      `${CLIENTES_URL}/tel/${tel}`
     );
     return res.data;
   } catch (err: unknown) {
@@ -71,6 +76,8 @@ export const fetchClientebyTel = async (
 // PUT Cliente
 export const fetchActualizarCliente = async (cliente: Cliente) => {
   try {
+    console.log(cliente);
+    
     const res = await api.put<Cliente>(
       `${CLIENTES_URL}/${cliente.telefono}`,
       cliente
