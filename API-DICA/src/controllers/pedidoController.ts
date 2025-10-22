@@ -211,13 +211,11 @@ export const crearPedido = async (req: Request, res: Response) => {
 
     await client.query('COMMIT');
     if (rol === 'agente') {
-      return res
-        .status(200)
-        .json({
-          id: pedidoId,
-          message:
-            'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte',
-        });
+      return res.status(200).json({
+        id: pedidoId,
+        message:
+          'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte',
+      });
     }
     res.status(201).json({ id: pedidoId, message: 'Pedido creado con éxito' });
   } catch (error) {
@@ -350,11 +348,9 @@ export const getPedidosEnConstruccion = async (req: Request, res: Response) => {
     const result = await pool.query(query, [tel]);
 
     if (result.rows.length === 0) {
-      return res
-        .status(200)
-        .json({
-          message: 'Actualmente el cliente no cuenta con un carrito activo',
-        });
+      return res.status(200).json({
+        message: 'Actualmente el cliente no cuenta con un carrito activo',
+      });
     }
 
     const { cart_id } = result.rows[0];
@@ -1196,3 +1192,139 @@ export const agenteEstadoPedido = async (req: Request, res: Response) => {
     client.release();
   }
 };
+
+export const getPedidosAsignadosEmpleado = async (
+  req: Request,
+  res: Response,
+) => {
+  const idEmpleado = (req as any).dni;
+  try {
+    const query = `
+      SELECT 
+        ${PEDIDO_FIELDS}
+        re.id_empleado,
+      FROM pedidos p
+      INNER JOIN registro_de_estado re 
+        ON re.id_pedido = p.id
+      LEFT JOIN pedidos_menu pm 
+        ON p.id = pm.fk_pedido
+      LEFT JOIN pedidos_promociones pp 
+        ON p.id = pp.id_pedido
+      WHERE re.id_empleado = $1
+        AND DATE(re.fecha_cambio) = CURRENT_DATE
+        AND re.id = (
+          SELECT MAX(r2.id)
+          FROM registro_de_estado r2
+          WHERE r2.id_pedido = p.id
+        )
+        AND p.visibilidad = TRUE
+      GROUP BY 
+        p.id, p.id_cliente, p.ubicacion, p.observaciones, 
+        p.id_estado, re.id_empleado, re.fecha_cambio, re.id_estado_nuevo
+      ORDER BY p.id;
+    `;
+
+    const { rows } = await pool.query(query, [idEmpleado]);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        message: 'Error al obtener los pedidos cambiados por el empleado',
+      });
+  }
+};
+
+export const getTicketPedido = async (req: Request, res: Response) => {
+  const { idPedido } = req.params;
+
+  try {
+    const query = `
+      WITH 
+      -- Calcular los totales de los items del menú
+      items_data AS (
+        SELECT 
+          pm.fk_menu,
+          m.nombre AS nombre_menu,
+          m.precio AS precio_unitario,
+          pm.cantidad,
+          (m.precio * pm.cantidad) AS subtotal
+        FROM pedidos_menu pm
+        INNER JOIN menu m ON m.id = pm.fk_menu
+        WHERE pm.fk_pedido = $1
+      ),
+      -- Calcular los totales de las promociones
+      promos_data AS (
+        SELECT 
+          pp.id_promocion,
+          pr.nombre AS nombre_promocion,
+          pr.precio AS precio_unitario,
+          pp.cantidad,
+          (pr.precio * pp.cantidad) AS subtotal
+        FROM pedidos_promociones pp
+        INNER JOIN promociones pr ON pr.id = pp.id_promocion
+        WHERE pp.id_pedido = $1
+      ),
+      -- Sumar los subtotales de ambos
+      total_data AS (
+        SELECT 
+          COALESCE(SUM(subtotal), 0) AS total_items FROM items_data
+      ),
+      total_promos AS (
+        SELECT 
+          COALESCE(SUM(subtotal), 0) AS total_promos FROM promos_data
+      )
+      SELECT 
+        p.id AS pedido_id,
+        p.id_cliente,
+        p.ubicacion,
+        p.observaciones,
+        -- Detalle de items
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'nombre', i.nombre_menu,
+              'precio_unitario', i.precio_unitario,
+              'cantidad', i.cantidad,
+              'subtotal', i.subtotal
+            )
+          ) FILTER (WHERE i.fk_menu IS NOT NULL),
+          '[]'
+        ) AS items,
+        -- Detalle de promociones
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'nombre', pr.nombre_promocion,
+              'precio_unitario', pr.precio_unitario,
+              'cantidad', pr.cantidad,
+              'subtotal', pr.subtotal
+            )
+          ) FILTER (WHERE pr.id_promocion IS NOT NULL),
+          '[]'
+        ) AS promociones,
+        -- Totales
+        (SELECT total_items FROM total_data) AS total_items,
+        (SELECT total_promos FROM total_promos) AS total_promos,
+        (SELECT total_items + total_promos FROM total_data, total_promos) AS total_general
+      FROM pedidos p
+      LEFT JOIN items_data i ON TRUE
+      LEFT JOIN promos_data pr ON TRUE
+      WHERE p.id = $1
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones;
+    `;
+
+    const { rows } = await pool.query(query, [idPedido]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Pedido no encontrado' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al calcular el ticket del pedido' });
+  }
+};
+

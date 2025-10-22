@@ -41,7 +41,7 @@ function App() {
           <Route path="/menu" element={<Menu />} />
            <Route path="/pedidos" element={<Pedidos />} />
         </Route>
-
+          
         <Route path="*" element={<Navigate to="/" replace />} />
       </>
     )
@@ -50,6 +50,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <RouterProvider router={router} />
+      
     </ThemeProvider>
   );
 }

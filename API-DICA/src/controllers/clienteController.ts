@@ -73,8 +73,11 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
       cliente: resultado.rows[0],
     });
   } catch (error: any) {
+    if (error.code === "23505"){
+      res.status(404).json({ message: "Un cliente ya existe con ese numero"});
+    }
     console.error('Error al crear cliente:', error.message);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ message: error.message });
   }
 };
 
