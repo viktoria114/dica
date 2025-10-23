@@ -17,6 +17,7 @@ import { AppLayout } from "./Components/AppLayout";
 import { Menu } from "./Pages/Menu";
 import { Pedidos } from "./Pages/Pedidos";
 import { Clientes } from "./Pages/Clientes";
+import { SnackbarProvider } from "./contexts/SnackbarContext";
 
 function App() {
   const router = createBrowserRouter(
@@ -49,8 +50,9 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <RouterProvider router={router} />
-      
+      <SnackbarProvider>
+        <RouterProvider router={router} />
+      </SnackbarProvider>
     </ThemeProvider>
   );
 }

@@ -15,18 +15,19 @@ import LockIcon from "@mui/icons-material/Lock";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
+import { useSnackbar } from "../contexts/SnackbarContext";
+
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { showSnackbar } = useSnackbar();
 
   const handleSubmit = async (e: React.FormEvent) => {
     setLoading(true);
     e.preventDefault();
-    setError("");
 
     try {
       const response = await fetch("http://localhost:3000/api/auth/login", {
@@ -45,14 +46,15 @@ const Login = () => {
       const data = await response.json();
       console.log("Inicio de sesión exitoso!");
       console.log("Token o datos:", data);
+      showSnackbar("Inicio de sesión exitoso!", "success");
 
       navigate("/inicio");
       localStorage.setItem("token", data.token);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message);
+        showSnackbar(err.message, "error");
       } else {
-        setError("Error desconocido");
+        showSnackbar("Error desconocido", "error");
       }
     }
     setLoading(false);
@@ -151,17 +153,7 @@ const Login = () => {
             }}
           />
 
-          <Typography
-            sx={{
-              color: error ? "error.main" : "#FAFAFA",
-              mt: 1,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {error || ""}
-          </Typography>
+
 
           <Button
             variant="contained"

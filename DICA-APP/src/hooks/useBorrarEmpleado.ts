@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { fetchBorrarEmpleado } from "../api/empleados";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 export const useBorrarEmpleado = (onSuccess?: () => void) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { showSnackbar } = useSnackbar();
 
   const borrarEmpleado = async (dni: string) => {
     const confirmar = window.confirm(
@@ -13,11 +15,11 @@ export const useBorrarEmpleado = (onSuccess?: () => void) => {
     setIsDeleting(true);
     try {
       await fetchBorrarEmpleado(dni);
-      alert("Empleado borrado correctamente");
+      showSnackbar("Empleado borrado correctamente", "success");
       onSuccess?.();
     } catch (error) {
-      if (error instanceof Error) alert(error.message);
-      else alert("Error desconocido al borrar");
+      if (error instanceof Error) showSnackbar(error.message, "error");
+      else showSnackbar("Error desconocido al borrar", "error");
     } finally {
       setIsDeleting(false);
     }

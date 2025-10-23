@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { fetchActualizarEmpleado } from "../api/empleados";
 import type { Empleado } from "../types";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 export const useFormPassword = (empleado: Empleado | null, onSuccess: () => void) => {
   const [values, setValues] = useState({ password: "", confirmPassword: "" });
   const [formErrors, setFormErrors] = useState<Record<string,string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const { showSnackbar } = useSnackbar();
 
   const handleChange = (field: keyof typeof values, value: string) => {
     setValues(prev => ({ ...prev, [field]: value }));
@@ -35,12 +37,12 @@ export const useFormPassword = (empleado: Empleado | null, onSuccess: () => void
 
     try {
       await fetchActualizarEmpleado({ ...empleado, password: values.password });
-      alert("Contraseña actualizada correctamente");
+      showSnackbar("Contraseña actualizada correctamente", "success");
       setValues({ password: "", confirmPassword: "" });
       onSuccess();
     } catch (error) {
-      if (error instanceof Error) alert(error.message);
-      else alert("Error desconocido");
+      if (error instanceof Error) showSnackbar(error.message, "error");
+      else showSnackbar("Error desconocido", "error");
     } finally {
       setIsSaving(false);
     }

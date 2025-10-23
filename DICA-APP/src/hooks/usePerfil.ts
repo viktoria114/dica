@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
 import { fetchActualizarEmpleado, fetchEmpleadosbyDNI } from "../api/empleados";
 import type { Empleado } from "../types";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 export const usePerfil = () => {
   const { usuario } = useAuth();
   const [empleado, setEmpleado] = useState<Empleado | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showSnackbar } = useSnackbar();
 
   const [values, setValues] = useState({
     password: "",
@@ -81,12 +83,12 @@ const payload: Empleado = {
 };
 
       await fetchActualizarEmpleado(payload);
-      alert("Contraseña actualizada correctamente");
+      showSnackbar("Contraseña actualizada correctamente", "success");
       setValues({ password: "", confirmPassword: "" }); // limpiar
    //   onSuccess();
     } catch (error) {
-      if (error instanceof Error) alert(error.message);
-      else alert("Error desconocido");
+      if (error instanceof Error) showSnackbar(error.message, "error");
+      else showSnackbar("Error desconocido", "error");
     } finally {
       setIsSaving(false);
     }

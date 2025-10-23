@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { fetchRestaurarCliente } from "../api/clientes";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 export function useRestaurarCliente(onSuccess: () => void) {
   const [isRestoring, setIsRestoring] = useState(false);
+  const { showSnackbar } = useSnackbar();
 
   const restaurar = async (tel: string) => {
     const confirmar = window.confirm(
@@ -13,11 +15,11 @@ export function useRestaurarCliente(onSuccess: () => void) {
     try {
       setIsRestoring(true);
       await fetchRestaurarCliente(tel);
-      alert("Cliente restaurado correctamente");
+      showSnackbar("Cliente restaurado correctamente", "success");
       onSuccess();
     } catch (err) {
-      if (err instanceof Error) alert(err.message);
-      else alert("Error desconocido al restaurar cliente");
+      if (err instanceof Error) showSnackbar(err.message, "error");
+      else showSnackbar("Error desconocido al restaurar cliente", "error");
     } finally {
       setIsRestoring(false);
     }
