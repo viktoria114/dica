@@ -51,10 +51,10 @@ const client = await pool.connect();
     if (rol === 'agente') {
       // Agente: siempre insertamos una cancelación pendiente (confirmado = false)
       const insertCancelacion = `
-        INSERT INTO cancelaciones (motivo, id_pedido, id_empleado, id_fecha, hora, confirmado, anulada)
-        VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_TIME, FALSE, FALSE)
+        INSERT INTO cancelaciones (motivo, id_pedido)
+        VALUES ($1, $2)
       `;
-      await client.query(insertCancelacion, [motivo, id, idEmpleado]);
+      await client.query(insertCancelacion, [motivo, id]);
     } else {
       // Empleado: primero requiere que tengamos idEmpleado
       if (!idEmpleado) {
@@ -67,9 +67,6 @@ const client = await pool.connect();
         SELECT id
         FROM cancelaciones
         WHERE id_pedido = $1
-          AND confirmado = FALSE
-          AND (anulada = FALSE OR anulada IS NULL)
-        ORDER BY id_fecha DESC, hora DESC
         LIMIT 1
       `;
       const pendingRes = await client.query(pendingQuery, [id]);
@@ -79,21 +76,17 @@ const client = await pool.connect();
         const cancelId = pendingRes.rows[0].id;
         const updatePending = `
           UPDATE cancelaciones
-          SET confirmado = TRUE,
-              id_empleado = $1,
-              motivo = COALESCE(NULLIF($2, ''), motivo),
-              id_fecha = CURRENT_DATE,
-              hora = CURRENT_TIME
-          WHERE id = $3
+          SET motivo = COALESCE(NULLIF($1, ''), motivo)
+          WHERE id = $2
         `;
-        await client.query(updatePending, [idEmpleado, motivo, cancelId]);
+        await client.query(updatePending, [motivo, cancelId]);
       } else {
         // Si NO existe pendiente -> insertamos una cancelación ya confirmada
         const insertConfirmada = `
-          INSERT INTO cancelaciones (motivo, id_pedido, id_empleado, id_fecha, hora, confirmado, anulada)
-          VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_TIME, TRUE, FALSE)
+          INSERT INTO cancelaciones (motivo, id_pedido)
+          VALUES ($1, $2)
         `;
-        await client.query(insertConfirmada, [motivo, id, idEmpleado]);
+        await client.query(insertConfirmada, [motivo, id]);
       }
     }
 
@@ -185,17 +178,6 @@ export const deshacerCancelarPedido = async (req: Request, res: Response) => {
     `;
     await pool.query(insertRegistroQuery, [id, estadoAnterior]);
 
-    // 5. Marcar cancelaciones como anuladas
-    const updateCancelacionQuery = `
-      UPDATE cancelaciones
-  SET anulada = TRUE
-  WHERE id = (
-    SELECT id
-    FROM cancelaciones
-    WHERE id_pedido = $1
-    ORDER BY id_fecha DESC, hora DESC
-    LIMIT 1);`;
-    await pool.query(updateCancelacionQuery, [id]);
 
     res.json({
       message: `Pedido restaurado al estado ${estadoAnterior}`,
@@ -216,18 +198,19 @@ export const getPedidosCanceladosEmpleadoHoy = async (req: Request, res: Respons
       SELECT 
       ${PEDIDO_FIELDS},
       c.motivo,
-      c.id_empleado
+      re.dni_empleado
       FROM pedidos p
-      INNER JOIN cancelaciones c 
-        ON p.id = c.id_pedido
+      INNER JOIN registro_de_estados re 
+        ON p.id = re.id_pedido
       LEFT JOIN pedidos_menu pm 
         ON p.id = pm.fk_pedido
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
-      WHERE c.id_empleado = $1
+      LEFT JOIN cancelaciones c 
+        ON p.id = c.id_pedido
+      WHERE re.dni_empleado = $1
         AND p.visibilidad = TRUE
-        AND c.id_fecha = CURRENT_DATE
-        AND c.confirmado = TRUE
-      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, c.motivo, c.id_empleado
+        AND re.id_fecha = CURRENT_DATE
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, c.motivo, re.dni_empleado
       ORDER BY p.id;
     `;
     const { rows } = await pool.query(query, [idEmpleado]);
@@ -245,17 +228,18 @@ export const getPedidosCanceladosEmpleado = async (req: Request, res: Response) 
       SELECT 
         ${PEDIDO_FIELDS},
         c.motivo,
-        c.id_empleado
+        re.dni_empleado
       FROM pedidos p
-      INNER JOIN cancelaciones c 
+      INNER JOIN  registro_de_estados re
+        ON p.id = re.id_pedido
+      LEFT JOIN cancelaciones c 
         ON p.id = c.id_pedido
       LEFT JOIN pedidos_menu pm 
         ON p.id = pm.fk_pedido
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
-      WHERE c.id_empleado = $1
+      WHERE re.dni_empleado = $1
         AND p.visibilidad = TRUE
-        AND c.confirmado = TRUE
-      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, c.motivo, c.id_empleado
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, c.motivo, re.dni_empleado
       ORDER BY p.id;
     `;
     const { rows } = await pool.query(query, [idEmpleado]);
@@ -272,13 +256,14 @@ export const getPedidosCancelados = async (req: Request, res: Response) => {
     SELECT 
       ${PEDIDO_FIELDS},
       c.motivo,
-      c.id_empleado
+      re.dni_empleado
       FROM pedidos p
+      LEFT JOIN registro_de_estados re ON p.id = re.id_pedido
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
       LEFT JOIN cancelaciones c ON p.id = c.id_pedido
       WHERE (p.id_estado = 8 OR p.id_estado = 9)
-      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, p.fecha, c.motivo, c.id_empleado
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, p.fecha, c.motivo, re.dni_empleado
       ORDER BY p.id;
     `;
     const { rows } = await pool.query(query);
@@ -296,14 +281,15 @@ export const getPedidosCanceladosHoy = async (req: Request, res: Response) => {
       SELECT 
       ${PEDIDO_FIELDS},
       c.motivo,
-      c.id_empleado
+      re.dni_empleado
       FROM pedidos p
+      LEFT JOIN registro_de_estados re ON p.id = re.id_pedido
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
       LEFT JOIN cancelaciones c ON p.id = c.id_pedido
       WHERE (p.id_estado = 8 OR p.id_estado = 9)
         AND p.fecha = CURRENT_DATE
-      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, p.fecha, c.motivo, c.id_empleado
+      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, p.fecha, c.motivo, re.dni_empleado
       ORDER BY p.id;
     `;
 

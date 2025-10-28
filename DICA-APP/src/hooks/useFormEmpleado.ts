@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchActualizarEmpleado, fetchCrearEmpleado } from "../api/empleados";
 import type { Empleado } from "../types";
 import type { FieldConfig } from "../Components/common/FormBase";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 const fields: FieldConfig<Empleado>[] = [
   { name: "nombre_completo", label: "Nombre Completo" },
@@ -40,6 +41,7 @@ export const useFormEmpleado = (
     Partial<Record<keyof Empleado, string>>
   >({});
   const [isSaving, setIsSaving] = useState(false);
+  const { showSnackbar } = useSnackbar();
 
 useEffect(() => {
   if (initialValues && Object.keys(initialValues).length > 0) {
@@ -117,16 +119,16 @@ useEffect(() => {
 
     if (mode === "crear") {
       await fetchCrearEmpleado(payload);
-      alert("Empleado creado correctamente");
+      showSnackbar("Empleado creado correctamente", "success");
     } else {
       await fetchActualizarEmpleado(payload);
-      alert("Empleado actualizado correctamente");
+      showSnackbar("Empleado actualizado correctamente", "success");
     }
 
     onSuccess();
   } catch (error) {
-    if (error instanceof Error) alert(error.message);
-    else alert("Error desconocido");
+    if (error instanceof Error) showSnackbar(error.message, "error");
+    else showSnackbar("Error desconocido", "error");
   } finally {
     setIsSaving(false);
   }

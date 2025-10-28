@@ -6,6 +6,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import type { FieldConfig } from "../Components/common/FormBase";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 const fields: FieldConfig<Cliente>[] = [
   { name: "nombre", label: "Nombre completo" },
@@ -67,6 +68,7 @@ export const useFormClientes = (
   const [formErrors, setFormErrors] = useState<
     Partial<Record<keyof Cliente, string>>
   >({});
+  const { showSnackbar } = useSnackbar();
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -122,16 +124,16 @@ export const useFormClientes = (
 
       if (mode === "crear") {
         await fetchCrearCliente(payload);
-        alert("Cliente creado correctamente");
+        showSnackbar("Cliente creado correctamente", "success");
       } else {
         await fetchActualizarCliente(payload);
-        alert("Cliente actualizado correctamente");
+        showSnackbar("Cliente actualizado correctamente", "success");
       }
 
       onSuccess();
     } catch (error) {
-      if (error instanceof Error) alert(error.message);
-      else alert("Error desconocido");
+      if (error instanceof Error) showSnackbar(error.message, "error");
+      else showSnackbar("Error desconocido", "error");
     } finally {
       setIsSaving(false);
     }

@@ -17,6 +17,7 @@ import { AppLayout } from "./Components/AppLayout";
 import { Menu } from "./Pages/Menu";
 import { Pedidos } from "./Pages/Pedidos";
 import { Clientes } from "./Pages/Clientes";
+import { SnackbarProvider } from "./contexts/SnackbarContext";
 import { StockPage } from "./Pages/Stock";
 
 function App() {
@@ -51,7 +52,9 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <RouterProvider router={router} />
+      <SnackbarProvider>
+        <RouterProvider router={router} />
+      </SnackbarProvider>
     </ThemeProvider>
   );
 }

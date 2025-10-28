@@ -2,6 +2,7 @@ import type { FieldConfig } from "../Components/common/FormBase";
 import type { ItemsMenu } from "../types";
 import { useState } from "react";
 import { crearMenu } from "../api/menu";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 const menuFields: FieldConfig<ItemsMenu>[] = [
   {
@@ -35,6 +36,7 @@ const menuFields: FieldConfig<ItemsMenu>[] = [
 export const useMenuForm = () => {
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { showSnackbar } = useSnackbar();
   const [formValues, setFormValues] = useState<ItemsMenu>({
     id: 0,
     nombre: "",
@@ -77,11 +79,11 @@ export const useMenuForm = () => {
         categoria: values.categoria,
         stocks: values.stocks || [],
       });
-      alert("Menú creado con éxito!");
+      showSnackbar("Menú creado con éxito!", "success");
       setOpen(false);
     } catch (error) {
       console.error(error);
-      alert("Error al crear el menú");
+      showSnackbar("Error al crear el menú", "error");
     } finally {
       setIsSaving(false);
     }
