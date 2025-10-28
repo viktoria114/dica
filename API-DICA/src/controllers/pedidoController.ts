@@ -6,31 +6,42 @@ import { descargarImagen, subirADropbox } from '../utils/image';
 
 // queryParts.ts
 export const PEDIDO_FIELDS = `
-    p.id AS pedido_id,
-    p.id_cliente,
-    p.ubicacion,
-    p.observaciones,
-    p.id_estado,
-    -- Items asociados
-    COALESCE(
-      json_agg(
-        DISTINCT jsonb_build_object(
-          'fk_menu', pm.fk_menu,
-          'cantidad', pm.cantidad
-        )
-      ) FILTER (WHERE pm.fk_menu IS NOT NULL),
-      '[]'
-    ) AS items,
-    -- Promociones asociadas
-    COALESCE(
-      json_agg(
-        DISTINCT jsonb_build_object(
-          'fk_promocion', pp.id_promocion,
-          'cantidad', pp.cantidad
-        )
-      ) FILTER (WHERE pp.id_promocion IS NOT NULL),
-      '[]'
-    ) AS promociones
+  p.id AS pedido_id,
+  p.id_cliente,
+  p.ubicacion,
+  p.observaciones,
+  p.id_estado,
+  
+  -- Detalle de items del menú
+  COALESCE(
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'nombre', m.nombre,
+        'precio_unitario', m.precio,
+        'cantidad', pm.cantidad,
+        'subtotal', (m.precio * pm.cantidad)
+      )
+    ) FILTER (WHERE pm.fk_menu IS NOT NULL),
+    '[]'
+  ) AS items,
+
+  -- Detalle de promociones
+  COALESCE(
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'nombre', pr.nombre,
+        'precio_unitario', pr.precio,
+        'cantidad', pp.cantidad,
+        'subtotal', (pr.precio * pp.cantidad)
+      )
+    ) FILTER (WHERE pp.id_promocion IS NOT NULL),
+    '[]'
+  ) AS promociones,
+
+  -- Totales
+  COALESCE(SUM(m.precio * pm.cantidad), 0) AS precio_por_items,
+  COALESCE(SUM(pr.precio * pp.cantidad), 0) AS precio_por_promociones,
+  COALESCE(SUM(m.precio * pm.cantidad), 0) + COALESCE(SUM(pr.precio * pp.cantidad), 0) AS precio_total
 `;
 
 export const crearPedido = async (req: Request, res: Response) => {
@@ -275,7 +286,9 @@ export const getListaPedidos = async (_req: Request, res: Response) => {
     ${PEDIDO_FIELDS}
   FROM pedidos p
   LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+  LEFT JOIN menu m ON m.id = pm.fk_menu
   LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+  LEFT JOIN promociones pr ON pr.id = pp.id_promocion
   WHERE p.visibilidad = true
   GROUP BY p.id
   ORDER BY p.id ASC;
@@ -301,7 +314,9 @@ export const getListaPedidosPorTelefono = async (
       SELECT ${PEDIDO_FIELDS}, e.nombre AS estado_nombre
       FROM pedidos p
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
-    LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN menu m ON m.id = pm.fk_menu
+      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr ON pr.id = pp.id_promocion
       JOIN estados e ON e.id = p.id_estado
       WHERE p.id_cliente = $1
         AND p.id_estado NOT IN (6,8,9)
@@ -377,7 +392,33 @@ export const getPedidosEnConstruccion = async (req: Request, res: Response) => {
 export const getPedidosPorConfirmar = async (req: Request, res: Response) => {
   try {
     const { rows } = await pool.query(`
-    SELECT ${PEDIDO_FIELDS} FROM pedidos 
+    SELECT 
+    p.id AS pedido_id,
+    p.id_cliente,
+    p.ubicacion,
+    p.observaciones,
+    p.id_estado,
+    -- Items asociados
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_menu', pm.fk_menu,
+          'cantidad', pm.cantidad
+        )
+      ) FILTER (WHERE pm.fk_menu IS NOT NULL),
+      '[]'
+    ) AS items,
+    -- Promociones asociadas
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_promocion', pp.id_promocion,
+          'cantidad', pp.cantidad
+        )
+      ) FILTER (WHERE pp.id_promocion IS NOT NULL),
+      '[]'
+    ) AS promociones
+    FROM pedidos p
     LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
     LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido 
     WHERE id_estado = 7`);
@@ -416,7 +457,9 @@ export const getListaCompletaPedidos = async (_req: Request, res: Response) => {
     const query = `
       SELECT ${PEDIDO_FIELDS} FROM pedidos P
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN menu m ON m.id = pm.fk_menu
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr ON pr.id = pp.id_promocion
       WHERE p.visibilidad = false
       GROUP BY p.id
       ORDER BY p.id ASC;
@@ -1201,29 +1244,34 @@ export const getPedidosAsignadosEmpleado = async (
   const idEmpleado = (req as any).dni;
   try {
     const query = `
-      SELECT 
-        ${PEDIDO_FIELDS}
-        re.id_empleado,
+  SELECT 
+        ${PEDIDO_FIELDS},
+        re.dni_empleado
       FROM pedidos p
-      INNER JOIN registro_de_estado re 
+      INNER JOIN registro_de_estados re 
         ON re.id_pedido = p.id
       LEFT JOIN pedidos_menu pm 
         ON p.id = pm.fk_pedido
+      LEFT JOIN menu m 
+        ON m.id = pm.fk_menu
       LEFT JOIN pedidos_promociones pp 
         ON p.id = pp.id_pedido
-      WHERE re.id_empleado = $1
-        AND DATE(re.fecha_cambio) = CURRENT_DATE
+      LEFT JOIN promociones pr 
+        ON pr.id = pp.id_promocion
+      WHERE re.dni_empleado = $1
+        AND DATE(re.id_fecha) = CURRENT_DATE
         AND re.id = (
           SELECT MAX(r2.id)
-          FROM registro_de_estado r2
+          FROM registro_de_estados r2
           WHERE r2.id_pedido = p.id
         )
         AND p.visibilidad = TRUE
       GROUP BY 
         p.id, p.id_cliente, p.ubicacion, p.observaciones, 
-        p.id_estado, re.id_empleado, re.fecha_cambio, re.id_estado_nuevo
+        p.id_estado, re.dni_empleado, re.id_fecha, re.id_estado
       ORDER BY p.id;
-    `;
+`;
+
 
     const { rows } = await pool.query(query, [idEmpleado]);
     res.json(rows);
@@ -1238,85 +1286,78 @@ export const getPedidosAsignadosEmpleado = async (
 };
 
 export const getTicketPedido = async (req: Request, res: Response) => {
-  const { idPedido } = req.params;
+  const { id } = req.params;
 
   try {
     const query = `
-      WITH 
-      -- Calcular los totales de los items del menú
-      items_data AS (
-        SELECT 
-          pm.fk_menu,
-          m.nombre AS nombre_menu,
-          m.precio AS precio_unitario,
-          pm.cantidad,
-          (m.precio * pm.cantidad) AS subtotal
-        FROM pedidos_menu pm
-        INNER JOIN menu m ON m.id = pm.fk_menu
-        WHERE pm.fk_pedido = $1
-      ),
-      -- Calcular los totales de las promociones
-      promos_data AS (
-        SELECT 
-          pp.id_promocion,
-          pr.nombre AS nombre_promocion,
-          pr.precio AS precio_unitario,
-          pp.cantidad,
-          (pr.precio * pp.cantidad) AS subtotal
-        FROM pedidos_promociones pp
-        INNER JOIN promociones pr ON pr.id = pp.id_promocion
-        WHERE pp.id_pedido = $1
-      ),
-      -- Sumar los subtotales de ambos
-      total_data AS (
-        SELECT 
-          COALESCE(SUM(subtotal), 0) AS total_items FROM items_data
-      ),
-      total_promos AS (
-        SELECT 
-          COALESCE(SUM(subtotal), 0) AS total_promos FROM promos_data
-      )
-      SELECT 
-        p.id AS pedido_id,
-        p.id_cliente,
-        p.ubicacion,
-        p.observaciones,
-        -- Detalle de items
-        COALESCE(
-          json_agg(
-            DISTINCT jsonb_build_object(
-              'nombre', i.nombre_menu,
-              'precio_unitario', i.precio_unitario,
-              'cantidad', i.cantidad,
-              'subtotal', i.subtotal
-            )
-          ) FILTER (WHERE i.fk_menu IS NOT NULL),
-          '[]'
-        ) AS items,
-        -- Detalle de promociones
-        COALESCE(
-          json_agg(
-            DISTINCT jsonb_build_object(
-              'nombre', pr.nombre_promocion,
-              'precio_unitario', pr.precio_unitario,
-              'cantidad', pr.cantidad,
-              'subtotal', pr.subtotal
-            )
-          ) FILTER (WHERE pr.id_promocion IS NOT NULL),
-          '[]'
-        ) AS promociones,
-        -- Totales
-        (SELECT total_items FROM total_data) AS total_items,
-        (SELECT total_promos FROM total_promos) AS total_promos,
-        (SELECT total_items + total_promos FROM total_data, total_promos) AS total_general
-      FROM pedidos p
-      LEFT JOIN items_data i ON TRUE
-      LEFT JOIN promos_data pr ON TRUE
-      WHERE p.id = $1
-      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones;
-    `;
+  WITH 
+  items_data AS (
+    SELECT 
+      pm.fk_menu,
+      m.nombre AS nombre_menu,
+      m.precio AS precio_unitario,
+      pm.cantidad,
+      (m.precio * pm.cantidad) AS subtotal
+    FROM pedidos_menu pm
+    INNER JOIN menu m ON m.id = pm.fk_menu
+    WHERE pm.fk_pedido = $1
+  ),
+  promos_data AS (
+    SELECT 
+      pp.id_promocion,
+      pr.nombre AS nombre_promocion,
+      pr.precio AS precio_unitario,
+      pp.cantidad,
+      (pr.precio * pp.cantidad) AS subtotal
+    FROM pedidos_promociones pp
+    INNER JOIN promociones pr ON pr.id = pp.id_promocion
+    WHERE pp.id_pedido = $1
+  ),
+  total_data AS (
+    SELECT COALESCE(SUM(subtotal), 0) AS total_items FROM items_data
+  ),
+  total_promos AS (
+    SELECT COALESCE(SUM(subtotal), 0) AS total_promos FROM promos_data
+  )
+  SELECT 
+    p.id AS pedido_id,
+    p.id_cliente,
+    p.ubicacion,
+    p.observaciones,
+    -- Detalle de items
+    COALESCE(
+      (SELECT json_agg(
+          jsonb_build_object(
+            'nombre', nombre_menu,
+            'precio_unitario', precio_unitario,
+            'cantidad', cantidad,
+            'subtotal', subtotal
+          )
+        ) FROM items_data),
+      '[]'
+    ) AS items,
+    -- Detalle de promociones
+    COALESCE(
+      (SELECT json_agg(
+          jsonb_build_object(
+            'nombre', nombre_promocion,
+            'precio_unitario', precio_unitario,
+            'cantidad', cantidad,
+            'subtotal', subtotal
+          )
+        ) FROM promos_data),
+      '[]'
+    ) AS promociones,
+    -- Totales
+    (SELECT total_items FROM total_data) AS precio_por_items,
+    (SELECT total_promos FROM total_promos) AS precio_por_promociones,
+    (SELECT total_items + total_promos FROM total_data, total_promos) AS precio_total
+  FROM pedidos p
+  WHERE p.id = $1
+  GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones;
+`;
 
-    const { rows } = await pool.query(query, [idPedido]);
+    const { rows } = await pool.query(query, [id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Pedido no encontrado' });
@@ -1329,3 +1370,30 @@ export const getTicketPedido = async (req: Request, res: Response) => {
   }
 };
 
+/*export const PEDIDO_FIELDS = `
+    p.id AS pedido_id,
+    p.id_cliente,
+    p.ubicacion,
+    p.observaciones,
+    p.id_estado,
+    -- Items asociados
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_menu', pm.fk_menu,
+          'cantidad', pm.cantidad
+        )
+      ) FILTER (WHERE pm.fk_menu IS NOT NULL),
+      '[]'
+    ) AS items,
+    -- Promociones asociadas
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_promocion', pp.id_promocion,
+          'cantidad', pp.cantidad
+        )
+      ) FILTER (WHERE pp.id_promocion IS NOT NULL),
+      '[]'
+    ) AS promociones
+`; */

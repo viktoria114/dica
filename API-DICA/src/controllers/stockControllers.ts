@@ -235,9 +235,9 @@ export const GetRegistrosStock = async (req: Request, res: Response): Promise<vo
 
     try {
         const consulta = `
-            SELECT id, cantidad, fk_id_stock, fk_fecha
+            SELECT id, cantidad, fk_stock, fk_fecha
             FROM registro_stock
-            WHERE fk_id_stock = $1
+            WHERE fk_stock = $1
             ORDER BY fk_fecha DESC
         `;
 
@@ -272,9 +272,9 @@ export const setVencimientoStock = async(req: Request, res: Response) => {
     for (const stock of stockRows) {
       // 2. Obtener registros de stock no vencidos
       const { rows: registros } = await client.query(`
-        SELECT id, cantidad_actual, fk_fecha, estado
+        SELECT id, cantidad_inicial, fk_fecha, estado
         FROM registro_stock
-        WHERE fk_id_stock = $1 AND estado = 'disponible'
+        WHERE fk_stock = $1 AND estado = 'disponible'
       `, [stock.id]);
 
       for (const reg of registros) {
