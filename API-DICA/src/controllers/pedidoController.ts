@@ -16,6 +16,7 @@ export const PEDIDO_FIELDS = `
   COALESCE(
     json_agg(
       DISTINCT jsonb_build_object(
+        'id_menu', m.id,
         'nombre', m.nombre,
         'precio_unitario', m.precio,
         'cantidad', pm.cantidad,
@@ -29,6 +30,7 @@ export const PEDIDO_FIELDS = `
   COALESCE(
     json_agg(
       DISTINCT jsonb_build_object(
+        'id_promocion', pr.id,
         'nombre', pr.nombre,
         'precio_unitario', pr.precio,
         'cantidad', pp.cantidad,
