@@ -18,6 +18,7 @@ import { Menu } from "./Pages/Menu";
 import { Pedidos } from "./Pages/Pedidos";
 import { Clientes } from "./Pages/Clientes";
 import { SnackbarProvider } from "./contexts/SnackbarContext";
+import { Promociones } from "./Pages/Promociones";
 
 function App() {
   const router = createBrowserRouter(
@@ -41,6 +42,7 @@ function App() {
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
            <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/promociones" element={<Promociones />} />
         </Route>
           
         <Route path="*" element={<Navigate to="/" replace />} />
