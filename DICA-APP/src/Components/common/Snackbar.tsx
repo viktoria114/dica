@@ -16,7 +16,7 @@ const CommonSnackbar: React.FC<Props> = ({ open, message, severity, handleClose,
       open={open}
       autoHideDuration={autoHideDuration}
       onClose={handleClose}
-      anchorOrigin={{ vertical: 'top', horizontal: 'center' }} //lo agrego como prop?
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} //lo agrego como prop?
     >
       <Alert onClose={handleClose} severity={severity} sx={{ width: '100%' }}>
         {message}
