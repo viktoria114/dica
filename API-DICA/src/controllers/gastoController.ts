@@ -32,7 +32,7 @@ export const crearGasto = async (req: Request, res: Response): Promise<void> => 
       )
       
       const registroQuery = `
-        INSERT INTO registro_stock (cantidad_inicial, cantidad_actual, fk_id_stock, fk_fecha, estado, visibilidad)
+        INSERT INTO registro_stock (cantidad_inicial, cantidad_actual, fk_stock, fk_fecha, estado, visibilidad)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, cantidad_inicial;
       `
@@ -142,7 +142,7 @@ export const modificarGasto = async (req: Request, res: Response): Promise<void>
 
     // Buscar gasto existente (incluyendo cantidad para diferencia de stock)
     const gastoAnteriorResult = await client.query(
-      `SELECT g.id, g.fk_registro_stock, g.monto, rs.cantidad_inicial, rs.cantidad_actual, rs.fk_id_stock
+      `SELECT g.id, g.fk_registro_stock, g.monto, rs.cantidad_inicial, rs.cantidad_actual, rs.fk_stock
        FROM gastos g
        LEFT JOIN registro_stock rs ON g.fk_registro_stock = rs.id
        WHERE g.id = $1`,
@@ -171,7 +171,7 @@ export const modificarGasto = async (req: Request, res: Response): Promise<void>
       );
 
       const registroQuery = `
-        INSERT INTO registro_stock (cantidad_inicial, cantidad_actual, fk_id_stock, fk_fecha, estado, visibilidad)
+        INSERT INTO registro_stock (cantidad_inicial, cantidad_actual, fk_stock, fk_fecha, estado, visibilidad)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id;
       `;
@@ -192,7 +192,7 @@ export const modificarGasto = async (req: Request, res: Response): Promise<void>
     if (registroStockId && fk_stock !== null) {
       const updateRegistroQuery = `
         UPDATE registro_stock
-        SET fk_id_stock = $1,
+        SET fk_stock = $1,
             cantidad_inicial = $2,
             cantidad_actual = $2 - (cantidad_inicial - cantidad_actual)
         WHERE id = $3;
@@ -280,13 +280,13 @@ export const eliminarGasto = async (req: Request, res: Response): Promise<void> 
     const fk_registro_stock = gastoResult.rows[0].fk_registro_stock;
 
     const registroAsociado = await client.query(
-      'SELECT cantidad_actual, fk_id_stock FROM registro_stock WHERE id = $1', [fk_registro_stock]
+      'SELECT cantidad_actual, fk_stock FROM registro_stock WHERE id = $1', [fk_registro_stock]
     )
 
     //si existe un registro, hay stock por eliminar
     if(registroAsociado.rows.length !== 0){
 
-      const {cantidad_actual, fk_id_stock} = registroAsociado.rows[0]
+      const {cantidad_actual, fk_stock} = registroAsociado.rows[0]
 
       //se actualiza el stock disponible
 
@@ -294,7 +294,7 @@ export const eliminarGasto = async (req: Request, res: Response): Promise<void> 
         `UPDATE stock 
         SET stock_actual = GREATEST(stock_actual - $1, 0)
         WHERE id = $2;`
-      await client.query(updateStockQuery, [cantidad_actual, fk_id_stock]);
+      await client.query(updateStockQuery, [cantidad_actual, fk_stock]);
 
       //se elimina el gasto
       await client.query('DELETE FROM gastos WHERE id = $1', [id]);
