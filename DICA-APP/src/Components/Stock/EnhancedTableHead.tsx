@@ -20,18 +20,34 @@ type Props = {
   modoPapelera: boolean;
 };
 
-// 📋 Columnas específicas para Stock (sin checkbox, con medidas incorporadas)
+// 📋 Columnas específicas para Stock
 const headCells: readonly {
   id: keyof Stock | "Detalles";
   numeric: boolean;
   label: string;
+  disablePadding?: boolean; // Para controlar el padding
 }[] = [
-  { id: "nombre", numeric: false, label: "Producto" },
-  { id: "stock_actual", numeric: true, label: "Stock Actual" },
-  { id: "vencimiento", numeric: true, label: "Días p/ Vencimiento" },
-  { id: "tipo", numeric: false, label: "Tipo" },
-  { id: "stock_minimo", numeric: true, label: "Stock Mínimo" },
-  { id: "Detalles", numeric: false, label: "" },
+  { id: "nombre", numeric: false, label: "Producto", disablePadding: true },
+  {
+    id: "stock_actual",
+    numeric: true,
+    label: "Stock Actual",
+    disablePadding: false,
+  },
+  {
+    id: "vencimiento",
+    numeric: true,
+    label: "Días para vencimiento",
+    disablePadding: false,
+  },
+  { id: "tipo", numeric: false, label: "Tipo", disablePadding: false },
+  {
+    id: "stock_minimo",
+    numeric: true,
+    label: "Stock Mínimo",
+    disablePadding: false,
+  },
+  { id: "Detalles", numeric: false, label: "", disablePadding: false },
 ];
 
 export const EnhancedTableHead: React.FC<Props> = ({
@@ -57,8 +73,7 @@ export const EnhancedTableHead: React.FC<Props> = ({
                 ? "right"
                 : "left"
             }
-            // Solo aplica padding="none" a la primera columna (nombre)
-            padding={headCell.id === "nombre" ? "none" : "normal"}
+            padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
           >
             {headCell.id === "Detalles" ? (

@@ -1,3 +1,4 @@
+// src/Pages/Stock.tsx
 import * as React from "react";
 import {
   Box,
@@ -11,22 +12,16 @@ import {
   TableContainer,
   TableRow,
 } from "@mui/material";
+import InfoIcon from "@mui/icons-material/Info";
 import type { Stock } from "../types";
 import { useStock } from "../hooks/useStock";
 import { EnhancedTableHead } from "../Components/Stock/EnhancedTableHead";
-
-/*const ejemplo: Stock[] = [
-  {
-    id: 1,
-    nombre: "Pan",
-    stock_actual: 6,
-    vencimiento: 5,
-    stock_minimo: 3,
-    tipo: "PERECEDERO",
-    medida: "KG",
-    visibilidad: true,
-  },
-];*/
+import { SearchBar } from "../Components/common/SearchBar";
+import { Paginacion } from "../Components/common/Paginacion";
+import { ModalBase } from "../Components/common/ModalBase";
+import { useFormStock } from "../hooks/useFormStock";
+import { useBorrarStock } from "../hooks/useBorrarStock";
+import { useRestaurarStock } from "../hooks/useRestaurarStock";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -45,16 +40,36 @@ function getComparator<Key extends keyof Stock>(
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-export const Stock_1 = () => {
-  const { stock, loading, error, modoPapelera } = useStock();
+const initialValues: Stock = {
+  id: null,
+  nombre: "",
+  stock_actual: 0,
+  vencimiento: 0,
+  tipo: "PERECEDERO",
+  stock_minimo: 0,
+  medida: "KG",
+  visibilidad: true,
+};
+
+export const StockPage = () => {
+  const { stock, loading, error, modoPapelera, toggleInvisibles, refetch } =
+    useStock();
+
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Stock>("stock_actual");
+  const [filteredRows, setFilteredRows] = React.useState<Stock[]>(stock);
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const rowsPerPageOptions: number[] = [5, 10, 25];
+
+  // Estados para modales
+  const [showForm, setShowForm] = React.useState(false);
+  const [selectedStock, setSelectedStock] = React.useState<Stock | null>(null);
+  const [openEdit, setOpenEdit] = React.useState(false);
 
   React.useEffect(() => {
     setFilteredRows(stock);
   }, [stock]);
-
-  const [filteredRows, setFilteredRows] = React.useState<Stock[]>(stock);
 
   const handleRequestSort = (
     _event: React.MouseEvent<unknown>,
@@ -65,12 +80,82 @@ export const Stock_1 = () => {
     setOrderBy(property);
   };
 
+  // Hooks de formulario
+  const onSuccessCreate = () => {
+    setShowForm(false);
+    refetch();
+  };
+
+  const onSuccessEdit = () => {
+    setOpenEdit(false);
+    refetch();
+  };
+
+  const {
+    editValues: createValues,
+    handleChange: handleChangeCreate,
+    handleGuardar: handleGuardarCreate,
+    formErrors: formErrorsCreate,
+    isSaving: isSavingCreate,
+    fields,
+    setEditValues: setCreateValues,
+  } = useFormStock(initialValues, onSuccessCreate, "crear");
+
+  const {
+    editValues: editValues,
+    handleChange: handleChangeEdit,
+    handleGuardar: handleGuardarEdit,
+    formErrors: formErrorsEdit,
+    isSaving: isSavingEdit,
+    setEditValues,
+  } = useFormStock(selectedStock, onSuccessEdit, "editar");
+
+  // Borrar y restaurar
+  const { borrarStock, isDeleting } = useBorrarStock(() => {
+    setOpenEdit(false);
+    refetch();
+  });
+
+  const { restaurar, isRestoring } = useRestaurarStock(() => {
+    setOpenEdit(false);
+    refetch();
+  });
+
+  // Ordenar y paginar
+  const visibleRows = React.useMemo(() => {
+    const sorted = [...filteredRows].sort(getComparator(order, orderBy));
+    return sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [order, orderBy, filteredRows, page, rowsPerPage]);
+
+  const handleAdd = () => {
+    setCreateValues(initialValues);
+    setShowForm(true);
+  };
+
+  const handleEdit = (stockItem: Stock) => {
+    setSelectedStock(stockItem);
+    setEditValues(stockItem);
+    setOpenEdit(true);
+  };
+
   return (
     <>
       {loading && <LinearProgress color="inherit" />}
       {error && <p>{error}</p>}
 
       <Container>
+        {/* Buscador */}
+        <SearchBar<Stock>
+          baseList={stock}
+          getLabel={(item) => item.nombre}
+          placeholder={"Buscar stock por nombre..."}
+          onResults={setFilteredRows}
+          onAdd={handleAdd}
+          onShowInvisibles={toggleInvisibles}
+          disableAdd={modoPapelera}
+          papeleraLabel={modoPapelera ? "Volver" : "Papelera"}
+        />
+
         <Box sx={{ width: "100%" }}>
           <Paper
             sx={{
@@ -91,31 +176,31 @@ export const Stock_1 = () => {
                 />
 
                 <TableBody>
-                  {stock.map((row: Stock) => (
+                  {visibleRows.map((row: Stock) => (
                     <TableRow key={row.id}>
-                      {/* 📌 IMPORTANTE: Mismo padding="none" que el header */}
                       <TableCell component="th" scope="row" padding="none">
                         {row.nombre}
                       </TableCell>
 
-                      {/* ✅ Alineadas a la DERECHA (numeric) con la medida */}
                       <TableCell align="right">
                         {row.stock_actual} {row.medida}
                       </TableCell>
 
                       <TableCell align="right">{row.vencimiento}</TableCell>
 
-                      {/* ✅ Alineada a la IZQUIERDA (texto) */}
                       <TableCell align="left">{row.tipo}</TableCell>
 
-                      {/* ✅ Alineada a la DERECHA (numeric) con la medida */}
                       <TableCell align="right">
                         {row.stock_minimo} {row.medida}
                       </TableCell>
 
-                      {/* ✅ Centrada (acciones) */}
                       <TableCell align="center">
-                        <Button size="small" variant="contained">
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => handleEdit(row)}
+                          endIcon={<InfoIcon />}
+                        >
                           Ver Info
                         </Button>
                       </TableCell>
@@ -124,9 +209,65 @@ export const Stock_1 = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            <Paginacion
+              page={page}
+              setPage={setPage}
+              rowsPerPage={rowsPerPage}
+              setRowsPerPage={setRowsPerPage}
+              count={filteredRows.length}
+              rowsPerPageOptions={rowsPerPageOptions}
+            />
           </Paper>
         </Box>
       </Container>
+
+      {/* Modal Crear */}
+      <ModalBase
+        open={showForm}
+        entityName="Stock"
+        modo="crear"
+        fields={fields}
+        values={createValues}
+        formErrors={formErrorsCreate}
+        handleChange={handleChangeCreate}
+        handleGuardar={handleGuardarCreate}
+        handleClose={() => setShowForm(false)}
+        isSaving={isSavingCreate}
+      />
+
+      {/* Modal Editar */}
+      <ModalBase
+        open={openEdit}
+        entityName="Stock"
+        modo="editar"
+        fields={fields}
+        values={editValues}
+        formErrors={formErrorsEdit}
+        handleChange={handleChangeEdit}
+        handleGuardar={handleGuardarEdit}
+        handleClose={() => setOpenEdit(false)}
+        isSaving={isSavingEdit}
+        idField="id"
+        modoPapelera={modoPapelera}
+        borrar={(id) => borrarStock(Number(id))}
+        restaurar={(id) => restaurar(Number(id))}
+        isDeleting={isDeleting}
+        isRestoring={isRestoring}
+        displayFields={[
+          { label: "Nombre", value: editValues.nombre },
+          {
+            label: "Stock Actual",
+            value: `${editValues.stock_actual} ${editValues.medida}`,
+          },
+          { label: "Días p/ Vencimiento", value: editValues.vencimiento },
+          { label: "Tipo", value: editValues.tipo },
+          {
+            label: "Stock Mínimo",
+            value: `${editValues.stock_minimo} ${editValues.medida}`,
+          },
+        ]}
+      />
     </>
   );
 };

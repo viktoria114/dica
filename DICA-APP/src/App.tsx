@@ -17,7 +17,7 @@ import { AppLayout } from "./Components/AppLayout";
 import { Menu } from "./Pages/Menu";
 import { Pedidos } from "./Pages/Pedidos";
 import { Clientes } from "./Pages/Clientes";
-import { Stock_1 } from "./Pages/Stock";
+import { StockPage } from "./Pages/Stock";
 
 function App() {
   const router = createBrowserRouter(
@@ -41,7 +41,7 @@ function App() {
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
           <Route path="/pedidos" element={<Pedidos />} />
-          <Route path="/stock" element={<Stock_1 />} />
+          <Route path="/stock" element={<StockPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
