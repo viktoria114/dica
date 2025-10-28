@@ -272,7 +272,7 @@ export const setVencimientoStock = async(req: Request, res: Response) => {
     for (const stock of stockRows) {
       // 2. Obtener registros de stock no vencidos
       const { rows: registros } = await client.query(`
-        SELECT id, cantidad_actual, fk_fecha, estado
+        SELECT id, cantidad_inicial, fk_fecha, estado
         FROM registro_stock
         WHERE fk_id_stock = $1 AND estado = 'disponible'
       `, [stock.id]);
