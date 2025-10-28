@@ -175,7 +175,7 @@ export const crearPedido = async (req: Request, res: Response) => {
 
     // Registro de estado
     const registroEstadoQuery = `
-      INSERT INTO registro_de_estadoss (id_pedido, id_estado, id_fecha, hora, dni_empleado)
+      INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
       VALUES ($1, $2, $3, $4, $5);
     `;
     await client.query(registroEstadoQuery, [
@@ -898,7 +898,7 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
       id,
     ]);
 
-    // Insertamos el registro en "registro_de_estadoss"
+    // Insertamos el registro en "registro_de_estados"
     const insertRegistroQuery = `
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
       VALUES ($1, $2, CURRENT_DATE, CURRENT_TIME, $3)
