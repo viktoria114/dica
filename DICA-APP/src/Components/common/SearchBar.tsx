@@ -1,17 +1,25 @@
 import { useState } from "react";
 import { TextField, Box, Button, MenuItem, IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 interface SearchBarProps<T> {
   baseList: T[]; // lista completa
   getLabel: (item: T) => string; // función para mostrar texto en el input / sugerencias
   onResults: (results: T[]) => void; // devuelve los resultados filtrados al padre
   placeholder?: string; // placeholder del input
+
+
   // --- Opcionales ---
   onAdd?: () => void; // botón "+"
   onShowInvisibles?: () => void; // botón "papelera"
+   onShowCancelados?: () => void;
+
   disableAdd?: boolean; // 👈 ahora sí está definida
   papeleraLabel?: string;
+  canceladosLabel?: string;
+
   filterFn?: (item: T, input: string) => boolean; // filtro personalizado (si no se pasa, usa includes por defecto)
 }
 
@@ -22,7 +30,9 @@ export function SearchBar<T>({
   placeholder = "Buscar...",
   onAdd,
   onShowInvisibles,
-  papeleraLabel,
+   onShowCancelados,
+  papeleraLabel = "Papelera",
+  canceladosLabel = "CANCELADOS",
   disableAdd,
   filterFn,
 }: SearchBarProps<T>) {
@@ -126,15 +136,34 @@ export function SearchBar<T>({
       {/* Botón papelera (opcional) */}
       {onShowInvisibles && (
         <Button
+          startIcon={<DeleteIcon />}
+           
           sx={{
-            ml: 2,
-            gap: 1,
+            ml: 1,
+            
             bgcolor: "background.paper",
             "&:hover": { bgcolor: "grey.200" },
           }}
           onClick={onShowInvisibles}
         >
           {papeleraLabel}
+        </Button>
+      )}
+
+       {/* Botón Ver Cancelados */}
+      {onShowCancelados && (
+        <Button
+          startIcon={<CancelIcon />}
+          
+          onClick={onShowCancelados}
+          sx={{
+            ml:1,
+            bgcolor: "background.paper",
+            "&:hover": { bgcolor: "grey.200" },
+            textTransform: "none",
+          }}
+        >
+          {canceladosLabel}
         </Button>
       )}
     </Box>

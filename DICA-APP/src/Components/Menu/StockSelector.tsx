@@ -28,9 +28,11 @@ export const StockSelector: React.FC<StockSelectorProps> = ({
   onChange,
 }) => {
   const handleAdd = () => {
-    onChange([...selectedStocks, { id_stock: 0, cantidad_necesaria: 1 }]);
+  //  onChange([...selectedStocks, { id_stock: 0, cantidad_necesaria: 1 }]);
+    setOpen(true);
   };
 
+  const [open, setOpen] = React.useState(false);
   const handleUpdate = (
     index: number,
     field: "id_stock" | "cantidad_necesaria",
@@ -47,6 +49,7 @@ export const StockSelector: React.FC<StockSelectorProps> = ({
   };
 
   return (
+    <>
     <Grid container spacing={2} direction="column" sx={{ mt: 2 }}>
       <Typography variant="h6">Ingredientes</Typography>
 
@@ -100,5 +103,6 @@ export const StockSelector: React.FC<StockSelectorProps> = ({
         </IconButton>
       </Grid>
     </Grid>
+    </>
   );
 };

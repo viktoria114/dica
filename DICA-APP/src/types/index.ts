@@ -27,13 +27,22 @@ export interface ItemsMenu {
   stocks: { id_stock: number; cantidad_necesaria: number }[];
 }
 
+export interface Item {
+nombre: string,
+cantidad: number,
+subtotal: number,
+precio_unitario: number,
+}
+
 export interface Pedido {
-id: number | null,
+pedido_id: number | null,
 id_fecha: Date | null,
 hora: string | null,
 id_cliente: number | null,
  ubicacion: string,
- observacion: string,
+ observaciones: string,
  visibilidad: boolean,
- id_estado: number,
+ fk_estado: number,
+ items?: ItemsMenu[];
+ promociones?: any[];
 }
