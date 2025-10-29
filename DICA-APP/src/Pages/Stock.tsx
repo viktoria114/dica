@@ -97,7 +97,7 @@ export const StockPage = () => {
     handleGuardar: handleGuardarCreate,
     formErrors: formErrorsCreate,
     isSaving: isSavingCreate,
-    fields,
+    fields: createFields, // 👈 Renombrado para claridad
     setEditValues: setCreateValues,
   } = useFormStock(initialValues, onSuccessCreate, "crear");
 
@@ -107,6 +107,7 @@ export const StockPage = () => {
     handleGuardar: handleGuardarEdit,
     formErrors: formErrorsEdit,
     isSaving: isSavingEdit,
+    fields: editFields, // 👈 Renombrado para claridad
     setEditValues,
   } = useFormStock(selectedStock, onSuccessEdit, "editar");
 
@@ -227,7 +228,7 @@ export const StockPage = () => {
         open={showForm}
         entityName="Stock"
         modo="crear"
-        fields={fields}
+        fields={createFields} // 👈 Usa createFields
         values={createValues}
         formErrors={formErrorsCreate}
         handleChange={handleChangeCreate}
@@ -241,7 +242,7 @@ export const StockPage = () => {
         open={openEdit}
         entityName="Stock"
         modo="editar"
-        fields={fields}
+        fields={editFields} // 👈 Usa editFields (ya filtrados)
         values={editValues}
         formErrors={formErrorsEdit}
         handleChange={handleChangeEdit}
@@ -260,7 +261,15 @@ export const StockPage = () => {
             label: "Stock Actual",
             value: `${editValues.stock_actual} ${editValues.medida}`,
           },
-          { label: "Días p/ Vencimiento", value: editValues.vencimiento },
+          // 👇 Solo mostrar si es PERECEDERO
+          ...(editValues.tipo === "PERECEDERO"
+            ? [
+                {
+                  label: "Días para vencimiento",
+                  value: editValues.vencimiento,
+                },
+              ]
+            : []),
           { label: "Tipo", value: editValues.tipo },
           {
             label: "Stock Mínimo",

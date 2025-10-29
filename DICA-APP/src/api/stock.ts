@@ -37,6 +37,7 @@ export const fetchStockInvisible = async (): Promise<Stock[]> => {
 export const fetchCrearStock = async (data: Partial<Stock>): Promise<Stock> => {
   try {
     const res = await api.post<Stock>(STOCK_URL, data);
+    console.log("Stock creado:", res.data);
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
