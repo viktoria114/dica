@@ -62,3 +62,32 @@ export const eliminarPago = async (id: number): Promise<void> => {
     throw err;
   }
 };
+
+export async function obtenerLinkTemporalDropbox(
+  pathArchivo: string,
+  accessToken: string
+): Promise<string | null> {
+  const endpoint = "https://api.dropboxapi.com/2/files/get_temporary_link";
+
+  try {
+    const resp = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ path: pathArchivo }),
+    });
+
+    if (!resp.ok) {
+      console.error("Error al obtener link temporal:", await resp.text());
+      return null;
+    }
+
+    const data = await resp.json();
+    return data.link || null;
+  } catch (err) {
+    console.error("Error en fetch de link temporal:", err);
+    return null;
+  }
+}

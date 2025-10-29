@@ -24,6 +24,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { StockPage } from "./Pages/Stock";
 import { Pagos } from "./Pages/Pagos";
+import { DropboxTokenProvider } from "./contexts/DropboxTokenContext";
 
 function App() {
   const router = createBrowserRouter(
@@ -60,11 +61,13 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <SnackbarProvider>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <RouterProvider router={router} />
-        </LocalizationProvider>
-      </SnackbarProvider>
+      <DropboxTokenProvider>
+        <SnackbarProvider>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <RouterProvider router={router} />
+          </LocalizationProvider>
+        </SnackbarProvider>
+      </DropboxTokenProvider>
     </ThemeProvider>
   );
 }
