@@ -8,7 +8,7 @@ export interface FieldConfig<T> {
   name: keyof T;
   label: string;
   type?: "text" | "password" | "select" | "number";
-  options?: { value: string; label: string }[]; // para selects
+  options?: { value: string | number; label: string }[]; // para selects
   onlyInCreate?: boolean; // campos visibles solo en modo "crear"
   disabled?: boolean; // Para permitir campos deshabilitados
   // 👇 AÑADE ESTA PROPIEDAD

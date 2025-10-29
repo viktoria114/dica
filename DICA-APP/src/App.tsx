@@ -19,6 +19,9 @@ import { Pedidos } from "./Pages/Pedidos";
 import { Clientes } from "./Pages/Clientes";
 import { SnackbarProvider } from "./contexts/SnackbarContext";
 import { Promociones } from "./Pages/Promociones";
+import { Balance } from "./Pages/Balance";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { StockPage } from "./Pages/Stock";
 
 function App() {
@@ -44,6 +47,7 @@ function App() {
           <Route path="/menu" element={<Menu />} />
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/promociones" element={<Promociones />} />
+          <Route path="/balance" element={<Balance />} />
           <Route path="/stock" element={<StockPage />} />
         </Route>
 
@@ -55,7 +59,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <SnackbarProvider>
-        <RouterProvider router={router} />
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <RouterProvider router={router} />
+        </LocalizationProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );
