@@ -47,3 +47,19 @@ export interface Promocion {
   items: { id: number; nombre: string; precio: number; cantidad: number }[];
 }
 
+export interface Gasto {
+  id: number | null;
+  monto: number;
+  categoria: string;
+  metodo_de_pago: string;
+  descripcion: string;
+  fk_registro_stock: number | null;
+  fecha: Date;
+  stockItems: { id_stock: number; cantidad: number }[];
+}
+
+export interface Stock {
+  id: number;
+  nombre: string;
+  stock_actual: number;
+}

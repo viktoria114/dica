@@ -6,6 +6,25 @@ import { Request, Response } from 'express'
 import { Gasto } from '../models/gasto' 
 import { RegistroStock } from '../models/registroStock';
 
+export const listarGastos = async (req: Request, res: Response): Promise<void> => {
+  const client: PoolClient = await pool.connect();
+
+  try {
+    const query = `
+      SELECT * FROM gastos;
+    `;
+
+    const {rows} = await client.query(query);
+
+    res.status(200).json(rows);
+
+  } catch (error: any) {
+    console.error('Error al listar gastos:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor al listar los gastos.' });
+  } finally {
+    client.release();
+  }
+};
 export const crearGasto = async (req: Request, res: Response): Promise<void> => {
 
   const client: PoolClient = await pool.connect();
