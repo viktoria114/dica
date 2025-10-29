@@ -8,7 +8,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Checkbox from "@mui/material/Checkbox";
-import { Button, Container, LinearProgress } from "@mui/material";
+import { Button, Container, LinearProgress, List, ListItem, ListItemText } from "@mui/material";
 import { SearchBar } from "../Components/common/SearchBar";
 import type { Promocion } from "../types";
 import { EnhancedTableHead } from "../Components/Promociones/EnhancedTableHead";
@@ -21,6 +21,9 @@ import { ModalBase } from "../Components/common/ModalBase";
 import { usePromocionForm } from "../hooks/useFormPromociones";
 import { MenuSelector } from "../Components/Promociones/MenuSelector";
 import { useMenu } from "../hooks/useMenu";
+import { useBorrarPromocion } from "../hooks/useBorrarPromocion";
+import { useActualizarPromocion } from "../hooks/useActualizarPromocion";
+import { useRestaurarPromocion } from "../hooks/useRestaurarPromocion";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -40,8 +43,20 @@ function getComparator<Key extends keyof Promocion>(
 }
 
 export const Promociones = () => {
-  const { promociones, loading, error, modoPapelera, toggleInvisibles } = usePromociones();
+  const { promociones, loading, error, modoPapelera, toggleInvisibles, refreshPromociones } = usePromociones();
   const { menus } = useMenu();
+  const { borrarPromocion, isDeleting } = useBorrarPromocion(() => {
+    refreshPromociones();
+    setOpenEdit(false);
+  });
+  const { actualizar, isUpdating } = useActualizarPromocion(() => {
+    refreshPromociones();
+    setOpenEdit(false);
+  });
+  const { restaurar, isRestoring } = useRestaurarPromocion(() => {
+    refreshPromociones();
+    setOpenEdit(false);
+  });
   const {
   open,
   promocionFields,
@@ -62,6 +77,7 @@ export const Promociones = () => {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const rowsPerPageOptions: number[] = [5, 10, 25];
     const [openEdit, setOpenEdit] = useState(false);
+  const [originalPromocion, setOriginalPromocion] = useState<Promocion | null>(null);
 
 
   React.useEffect(() => {
@@ -122,6 +138,7 @@ export const Promociones = () => {
   }, [setFormValues, setOpen]);
 
   const handleEdit = (promocion: Promocion) => {
+    setOriginalPromocion(promocion);
     setFormValues(promocion);
     setOpenEdit(true);
   };
@@ -253,9 +270,9 @@ export const Promociones = () => {
 >
    <MenuSelector
     availableMenus={menus}
-    selectedMenus={formValues.menus ?? []}
-    onChange={(newMenus) =>
-      handleChange("menus", newMenus)
+    selectedItems={formValues.items ?? []}
+    onChange={(newItems) =>
+      handleChange("items", newItems)
     }
   />
 </ModalBase>
@@ -268,9 +285,15 @@ export const Promociones = () => {
         values={formValues}
         formErrors={formErrors}
         handleChange={handleChange}
-        handleGuardar={handleSubmit}
+        handleGuardar={() => actualizar(formValues.id, originalPromocion!, formValues)}
         handleClose={() => setOpenEdit(false)}
-        isSaving={isSaving}
+        isSaving={isUpdating}
+        borrar={() => borrarPromocion(formValues.id)}
+        isDeleting={isDeleting}
+        restaurar={() => restaurar(formValues.id)}
+        isRestoring={isRestoring}
+        modoPapelera={modoPapelera}
+        idField="id"
          displayFields={[
         { label: "Nombre", value: formValues.nombre },
         { label: "ID", value: formValues.id },
@@ -278,10 +301,17 @@ export const Promociones = () => {
         { label: "Precio", value: formValues.precio },
       ]}
       >
+        <List>
+          {formValues.items?.map((item) => (
+            <ListItem key={item.id}>
+              <ListItemText primary={`${item.nombre} (x${item.cantidad})`} />
+            </ListItem>
+          ))}
+        </List>
         <MenuSelector
           availableMenus={menus}
-          selectedMenus={formValues.menus ?? []}
-          onChange={(newMenus) => handleChange("menus", newMenus)}
+          selectedItems={formValues.items ?? []}
+          onChange={(newItems) => handleChange("items", newItems)}
         />
       </ModalBase>
     </>

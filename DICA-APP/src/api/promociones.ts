@@ -52,7 +52,7 @@ export const eliminarPromocion = async (id: number): Promise<void> => {
 // ✅ POST restaurar
 export const restaurarPromocion = async (id: number): Promise<Promocion> => {
   try {
-    const res = await api.post<Promocion>(`${PROMOCIONES_URL}/restaurar/${id}`);
+    const res = await api.put<Promocion>(`${PROMOCIONES_URL}/restaurar/${id}`);
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
@@ -69,7 +69,8 @@ export interface CrearPromocionPayload {
   nombre: string;
   tipo: '2x1' | 'DESCUENTO' | 'MONTO_FIJO';
   precio: number;
-  menus: { id_menu: number; cantidad: number }[];
+  visibilidad: boolean;
+  items: { id_menu: number; cantidad: number }[];
 }
 
 export const crearPromocion = async (payload: CrearPromocionPayload): Promise<{ id: number; message: string }> => {
@@ -83,6 +84,67 @@ export const crearPromocion = async (payload: CrearPromocionPayload): Promise<{ 
     if (axios.isAxiosError(err)) {
       throw new Error(
         err.response?.data?.message || "Error al crear Promoción"
+      );
+    }
+    throw err;
+  }
+};
+
+// PUT Actualizar Promoción
+export interface ActualizarPromocionPayload {
+  nombre: string;
+  tipo: '2x1' | 'DESCUENTO' | 'MONTO_FIJO';
+  precio: number;
+  visibilidad: boolean;
+  items: { id: number; cantidad: number }[];
+}
+
+export const actualizarPromocion = async (id: number, payload: ActualizarPromocionPayload): Promise<Promocion> => {
+  try {
+    const res = await api.put<Promocion>(`${PROMOCIONES_URL}/${id}`, payload);
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al actualizar la promoción"
+      );
+    }
+    throw err;
+  }
+};
+
+// POST Agregar item a la promoción
+export interface AgregarItemPromocionPayload {
+  id_menu: number;
+  cantidad: number;
+}
+
+export const agregarItemPromocion = async (id: number, payload: AgregarItemPromocionPayload): Promise<void> => {
+  try {
+    await api.post(`${PROMOCIONES_URL}/item/${id}`, payload);
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al agregar item a la promoción"
+      );
+    }
+    throw err;
+  }
+};
+
+// DELETE Eliminar item de la promoción
+export interface EliminarItemPromocionPayload {
+  id_menu: number;
+  cantidad: number;
+}
+
+export const eliminarItemPromocion = async (id: number, payload: EliminarItemPromocionPayload): Promise<void> => {
+  try {
+    await api.delete(`${PROMOCIONES_URL}/item/${id}`, { data: payload });
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al eliminar item de la promoción"
       );
     }
     throw err;

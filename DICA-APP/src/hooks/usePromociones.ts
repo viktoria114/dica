@@ -41,9 +41,17 @@ export const usePromociones = () => {
     setModoPapelera((prev) => !prev);
   }, [modoPapelera, cargarPromociones, cargarPromocionesInvisibles]);
 
+  const refreshPromociones = useCallback(() => {
+    if (modoPapelera) {
+      cargarPromocionesInvisibles();
+    } else {
+      cargarPromociones();
+    }
+  }, [modoPapelera, cargarPromociones, cargarPromocionesInvisibles]);
+
   useEffect(() => {
     cargarPromociones();
   }, [cargarPromociones]);
 
-  return { promociones, loading, error, modoPapelera, toggleInvisibles };
+  return { promociones, loading, error, modoPapelera, toggleInvisibles, refreshPromociones };
 };

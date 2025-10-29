@@ -43,6 +43,7 @@ export interface Promocion {
   nombre: string;
   tipo: '2x1' | 'DESCUENTO' | 'MONTO_FIJO';
   precio: number;
-  menus: { id_menu: number; cantidad: number }[];
+  visibilidad: boolean;
+  items: { id: number; nombre: string; precio: number; cantidad: number }[];
 }
 

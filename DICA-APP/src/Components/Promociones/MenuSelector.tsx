@@ -12,33 +12,33 @@ import type { ItemsMenu } from "../../types";
 
 interface MenuSelectorProps {
   availableMenus: ItemsMenu[];
-  selectedMenus: { id_menu: number; cantidad: number }[];
+  selectedItems: { id: number; cantidad: number }[];
   onChange: (
-    newSelected: { id_menu: number; cantidad: number }[]
+    newSelected: { id: number; cantidad: number }[]
   ) => void;
 }
 
 export const MenuSelector: React.FC<MenuSelectorProps> = ({
   availableMenus,
-  selectedMenus,
+  selectedItems,
   onChange,
 }) => {
   const handleAdd = () => {
-    onChange([...selectedMenus, { id_menu: 0, cantidad: 1 }]);
+    onChange([...selectedItems, { id: 0, cantidad: 1 }]);
   };
 
   const handleUpdate = (
     index: number,
-    field: "id_menu" | "cantidad",
+    field: "id" | "cantidad",
     value: number
   ) => {
-    const updated = [...selectedMenus];
+    const updated = [...selectedItems];
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
   };
 
   const handleDelete = (index: number) => {
-    const updated = selectedMenus.filter((_, i) => i !== index);
+    const updated = selectedItems.filter((_, i) => i !== index);
     onChange(updated);
   };
 
@@ -46,7 +46,7 @@ export const MenuSelector: React.FC<MenuSelectorProps> = ({
     <Grid container spacing={2} direction="column" sx={{ mt: 2 }}>
       <Typography variant="h6">Menús</Typography>
 
-      {selectedMenus.map((item, index) => (
+      {selectedItems.map((item, index) => (
         <Grid key={index} container spacing={2} alignItems="center">
           {/* Dropdown de menus */}
           <Grid spacing={6}>
@@ -54,9 +54,9 @@ export const MenuSelector: React.FC<MenuSelectorProps> = ({
               select
               fullWidth
               label="Menú"
-              value={item.id_menu}
+              value={item.id}
               onChange={(e) =>
-                handleUpdate(index, "id_menu", Number(e.target.value))
+                handleUpdate(index, "id", Number(e.target.value))
               }
             >
               {availableMenus.map((menu) => (

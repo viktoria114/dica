@@ -36,7 +36,8 @@ export const usePromocionForm = () => {
     nombre: "",
     tipo: "2x1",
     precio: 0,
-    menus: [],
+    visibilidad: true,
+    items: [],
   });
 
   const [formErrors, setFormErrors] = useState<
@@ -50,8 +51,8 @@ export const usePromocionForm = () => {
       errors.precio = "El descuento debe ser entre 1 y 100";
     if (values.tipo === 'MONTO_FIJO' && (!values.precio || values.precio <= 0))
       errors.precio = "El precio debe ser mayor a 0";
-    if (values.menus.length === 0) {
-        errors.menus = "Debe seleccionar al menos un menú";
+    if (values.items.length === 0) {
+        errors.items = "Debe seleccionar al menos un menú";
     }
     return errors;
   };
@@ -71,7 +72,8 @@ export const usePromocionForm = () => {
         nombre: values.nombre,
         tipo: values.tipo,
         precio: values.precio,
-        menus: values.menus || [],
+        visibilidad: values.visibilidad,
+        items: values.items || [],
       });
       showSnackbar("Promoción creada con éxito!", "success");
       setOpen(false);
