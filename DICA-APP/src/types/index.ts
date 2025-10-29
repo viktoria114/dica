@@ -68,3 +68,14 @@ export interface Gasto {
   fecha: Date;
   stockItems: { id_stock: number; cantidad: number }[];
 }
+
+export interface Pago {
+  id: number | null;
+  monto: number;
+  metodo_pago: string;
+  comprobante_pago: string;
+  validado: boolean;
+  fk_pedido: number | null;
+  fk_fecha: Date;
+  hora: string;
+}
