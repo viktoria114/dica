@@ -21,7 +21,8 @@ const fields: FieldConfig<Stock>[] = [
     name: "stock_actual",
     label: "Stock actual",
     type: "number",
-  },
+    disabled: true, //  Campo deshabilitado
+  } as unknown as FieldConfig<Stock>,
   {
     name: "vencimiento",
     label: "Días para vencimiento",
@@ -171,7 +172,7 @@ export const useFormStock = (
     }
   };
 
-  // 🎯 Filtrar campos según el tipo
+  //  Filtrar campos según el tipo
   const filteredFields = fields
     .map((field) => {
       if (field.name === "vencimiento" && editValues.tipo === "NO PERECEDERO") {
