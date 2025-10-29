@@ -4,7 +4,6 @@ import { crearGasto } from '../api/gastos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { FieldConfig } from '../Components/common/FormBase';
 import { DatePicker } from '@mui/x-date-pickers';
-import dayjs from 'dayjs';
 
 export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
   const [open, setOpen] = useState(false);
@@ -20,7 +19,17 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
     {
       name: 'categoria',
       label: 'Categoría',
-      type: 'text',
+      type: 'select',
+      options: [
+        { value: 'insumos', label: 'Insumos' },
+        { value: 'salarios', label: 'Salarios' },
+        { value: 'alquiler', label: 'Alquiler' },
+        { value: 'mantenimiento', label: 'Mantenimiento' },
+        { value: 'equipamiento', label: 'Equipamiento' },
+        { value: 'transporte', label: 'Transporte' },
+        { value: 'marketing', label: 'Marketing' },
+        { value: 'otros', label: 'Otros' },
+      ],
     },
     {
       name: 'metodo_de_pago',
@@ -43,7 +52,7 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
       render: (value, handleChange) => (
         <DatePicker
           label="Fecha"
-          value={value ? dayjs(value) : dayjs()}
+          value={value ? new Date(value) : new Date()}
           onChange={(newValue) => handleChange('fecha', newValue)}
         />
       ),

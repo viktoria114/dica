@@ -75,25 +75,32 @@ export const StockSelectorModal: React.FC<StockSelectorModalProps> = ({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   sx={{ my: 2 }}
+                  InputLabelProps={{ style: { color: 'black' } }}
                 />
                 <List>
                   {filteredStocks.map((stock) => {
-                    const selectedItem = selectedItems.find((item) => item.id_stock === stock.id);
+                    const stockId = stock.id;
+                    if (stockId === null) {
+                      return null;
+                    }
+                    const selectedItem = selectedItems.find((item) => item.id_stock === stockId);
                     return (
-                      <ListItem key={stock.id}>
+                      <ListItem key={stockId}>
                         <ListItemText
                           primary={stock.nombre}
                           secondary={`Stock actual: ${stock.stock_actual}`}
+                          secondaryTypographyProps={{ style: { color: 'black' } }}
                         />
                         <TextField
                           type="number"
                           label="Cantidad"
                           value={selectedItem?.cantidad || 0}
                           onChange={(e) =>
-                            handleQuantityChange(stock.id, parseInt(e.target.value, 10))
+                            handleQuantityChange(stockId, parseInt(e.target.value, 10))
                           }
                           inputProps={{ min: 0 }}
                           sx={{ width: "100px" }}
+                          InputLabelProps={{ style: { color: 'black' } }}
                         />
                       </ListItem>
                     );

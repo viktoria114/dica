@@ -68,9 +68,3 @@ export interface Gasto {
   fecha: Date;
   stockItems: { id_stock: number; cantidad: number }[];
 }
-
-export interface Stock {
-  id: number;
-  nombre: string;
-  stock_actual: number;
-}
