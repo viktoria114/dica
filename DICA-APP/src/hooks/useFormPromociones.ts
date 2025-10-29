@@ -15,7 +15,6 @@ const promocionFields: FieldConfig<Promocion>[] = [
     label: "Tipo",
     type: "select",
     options: [
-      { value: "2x1", label: "2x1" },
       { value: "DESCUENTO", label: "Descuento" },
       { value: "MONTO_FIJO", label: "Monto Fijo" },
     ],
@@ -34,7 +33,7 @@ export const usePromocionForm = () => {
   const [formValues, setFormValues] = useState<Promocion>({
     id: 0,
     nombre: "",
-    tipo: "2x1",
+    tipo: "DESCUENTO",
     precio: 0,
     visibilidad: true,
     items: [],
@@ -68,12 +67,17 @@ export const usePromocionForm = () => {
 
     setIsSaving(true);
     try {
+      const itemsForApi = values.items.map(item => ({
+        id_menu: item.id,
+        cantidad: item.cantidad,
+      }));
+
       await crearPromocion({
         nombre: values.nombre,
         tipo: values.tipo,
         precio: values.precio,
         visibilidad: values.visibilidad,
-        items: values.items || [],
+        items: itemsForApi,
       });
       showSnackbar("Promoción creada con éxito!", "success");
       setOpen(false);
@@ -85,9 +89,19 @@ export const usePromocionForm = () => {
     }
   };
 
+  const fields = promocionFields.map((field) => {
+    if (field.name === 'precio') {
+      if (formValues.tipo === 'DESCUENTO') {
+        return { ...field, label: 'Porcentaje de descuento' };
+      }
+      return { ...field, label: 'Precio' };
+    }
+    return field;
+  });
+
   return {
     open,
-    promocionFields,
+    promocionFields: fields,
     setOpen,
     isSaving,
     formValues,

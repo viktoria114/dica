@@ -67,7 +67,7 @@ export const restaurarPromocion = async (id: number): Promise<Promocion> => {
 // POST Crear Promoción
 export interface CrearPromocionPayload {
   nombre: string;
-  tipo: '2x1' | 'DESCUENTO' | 'MONTO_FIJO';
+  tipo: 'DESCUENTO' | 'MONTO_FIJO';
   precio: number;
   visibilidad: boolean;
   items: { id_menu: number; cantidad: number }[];
@@ -93,7 +93,7 @@ export const crearPromocion = async (payload: CrearPromocionPayload): Promise<{ 
 // PUT Actualizar Promoción
 export interface ActualizarPromocionPayload {
   nombre: string;
-  tipo: '2x1' | 'DESCUENTO' | 'MONTO_FIJO';
+  tipo: 'DESCUENTO' | 'MONTO_FIJO';
   precio: number;
   visibilidad: boolean;
   items: { id: number; cantidad: number }[];

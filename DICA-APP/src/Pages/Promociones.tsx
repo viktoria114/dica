@@ -19,7 +19,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import { useCallback, useState } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
 import { usePromocionForm } from "../hooks/useFormPromociones";
-import { MenuSelector } from "../Components/Promociones/MenuSelector";
+import { MenuSelectorModal } from "../Components/Promociones/MenuSelectorModal";
 import { useMenu } from "../hooks/useMenu";
 import { useBorrarPromocion } from "../hooks/useBorrarPromocion";
 import { useActualizarPromocion } from "../hooks/useActualizarPromocion";
@@ -76,8 +76,9 @@ export const Promociones = () => {
   const [dense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const rowsPerPageOptions: number[] = [5, 10, 25];
-    const [openEdit, setOpenEdit] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
   const [originalPromocion, setOriginalPromocion] = useState<Promocion | null>(null);
+  const [isMenuSelectorOpen, setMenuSelectorOpen] = useState(false);
 
 
   React.useEffect(() => {
@@ -133,7 +134,14 @@ export const Promociones = () => {
     [order, orderBy, page, rowsPerPage, filteredRows]
   );
   const handleAdd = useCallback(() => {
-    setFormValues({} as Promocion);
+    setFormValues({
+      id: 0,
+      nombre: "",
+      tipo: "DESCUENTO",
+      precio: 0,
+      visibilidad: true,
+      items: [],
+    });
     setOpen(true);
   }, [setFormValues, setOpen]);
 
@@ -146,7 +154,8 @@ export const Promociones = () => {
 
   return (
     <>
-      {loading && <LinearProgress color="inherit" />}
+      {loading && <LinearProgress color="inherit" />
+}
       {error && <p>{error}</p>}
       <Container>
         <SearchBar<Promocion>
@@ -257,27 +266,31 @@ export const Promociones = () => {
       </Container>
 
       <ModalBase
-  open={open}
-  entityName="Promoción"
-  modo="crear"
-  fields={promocionFields}
-  values={formValues}
-  formErrors={formErrors}
-  handleChange={handleChange}
-  handleGuardar={handleSubmit}
-  handleClose={() => setOpen(false)}
-  isSaving={isSaving}
->
-   <MenuSelector
-    availableMenus={menus}
-    selectedItems={formValues.items ?? []}
-    onChange={(newItems) =>
-      handleChange("items", newItems)
-    }
-  />
-</ModalBase>
+        open={open}
+        entityName="Promoción"
+        modo="crear"
+        fields={promocionFields}
+        values={formValues}
+        formErrors={formErrors}
+        handleChange={handleChange}
+        handleGuardar={handleSubmit}
+        handleClose={() => setOpen(false)}
+        isSaving={isSaving}
+      >
+        <Button onClick={() => setMenuSelectorOpen(true)}>Seleccionar Menús</Button>
+        <List>
+          {formValues.items?.map((item) => {
+            const menu = menus.find((m) => m.id === item.id);
+            return (
+              <ListItem key={item.id}>
+                <ListItemText primary={`${menu?.nombre} (x${item.cantidad})`} />
+              </ListItem>
+            );
+          })}
+        </List>
+      </ModalBase>
 
- <ModalBase
+      <ModalBase
         open={openEdit}
         entityName="Promoción"
         modo="editar"
@@ -294,26 +307,37 @@ export const Promociones = () => {
         isRestoring={isRestoring}
         modoPapelera={modoPapelera}
         idField="id"
-         displayFields={[
-        { label: "Nombre", value: formValues.nombre },
-        { label: "ID", value: formValues.id },
-        { label: "Tipo", value: formValues.tipo },
-        { label: "Precio", value: formValues.precio },
-      ]}
+        displayFields={[
+          { label: "Nombre", value: formValues.nombre },
+          { label: "ID", value: formValues.id },
+          { label: "Tipo", value: formValues.tipo },
+          {
+            label: formValues.tipo === "DESCUENTO" ? "Porcentaje de descuento" : "Precio",
+            value: formValues.precio,
+          },
+        ]}
       >
         <List>
-          {formValues.items?.map((item) => (
-            <ListItem key={item.id}>
-              <ListItemText primary={`${item.nombre} (x${item.cantidad})`} />
-            </ListItem>
-          ))}
+          {formValues.items?.map((item) => {
+            const menu = menus.find((m) => m.id === item.id);
+            return (
+              <ListItem key={item.id}>
+                <ListItemText primary={`${menu?.nombre} (x${item.cantidad})`} />
+              </ListItem>
+            );
+          })}
         </List>
-        <MenuSelector
-          availableMenus={menus}
-          selectedItems={formValues.items ?? []}
-          onChange={(newItems) => handleChange("items", newItems)}
-        />
+        <Button onClick={() => setMenuSelectorOpen(true)}>Seleccionar Menús</Button>
       </ModalBase>
+
+      <MenuSelectorModal
+        open={isMenuSelectorOpen}
+        onClose={() => setMenuSelectorOpen(false)}
+        availableMenus={menus}
+        selectedItems={formValues.items ?? []}
+        onChange={(newItems) => handleChange("items", newItems)}
+        formValues={formValues}
+      />
     </>
   );
 };
