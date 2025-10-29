@@ -47,6 +47,8 @@ router.get('/item/:id', getItemPedido);
 router.put('/estado/:id', verifyToken, actualizarEstadoPedido);
 router.put('/retroceder_estado/:id',verifyToken, retrocederEstadoPedido);
 router.put('/agente_estado/:tel', agenteEstadoPedido);
+router.get('/asignados_empleado', verifyToken, getPedidosAsignadosEmpleado);
+router.get('/ticket/:id', getTicketPedido);
 
 
 
@@ -56,7 +58,6 @@ router.get('/cancelar', getPedidosCancelados);
 router.get('/cancelados_hoy', getPedidosCanceladosHoy);
 router.get('/pedidos_cancelados_empleado_hoy',verifyToken, getPedidosCanceladosEmpleadoHoy);
 router.get('/pedidos_cancelados_empleado',verifyToken, getPedidosCanceladosEmpleado);
-router.get('/asignados_empleado', verifyToken, getPedidosAsignadosEmpleado);
-router.get('/ticket/:id', getTicketPedido);
+
 
 export default router;

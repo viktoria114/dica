@@ -18,6 +18,7 @@ import { Menu } from "./Pages/Menu";
 import { Pedidos } from "./Pages/Pedidos";
 import { Clientes } from "./Pages/Clientes";
 import { SnackbarProvider } from "./contexts/SnackbarContext";
+import { Promociones } from "./Pages/Promociones";
 import { StockPage } from "./Pages/Stock";
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
           <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/promociones" element={<Promociones />} />
           <Route path="/stock" element={<StockPage />} />
         </Route>
 

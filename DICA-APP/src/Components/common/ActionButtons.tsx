@@ -36,14 +36,16 @@ export const ActionButtons = ({
     <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
       {mode === "edicion" && (
         <>
-          <Button
-            sx={{ height: 50 }}
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={onEdit}
-          >
-            Editar
-          </Button>
+          {onEdit && (
+            <Button
+              sx={{ height: 50 }}
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={onEdit}
+            >
+              Editar
+            </Button>
+          )}
           <Button
             sx={{ height: 50 }}
             variant="contained"

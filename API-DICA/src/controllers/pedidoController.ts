@@ -6,31 +6,44 @@ import { descargarImagen, subirADropbox } from '../utils/image';
 
 // queryParts.ts
 export const PEDIDO_FIELDS = `
-    p.id AS pedido_id,
-    p.id_cliente,
-    p.ubicacion,
-    p.observaciones,
-    p.id_estado,
-    -- Items asociados
-    COALESCE(
-      json_agg(
-        DISTINCT jsonb_build_object(
-          'fk_menu', pm.fk_menu,
-          'cantidad', pm.cantidad
-        )
-      ) FILTER (WHERE pm.fk_menu IS NOT NULL),
-      '[]'
-    ) AS items,
-    -- Promociones asociadas
-    COALESCE(
-      json_agg(
-        DISTINCT jsonb_build_object(
-          'fk_promocion', pp.id_promocion,
-          'cantidad', pp.cantidad
-        )
-      ) FILTER (WHERE pp.id_promocion IS NOT NULL),
-      '[]'
-    ) AS promociones
+  p.id AS pedido_id,
+  p.id_cliente,
+  p.ubicacion,
+  p.observaciones,
+  p.id_estado,
+  
+  -- Detalle de items del menú
+  COALESCE(
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'id_menu', m.id,
+        'nombre', m.nombre,
+        'precio_unitario', m.precio,
+        'cantidad', pm.cantidad,
+        'subtotal', (m.precio * pm.cantidad)
+      )
+    ) FILTER (WHERE pm.fk_menu IS NOT NULL),
+    '[]'
+  ) AS items,
+
+  -- Detalle de promociones
+  COALESCE(
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'id_promocion', pr.id,
+        'nombre', pr.nombre,
+        'precio_unitario', pr.precio,
+        'cantidad', pp.cantidad,
+        'subtotal', (pr.precio * pp.cantidad)
+      )
+    ) FILTER (WHERE pp.id_promocion IS NOT NULL),
+    '[]'
+  ) AS promociones,
+
+  -- Totales
+  COALESCE(SUM(m.precio * pm.cantidad), 0) AS precio_por_items,
+  COALESCE(SUM(pr.precio * pp.cantidad), 0) AS precio_por_promociones,
+  COALESCE(SUM(m.precio * pm.cantidad), 0) + COALESCE(SUM(pr.precio * pp.cantidad), 0) AS precio_total
 `;
 
 export const crearPedido = async (req: Request, res: Response) => {
@@ -275,7 +288,9 @@ export const getListaPedidos = async (_req: Request, res: Response) => {
     ${PEDIDO_FIELDS}
   FROM pedidos p
   LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+  LEFT JOIN menu m ON m.id = pm.fk_menu
   LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+  LEFT JOIN promociones pr ON pr.id = pp.id_promocion
   WHERE p.visibilidad = true
   GROUP BY p.id
   ORDER BY p.id ASC;
@@ -301,7 +316,9 @@ export const getListaPedidosPorTelefono = async (
       SELECT ${PEDIDO_FIELDS}, e.nombre AS estado_nombre
       FROM pedidos p
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
-    LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN menu m ON m.id = pm.fk_menu
+      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr ON pr.id = pp.id_promocion
       JOIN estados e ON e.id = p.id_estado
       WHERE p.id_cliente = $1
         AND p.id_estado NOT IN (6,8,9)
@@ -377,7 +394,33 @@ export const getPedidosEnConstruccion = async (req: Request, res: Response) => {
 export const getPedidosPorConfirmar = async (req: Request, res: Response) => {
   try {
     const { rows } = await pool.query(`
-    SELECT ${PEDIDO_FIELDS} FROM pedidos 
+    SELECT 
+    p.id AS pedido_id,
+    p.id_cliente,
+    p.ubicacion,
+    p.observaciones,
+    p.id_estado,
+    -- Items asociados
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_menu', pm.fk_menu,
+          'cantidad', pm.cantidad
+        )
+      ) FILTER (WHERE pm.fk_menu IS NOT NULL),
+      '[]'
+    ) AS items,
+    -- Promociones asociadas
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_promocion', pp.id_promocion,
+          'cantidad', pp.cantidad
+        )
+      ) FILTER (WHERE pp.id_promocion IS NOT NULL),
+      '[]'
+    ) AS promociones
+    FROM pedidos p
     LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
     LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido 
     WHERE id_estado = 7`);
@@ -416,7 +459,9 @@ export const getListaCompletaPedidos = async (_req: Request, res: Response) => {
     const query = `
       SELECT ${PEDIDO_FIELDS} FROM pedidos P
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN menu m ON m.id = pm.fk_menu
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr ON pr.id = pp.id_promocion
       GROUP BY p.id
       ORDER BY p.id ASC;
     `;
@@ -1201,27 +1246,31 @@ export const getPedidosAsignadosEmpleado = async (
   try {
     const query = `
   SELECT 
-   ${PEDIDO_FIELDS},
-    re.dni_empleado
-  FROM pedidos p
-  INNER JOIN registro_de_estados re 
-    ON re.id_pedido = p.id
-  LEFT JOIN pedidos_menu pm 
-    ON p.id = pm.fk_pedido
-  LEFT JOIN pedidos_promociones pp 
-    ON p.id = pp.id_pedido
-  WHERE re.dni_empleado = $1
-    AND DATE(re.id_fecha) = CURRENT_DATE
-    AND re.id = (
-      SELECT MAX(r2.id)
-      FROM registro_de_estados r2
-      WHERE r2.id_pedido = p.id
-    )
-    AND p.visibilidad = TRUE
-  GROUP BY 
-    p.id, p.id_cliente, p.ubicacion, p.observaciones, 
-    p.id_estado, re.dni_empleado, re.id_fecha, re.id_estado
-  ORDER BY p.id;
+        ${PEDIDO_FIELDS},
+        re.dni_empleado
+      FROM pedidos p
+      INNER JOIN registro_de_estados re 
+        ON re.id_pedido = p.id
+      LEFT JOIN pedidos_menu pm 
+        ON p.id = pm.fk_pedido
+      LEFT JOIN menu m 
+        ON m.id = pm.fk_menu
+      LEFT JOIN pedidos_promociones pp 
+        ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr 
+        ON pr.id = pp.id_promocion
+      WHERE re.dni_empleado = $1
+        AND DATE(re.id_fecha) = CURRENT_DATE
+        AND re.id = (
+          SELECT MAX(r2.id)
+          FROM registro_de_estados r2
+          WHERE r2.id_pedido = p.id
+        )
+        AND p.visibilidad = TRUE
+      GROUP BY 
+        p.id, p.id_cliente, p.ubicacion, p.observaciones, 
+        p.id_estado, re.dni_empleado, re.id_fecha, re.id_estado
+      ORDER BY p.id;
 `;
 
 
@@ -1322,3 +1371,30 @@ export const getTicketPedido = async (req: Request, res: Response) => {
   }
 };
 
+/*export const PEDIDO_FIELDS = `
+    p.id AS pedido_id,
+    p.id_cliente,
+    p.ubicacion,
+    p.observaciones,
+    p.id_estado,
+    -- Items asociados
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_menu', pm.fk_menu,
+          'cantidad', pm.cantidad
+        )
+      ) FILTER (WHERE pm.fk_menu IS NOT NULL),
+      '[]'
+    ) AS items,
+    -- Promociones asociadas
+    COALESCE(
+      json_agg(
+        DISTINCT jsonb_build_object(
+          'fk_promocion', pp.id_promocion,
+          'cantidad', pp.cantidad
+        )
+      ) FILTER (WHERE pp.id_promocion IS NOT NULL),
+      '[]'
+    ) AS promociones
+`; */

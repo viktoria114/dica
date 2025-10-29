@@ -200,13 +200,18 @@ export const getPedidosCanceladosEmpleadoHoy = async (req: Request, res: Respons
       c.motivo,
       re.dni_empleado
       FROM pedidos p
-      INNER JOIN registro_de_estados re 
+      INNER JOIN registro_de_estados re
         ON p.id = re.id_pedido
-      LEFT JOIN pedidos_menu pm 
-        ON p.id = pm.fk_pedido
-      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
       LEFT JOIN cancelaciones c 
         ON p.id = c.id_pedido
+      LEFT JOIN pedidos_menu pm 
+        ON p.id = pm.fk_pedido
+      LEFT JOIN menu m 
+        ON m.id = pm.fk_menu
+      LEFT JOIN pedidos_promociones pp 
+        ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr 
+        ON pr.id = pp.id_promocion
       WHERE re.dni_empleado = $1
         AND p.visibilidad = TRUE
         AND re.id_fecha = CURRENT_DATE
@@ -230,23 +235,31 @@ export const getPedidosCanceladosEmpleado = async (req: Request, res: Response) 
         c.motivo,
         re.dni_empleado
       FROM pedidos p
-      INNER JOIN  registro_de_estados re
+      INNER JOIN registro_de_estados re
         ON p.id = re.id_pedido
       LEFT JOIN cancelaciones c 
         ON p.id = c.id_pedido
       LEFT JOIN pedidos_menu pm 
         ON p.id = pm.fk_pedido
-      LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN menu m 
+        ON m.id = pm.fk_menu
+      LEFT JOIN pedidos_promociones pp 
+        ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr 
+        ON pr.id = pp.id_promocion
       WHERE re.dni_empleado = $1
         AND p.visibilidad = TRUE
-      GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, c.motivo, re.dni_empleado
+      GROUP BY 
+        p.id, p.id_cliente, p.ubicacion, p.observaciones, 
+        p.id_estado, c.motivo, re.dni_empleado
       ORDER BY p.id;
     `;
+
     const { rows } = await pool.query(query, [idEmpleado]);
     res.json(rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error al obtener los Pedidos visible' });
+    res.status(500).json({ message: 'Error al obtener los pedidos cancelados' });
   }
 };
 
@@ -260,7 +273,9 @@ export const getPedidosCancelados = async (req: Request, res: Response) => {
       FROM pedidos p
       LEFT JOIN registro_de_estados re ON p.id = re.id_pedido
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN menu m ON m.id = pm.fk_menu
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr ON pr.id = pp.id_promocion
       LEFT JOIN cancelaciones c ON p.id = c.id_pedido
       WHERE (p.id_estado = 8 OR p.id_estado = 9)
       GROUP BY p.id, p.id_cliente, p.ubicacion, p.observaciones, p.id_estado, p.fecha, c.motivo, re.dni_empleado
@@ -285,7 +300,9 @@ export const getPedidosCanceladosHoy = async (req: Request, res: Response) => {
       FROM pedidos p
       LEFT JOIN registro_de_estados re ON p.id = re.id_pedido
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido
+      LEFT JOIN menu m ON m.id = pm.fk_menu
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
+      LEFT JOIN promociones pr ON pr.id = pp.id_promocion
       LEFT JOIN cancelaciones c ON p.id = c.id_pedido
       WHERE (p.id_estado = 8 OR p.id_estado = 9)
         AND p.fecha = CURRENT_DATE

@@ -48,3 +48,13 @@ export interface Stock {
   medida: string;
   visibilidad: boolean;
 }
+
+export interface Promocion {
+  id: number;
+  nombre: string;
+  tipo: 'DESCUENTO' | 'MONTO_FIJO';
+  precio: number;
+  visibilidad: boolean;
+  items: { id: number; nombre: string; precio: number; cantidad: number }[];
+}
+
