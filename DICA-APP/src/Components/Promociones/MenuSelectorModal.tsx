@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   Box,
@@ -42,6 +42,8 @@ export const MenuSelectorModal: React.FC<MenuSelectorModalProps> = ({
   onChange,
   formValues,
 }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const handleQuantityChange = (menuId: number, cantidad: number) => {
     const existingItem = selectedItems.find((item) => item.id === menuId);
 
@@ -72,12 +74,24 @@ export const MenuSelectorModal: React.FC<MenuSelectorModalProps> = ({
     return total;
   };
 
+  const filteredMenus = availableMenus.filter((menu) =>
+    menu.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Modal open={open} onClose={onClose}>
       <Box sx={style}>
         <Typography variant="h6">Seleccionar Menús</Typography>
+        <TextField
+          label="Buscar Menú"
+          variant="outlined"
+          fullWidth
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ my: 2 }}
+        />
         <List>
-          {availableMenus.map((menu) => {
+          {filteredMenus.map((menu) => {
             const selectedItem = selectedItems.find((item) => item.id === menu.id);
             return (
               <ListItem key={menu.id}>
