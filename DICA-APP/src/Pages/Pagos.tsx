@@ -1,24 +1,32 @@
-import * as React from "react";
-import Box from "@mui/material/Box";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import { Button, Container, LinearProgress, Checkbox } from "@mui/material";
+import {
+  Button,
+  Container,
+  LinearProgress,
+  Checkbox,
+  Modal,
+  CircularProgress,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+} from "@mui/material";
 import { SearchBar } from "../Components/common/SearchBar";
 import type { Pago } from "../types";
 import { EnhancedTableHead } from "../Components/Pagos/EnhancedTableHead";
-import { EnhancedTableToolbar } from "../Components/Pagos/EnhancedTableToolbar";
+
 import { Paginacion } from "../Components/common/Paginacion";
 import { usePagos } from "../hooks/usePagos";
 import InfoIcon from "@mui/icons-material/Info";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
 import { usePagoForm } from "../hooks/useFormPago.tsx";
 import { useActualizarPago } from "../hooks/useActualizarPago";
 import { useBorrarPago } from "../hooks/useBorrarPago";
+import { obtenerLinkTemporalDropbox } from "../api/pagos";
+import { useDropboxToken } from "../contexts/DropboxTokenContext";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -58,18 +66,22 @@ export const Pagos = () => {
     handleChange,
     handleSubmit,
   } = usePagoForm(refreshPagos);
+  const { token: dropboxToken } = useDropboxToken();
 
-  const [order, setOrder] = React.useState<Order>("asc");
-  const [orderBy, setOrderBy] = React.useState<keyof Pago>("monto");
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [order, setOrder] = useState<Order>("asc");
+  const [orderBy, setOrderBy] = useState<keyof Pago>("monto");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [openEdit, setOpenEdit] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setFilteredRows(pagos);
   }, [pagos]);
 
-  const [filteredRows, setFilteredRows] = React.useState<Pago[]>([]);
+  const [filteredRows, setFilteredRows] = useState<Pago[]>([]);
 
   const handleRequestSort = (
     _event: React.MouseEvent<unknown>,
@@ -80,10 +92,29 @@ export const Pagos = () => {
     setOrderBy(property);
   };
 
+  const handleViewReceipt = async (path: string) => {
+    if (!dropboxToken) {
+      alert("No se pudo obtener el token de Dropbox. Intente de nuevo más tarde.");
+      return;
+    }
+    setLoadingImage(true);
+    setImageModalOpen(true);
+    try {
+      const url = await obtenerLinkTemporalDropbox(path, dropboxToken);
+      setImageUrl(url);
+    } catch (error) {
+      console.error("Error getting temporary link:", error);
+      alert("Error al obtener el comprobante.");
+      setImageModalOpen(false);
+    } finally {
+      setLoadingImage(false);
+    }
+  };
+
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredRows.length) : 0;
 
-  const visibleRows = React.useMemo(
+  const visibleRows = useMemo(
     () =>
       [...filteredRows]
         .sort(getComparator(order, orderBy))
@@ -110,27 +141,28 @@ export const Pagos = () => {
     setOpenEdit(true);
   };
 
-  const displayFields = React.useMemo(() => {
+  const displayFields = useMemo(() => {
     if (!formValues) return [];
-    const fields = pagoFields
-      .map(field => {
-        let value: string | number | boolean | null = formValues[field.name] as any;
-        if (field.name === 'fk_fecha' && value) {
-          value = new Date(value).toLocaleDateString();
-        } else if (field.name === 'monto' && value) {
-          value = `$${value}`;
-        } else if (field.name === 'validado') {
-            value = value ? 'Sí' : 'No';
-        }
-        return {
-          label: field.label,
-          value: value !== null && value !== undefined ? String(value) : '-',
-        };
-      });
+    const fields = pagoFields.map((field) => {
+      let value: string | number | boolean | null =
+        formValues[field.name] as any;
+      if (field.name === "fk_fecha" && value) {
+        value = new Date(value as string | number | Date).toLocaleDateString();
+      } else if (field.name === "monto" && value) {
+        value = `$${value}`;
+      } else if (field.name === "validado") {
+        value = value ? "Sí" : "No";
+      }
+      return {
+        label: field.label,
+        value:
+          value !== null && value !== undefined ? String(value) : "-",
+      };
+    });
 
     fields.push({
-        label: "Comprobante de Pago",
-        value: formValues.comprobante_pago || '-',
+      label: "Comprobante de Pago",
+      value: formValues.comprobante_pago || "-",
     });
 
     return fields;
@@ -151,7 +183,7 @@ export const Pagos = () => {
 
         <Box sx={{ width: "100%" }}>
           <Paper sx={{ width: "100%", mb: 2 }}>
-            <EnhancedTableToolbar />
+            
             <TableContainer>
               <Table sx={{ minWidth: 750 }} size="medium">
                 <EnhancedTableHead
@@ -165,11 +197,18 @@ export const Pagos = () => {
                       <TableCell />
                       <TableCell align="right">${row.monto}</TableCell>
                       <TableCell align="left">{row.metodo_pago}</TableCell>
-                      <TableCell align="left"><Checkbox checked={row.validado} disabled /></TableCell>
+                      <TableCell align="left">
+                        <Checkbox checked={row.validado} disabled />
+                      </TableCell>
                       <TableCell align="right">{row.fk_pedido}</TableCell>
-                      <TableCell align="left">{new Date(row.fk_fecha).toLocaleDateString()}</TableCell>
+                      <TableCell align="left">
+                        {new Date(row.fk_fecha).toLocaleDateString()}
+                      </TableCell>
                       <TableCell align="left">{row.hora}</TableCell>
-                      <TableCell align="center">
+                      <TableCell
+                        align="center"
+                        style={{ display: "flex", gap: "8px" }}
+                      >
                         <Button
                           size="small"
                           variant="contained"
@@ -177,6 +216,16 @@ export const Pagos = () => {
                           endIcon={<InfoIcon />}
                         >
                           Ver Info
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!row.comprobante_pago}
+                          onClick={() =>
+                            handleViewReceipt(row.comprobante_pago)
+                          }
+                        >
+                          Ver Comprobante
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -228,7 +277,36 @@ export const Pagos = () => {
         borrar={() => borrar(formValues.id!)}
         isDeleting={isDeleting}
         displayFields={displayFields}
+        idField="id"
       />
+      <Modal
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        aria-labelledby="image-modal-title"
+        aria-describedby="image-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          {loadingImage ? (
+            <CircularProgress />
+          ) : (
+            <img
+              src={imageUrl || ""}
+              alt="Comprobante de pago"
+              style={{ maxWidth: "100%", maxHeight: "90vh" }}
+            />
+          )}
+        </Box>
+      </Modal>
     </>
   );
 };
