@@ -37,3 +37,13 @@ id_cliente: number | null,
  visibilidad: boolean,
  id_estado: number,
 }
+
+export interface Promocion {
+  id: number;
+  nombre: string;
+  tipo: '2x1' | 'DESCUENTO' | 'MONTO_FIJO';
+  precio: number;
+  visibilidad: boolean;
+  items: { id: number; nombre: string; precio: number; cantidad: number }[];
+}
+
