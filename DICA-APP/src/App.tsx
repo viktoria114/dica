@@ -23,6 +23,7 @@ import { Balance } from "./Pages/Balance";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { StockPage } from "./Pages/Stock";
+import { Pagos } from "./Pages/Pagos";
 
 function App() {
   const router = createBrowserRouter(
@@ -49,6 +50,7 @@ function App() {
           <Route path="/promociones" element={<Promociones />} />
           <Route path="/balance" element={<Balance />} />
           <Route path="/stock" element={<StockPage />} />
+          <Route path="/pagos" element={<Pagos />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
