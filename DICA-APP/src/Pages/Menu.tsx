@@ -41,16 +41,16 @@ function getComparator<Key extends keyof ItemsMenu>(
 export const Menu = () => {
   const { menus, loading, error, modoPapelera, toggleInvisibles } = useMenu();
   const {
-  open,
-  menuFields,
-  setOpen,
-  isSaving,
-  formValues,
-  setFormValues,
-  formErrors,
-  handleChange,
-  handleSubmit,
-} = useMenuForm();
+    open,
+    menuFields,
+    setOpen,
+    isSaving,
+    formValues,
+    setFormValues,
+    formErrors,
+    handleChange,
+    handleSubmit,
+  } = useMenuForm();
 
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof ItemsMenu>("precio");
@@ -59,8 +59,9 @@ export const Menu = () => {
   const [dense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const rowsPerPageOptions: number[] = [5, 10, 25];
-    const [openEdit, setOpenEdit] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
 
+  const [selectedMenu, setSelectedMenu] = useState<ItemsMenu | null>(null);
 
   React.useEffect(() => {
     setFilteredRows(menus);
@@ -138,7 +139,6 @@ export const Menu = () => {
     setOpenEdit(true);
   };
 
-
   return (
     <>
       {loading && <LinearProgress color="inherit" />}
@@ -150,7 +150,7 @@ export const Menu = () => {
           getLabel={(item) => item.nombre}
           placeholder={"Buscar menús por nombre..."}
           onResults={setFilteredRows}
-            onAdd={handleAdd}
+          onAdd={handleAdd}
           onShowInvisibles={toggleInvisibles}
           disableAdd={modoPapelera}
           papeleraLabel={modoPapelera ? "Volver" : "Papelera"}
@@ -226,7 +226,7 @@ export const Menu = () => {
                           <Button
                             size="small"
                             variant="contained"
-                           onClick={() => handleEdit(row)}
+                            onClick={() => handleEdit(row)}
                             endIcon={<InfoIcon />}
                           >
                             Ver Info
@@ -256,31 +256,29 @@ export const Menu = () => {
       </Container>
 
       <ModalBase
-  open={open}
-  entityName="Menú"
-  modo="crear"
-  fields={menuFields}
-  values={formValues}
-  formErrors={formErrors}
-  handleChange={handleChange}
-  handleGuardar={handleSubmit}
-  handleClose={() => setOpen(false)}
-  isSaving={isSaving}
->
-   <StockSelector
-    availableStocks={[
-      { id_stock: 1, nombre: "Harina" },
-      { id_stock: 2, nombre: "Queso" },
-      { id_stock: 3, nombre: "Jamón" },
-    ]}
-    selectedStocks={formValues.stocks ?? []}
-    onChange={(newStocks) =>
-      handleChange("stocks", newStocks)
-    }
-  />
-</ModalBase>
+        open={open}
+        entityName="Menú"
+        modo="crear"
+        fields={menuFields}
+        values={formValues}
+        formErrors={formErrors}
+        handleChange={handleChange}
+        handleGuardar={handleSubmit}
+        handleClose={() => setOpen(false)}
+        isSaving={isSaving}
+      >
+        <StockSelector
+          availableStocks={[
+            { id_stock: 1, nombre: "Harina" },
+            { id_stock: 2, nombre: "Queso" },
+            { id_stock: 3, nombre: "Jamón" },
+          ]}
+          selectedStocks={formValues.stocks ?? []}
+          onChange={(newStocks) => handleChange("stocks", newStocks)}
+        />
+      </ModalBase>
 
- <ModalBase
+      <ModalBase
         open={openEdit}
         entityName="Menú"
         modo="editar"
@@ -291,13 +289,13 @@ export const Menu = () => {
         handleGuardar={handleSubmit}
         handleClose={() => setOpenEdit(false)}
         isSaving={isSaving}
-         displayFields={[
-        { label: "Nombre", value: formValues.nombre },
-        { label: "ID", value: formValues.id },
-        { label: "Categoría", value: formValues.categoria },
-        { label: "Precio", value: formValues.precio },
-        { label: "Descripción", value: formValues.descripcion },
-      ]}
+        displayFields={[
+          { label: "Nombre", value: formValues.nombre },
+          { label: "ID", value: formValues.id },
+          { label: "Categoría", value: formValues.categoria },
+          { label: "Precio", value: formValues.precio },
+          { label: "Descripción", value: formValues.descripcion },
+        ]}
       >
         <StockSelector
           availableStocks={[

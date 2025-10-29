@@ -1,11 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  TextField,
-  MenuItem,
-  Grid,
-  Typography,
-  Box,
-} from "@mui/material";
+import { TextField, MenuItem, Grid, Typography, Box } from "@mui/material";
 import { ActionButtons } from "./ActionButtons";
 import React from "react"; // Asegúrate de que React esté importado
 
@@ -16,6 +10,7 @@ export interface FieldConfig<T> {
   type?: "text" | "password" | "select" | "number";
   options?: { value: string | number; label: string }[]; // para selects
   onlyInCreate?: boolean; // campos visibles solo en modo "crear"
+  disabled?: boolean; // Para permitir campos deshabilitados
   // 👇 AÑADE ESTA PROPIEDAD
   render?: (
     value: any,
@@ -108,7 +103,9 @@ function GenericForm<T>({
                   error={!!formErrors[field.name]}
                   helperText={formErrors[field.name]}
                   select={field.type === "select"}
-                  disabled={disabledFields.includes(field.name)}
+                  disabled={
+                    disabledFields.includes(field.name) || field.disabled
+                  } // Manejo de campos deshabilitados
                 >
                   {field.type === "select" &&
                     field.options?.map((opt) => (
