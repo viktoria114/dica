@@ -1,27 +1,27 @@
 import { useEffect, useState, useCallback } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { getEmpleados } from "../store/slices/empleadosSlice";
+import { fetchEmpleadosInvisibles } from "../api/empleados";
 import type { Empleado } from "../types";
-import { fetchEmpleados, fetchEmpleadosInvisibles } from "../api/empleados";
 
 export const useEmpleados = () => {
-  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const dispatch = useAppDispatch();
+
+  // Estado global de Redux
+  const { data: empleados, loading, error } = useAppSelector(
+    (state) => state.empleados
+  );
+
+  // Estado local solo para UI
   const [empleadosInvisibles, setEmpleadosInvisibles] = useState<Empleado[]>([]);
   const [modoPapelera, setModoPapelera] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const cargarEmpleados = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchEmpleados();
-      setEmpleados(data);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Cargar empleados visibles (usa thunk de Redux)
+  const cargarEmpleados = useCallback(() => {
+    dispatch(getEmpleados());
+  }, [dispatch]);
 
+  // Alternar empleados invisibles
   const toggleInvisibles = useCallback(async () => {
     try {
       if (!modoPapelera) {
@@ -32,18 +32,20 @@ export const useEmpleados = () => {
         setModoPapelera(false);
       }
     } catch (err) {
-      setError((err as Error).message);
+      console.error("Error al cargar empleados invisibles:", err);
     }
   }, [modoPapelera]);
 
+  // Cargar empleados al montar
   useEffect(() => {
     cargarEmpleados();
   }, [cargarEmpleados]);
 
-  const baseList = modoPapelera ? empleadosInvisibles : empleados;
+  // Determinar qué lista mostrar
+  const empleadosFinal = modoPapelera ? empleadosInvisibles : empleados;
 
   return {
-    empleados: baseList,
+    empleados: empleadosFinal,
     modoPapelera,
     toggleInvisibles,
     loading,
