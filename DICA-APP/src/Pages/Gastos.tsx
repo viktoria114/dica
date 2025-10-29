@@ -220,7 +220,7 @@ export const Gastos = () => {
         handleClose={() => setOpen(false)}
         isSaving={isSaving}
       >
-        <Button onClick={() => setStockSelectorOpen(true)}>Seleccionar Stock</Button>
+        {formValues.categoria === 'insumos' && <Button onClick={() => setStockSelectorOpen(true)}>Seleccionar Stock</Button>}
         <List>
           {formValues.stockItems?.map((item) => {
             const stockItem = stock.find((s) => s.id === item.id_stock);
@@ -258,7 +258,7 @@ export const Gastos = () => {
             );
           })}
         </List>
-        <Button onClick={() => setStockSelectorOpen(true)}>Seleccionar Stock</Button>
+        {formValues.categoria === 'insumos' && <Button onClick={() => setStockSelectorOpen(true)}>Seleccionar Stock</Button>}
       </ModalBase>
 
       <StockSelectorModal
