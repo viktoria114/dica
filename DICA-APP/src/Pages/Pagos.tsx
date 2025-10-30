@@ -154,6 +154,8 @@ const displayFields = useMemo(() => {
       value = `$${value}`;
     } else if (field.name === "validado") {
       value = value ? "Sí" : "No";
+    } else if (field.name === "hora" && typeof value === 'string' && value.length > 5) {
+      value = value.slice(0, 5);
     }
 
     return {
@@ -200,7 +202,7 @@ const displayFields = useMemo(() => {
                       <TableCell align="left">
                         {new Date(row.fk_fecha).toLocaleDateString('es-AR')}
                       </TableCell>
-                      <TableCell align="left">{row.hora}</TableCell>
+                      <TableCell align="left">{row.hora ? row.hora.slice(0, 5) : ''}</TableCell>
                       <TableCell
                         align="center"
                         style={{ display: "flex", gap: "8px" }}

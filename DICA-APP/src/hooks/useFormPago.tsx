@@ -3,7 +3,7 @@ import type { Pago } from '../types';
 import { crearPago } from '../api/pagos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { FieldConfig } from '../Components/common/FormBase';
-import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { DatePicker, LocalizationProvider, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 
@@ -60,9 +60,40 @@ export const usePagoForm = (onSuccess?: () => void) => {
       ),
     },
     {
-        name: 'hora',
-        label: 'Hora',
-        type: 'text',
+      name: 'hora',
+      label: 'Hora',
+      render: (value, handleChange) => {
+        let dateValue = null;
+        if (value instanceof Date) {
+          dateValue = value;
+        } else if (typeof value === 'string' && value) {
+          const [hours, minutes] = value.split(':');
+          dateValue = new Date();
+          dateValue.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+        }
+
+        return (
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+            <TimePicker
+              label="Hora"
+              value={dateValue}
+              onChange={(newValue: Date | null) => {
+                if (newValue) {
+                  const hours = newValue.getHours().toString().padStart(2, '0');
+                  const minutes = newValue.getMinutes().toString().padStart(2, '0');
+                  handleChange('hora', `${hours}:${minutes}`);
+                } else {
+                  handleChange('hora', '');
+                }
+              }}
+              ampm={false}
+              views={['hours', 'minutes']}
+              format="HH:mm"
+              sx={{ width: '100%' }}
+            />
+          </LocalizationProvider>
+        );
+      },
     }
   ];
 
