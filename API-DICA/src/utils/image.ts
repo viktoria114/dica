@@ -1,4 +1,46 @@
-import { pool } from '../config/db';
+import { Request, Response } from "express";
+
+
+let currentAccessToken: string | null = null;
+let tokenExpiry: number | null = null; // timestamp en ms
+
+// Refrescar access_token usando refresh_token
+async function refrescarToken(): Promise<{ access_token: string; expires_in: number }> {
+  const refreshToken = process.env.DROPBOX_REFRESH_TOKEN!;
+  const clientId = process.env.DROPBOX_CLIENTID!;
+  const clientSecret = process.env.DROPBOX_CLIENTSECRET!;
+
+  const params = new URLSearchParams();
+  params.append("grant_type", "refresh_token");
+  params.append("refresh_token", refreshToken);
+  params.append("client_id", clientId);
+  params.append("client_secret", clientSecret);
+
+  const res = await fetch("https://api.dropboxapi.com/oauth2/token", {
+    method: "POST",
+    body: params,
+  });
+
+  if (!res.ok) throw new Error(`Error al refrescar token: ${res.statusText}`);
+  return await res.json(); // { access_token, expires_in, ... }
+}
+
+export const sendDropBoxToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Si no hay token o expiró
+    if (!currentAccessToken || (tokenExpiry && Date.now() >= tokenExpiry)) {
+      const nuevo = await refrescarToken();
+      currentAccessToken = nuevo.access_token;
+      tokenExpiry = Date.now() + (nuevo.expires_in - 60) * 1000; // margen de 1 min
+    }
+
+    res.status(200).json({ token: currentAccessToken });
+  } catch (error) {
+    console.error("Error al enviar token de Dropbox:", error);
+    res.status(500).json({ error: "Error al generar token" });
+  }
+};
+
 
 //procesa el mensaje de la imagen y obtiene la URL asociada como string
 
@@ -44,23 +86,6 @@ export async function descargarImagen(mediaUrl: string, accessToken: string): Pr
   }
 }
 
-// Refrescar access_token usando refresh_token
-async function refrescarToken(refreshToken: string, clientId: string, clientSecret: string) {
-  const params = new URLSearchParams();
-  params.append("grant_type", "refresh_token");
-  params.append("refresh_token", refreshToken);
-  params.append("client_id", clientId);
-  params.append("client_secret", clientSecret);
-
-  const res = await fetch("https://api.dropboxapi.com/oauth2/token", {
-    method: "POST",
-    body: params,
-  });
-
-  if (!res.ok) throw new Error(`Error al refrescar token: ${res.statusText}`);
-  return await res.json(); // contiene { access_token, expires_in, ... }
-}
-
 // Función para subir imagen a Dropbox con manejo de token expirado
 export async function subirADropbox(
   nombreArchivo: string,
@@ -100,7 +125,7 @@ export async function subirADropbox(
         error.error_summary?.includes("expired_access_token")
       ) {
         console.warn("Token expirado, intentando refrescar...");
-        const nuevo = await refrescarToken(refreshToken, clientId, clientSecret);
+        const nuevo = await refrescarToken();
         accessToken = nuevo.access_token;
 
         // reintentar subida con token nuevo

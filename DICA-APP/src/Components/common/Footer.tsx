@@ -42,7 +42,7 @@ const Footer = () => {
       >
         {/* Columna 1 */}
         <Grid
-          item
+          component="div"
           xs={12}
           md={4}
           sx={{
@@ -66,7 +66,7 @@ const Footer = () => {
         </Grid>
 
         {/* Columna 2 */}
-        <Grid item xs={12} md={4}>
+        <Grid xs={12} md={4} component="div">
           <Typography fontWeight="bold" sx={{ mb: 1, fontSize: "1.25rem" }}>
             Secciones
           </Typography>
@@ -95,7 +95,7 @@ const Footer = () => {
         </Grid>
 
         {/* Columna 3 */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={4} component="div">
           <Typography fontWeight="bold" sx={{ mb: 1, fontSize: "1.25rem" }}>
             Estado del sistema
           </Typography>
