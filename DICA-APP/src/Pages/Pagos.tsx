@@ -149,11 +149,13 @@ const displayFields = useMemo(() => {
       formValues[field.name] as any;
 
     if (field.name === "fk_fecha" && value) {
-      value = new Date(value as string | number | Date).toLocaleDateString();
+      value = new Date(value as string | number | Date).toLocaleDateString('es-AR');
     } else if (field.name === "monto" && value) {
       value = `$${value}`;
     } else if (field.name === "validado") {
       value = value ? "Sí" : "No";
+    } else if (field.name === "hora" && typeof value === 'string' && value.length > 5) {
+      value = value.slice(0, 5);
     }
 
     return {
@@ -198,9 +200,9 @@ const displayFields = useMemo(() => {
                       </TableCell>
                       <TableCell align="right">{row.fk_pedido}</TableCell>
                       <TableCell align="left">
-                        {new Date(row.fk_fecha).toLocaleDateString()}
+                        {new Date(row.fk_fecha).toLocaleDateString('es-AR')}
                       </TableCell>
-                      <TableCell align="left">{row.hora}</TableCell>
+                      <TableCell align="left">{row.hora ? row.hora.slice(0, 5) : ''}</TableCell>
                       <TableCell
                         align="center"
                         style={{ display: "flex", gap: "8px" }}
