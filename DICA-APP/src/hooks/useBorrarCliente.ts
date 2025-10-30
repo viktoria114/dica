@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { fetchBorrarCliente } from "../api/clientes";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { borrarCliente, getClientes } from "../store/slices/clientesSlice";
 
 export const useBorrarCliente = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const { showSnackbar } = useSnackbar();
 
-  const borrarCliente = async (tel: string) => {
+  const borrarClienteHandler = async (tel: string) => {
     const confirmar = window.confirm(
       "¿Estás seguro de que deseas borrar este cliente?"
     );
@@ -14,7 +16,8 @@ export const useBorrarCliente = (onSuccess?: () => void) => {
 
     setIsDeleting(true);
     try {
-      await fetchBorrarCliente(tel);
+      await dispatch(borrarCliente(tel)).unwrap();
+      await dispatch(getClientes());
       showSnackbar("Cliente borrado correctamente", "success");
       onSuccess?.();
     } catch (error) {
@@ -25,5 +28,5 @@ export const useBorrarCliente = (onSuccess?: () => void) => {
     }
   };
 
-  return { borrarCliente, isDeleting };
+  return { borrarClienteHandler, isDeleting };
 };
