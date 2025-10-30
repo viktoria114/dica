@@ -130,3 +130,19 @@ export  const getPagos = async (req: Request, res: Response): Promise<void> => {
 
 
 
+//Obtener pagos
+export  const eliminarPagos= async (req: Request, res: Response): Promise<void> => {
+    const {id} = req.params;
+    try{
+        await pool.query("DELETE FROM pagos WHERE id = $1", [id]);
+
+        res.status(200).json({message:`Pago con id: ${id}, eliminado correctamente`});
+    } catch (error: any) {
+        console.error("Error al eliminar el pago:", error);
+        res.status(500).json({message: "Error al eliminar el pago"});
+        
+    }
+};
+
+
+
