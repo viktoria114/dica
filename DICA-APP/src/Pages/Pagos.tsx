@@ -141,32 +141,28 @@ export const Pagos = () => {
     setOpenEdit(true);
   };
 
-  const displayFields = useMemo(() => {
-    if (!formValues) return [];
-    const fields = pagoFields.map((field) => {
-      let value: string | number | boolean | null =
-        formValues[field.name] as any;
-      if (field.name === "fk_fecha" && value) {
-        value = new Date(value as string | number | Date).toLocaleDateString();
-      } else if (field.name === "monto" && value) {
-        value = `$${value}`;
-      } else if (field.name === "validado") {
-        value = value ? "Sí" : "No";
-      }
-      return {
-        label: field.label,
-        value:
-          value !== null && value !== undefined ? String(value) : "-",
-      };
-    });
 
-    fields.push({
-      label: "Comprobante de Pago",
-      value: formValues.comprobante_pago || "-",
-    });
+const displayFields = useMemo(() => {
+  if (!formValues) return [];
+  return pagoFields.map((field) => {
+    let value: string | number | boolean | null =
+      formValues[field.name] as any;
 
-    return fields;
-  }, [formValues, pagoFields]);
+    if (field.name === "fk_fecha" && value) {
+      value = new Date(value as string | number | Date).toLocaleDateString();
+    } else if (field.name === "monto" && value) {
+      value = `$${value}`;
+    } else if (field.name === "validado") {
+      value = value ? "Sí" : "No";
+    }
+
+    return {
+      label: field.label,
+      value:
+        value !== null && value !== undefined ? String(value) : "-",
+    };
+  });
+}, [formValues, pagoFields]);
 
   return (
     <>
@@ -216,16 +212,6 @@ export const Pagos = () => {
                           endIcon={<InfoIcon />}
                         >
                           Ver Info
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={!row.comprobante_pago}
-                          onClick={() =>
-                            handleViewReceipt(row.comprobante_pago)
-                          }
-                        >
-                          Ver Comprobante
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -278,6 +264,17 @@ export const Pagos = () => {
         isDeleting={isDeleting}
         displayFields={displayFields}
         idField="id"
+        detailsChildren={
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!formValues.comprobante_pago}
+            onClick={() => handleViewReceipt(formValues.comprobante_pago)}
+            sx={{ mt: 2 }}
+          >
+            Ver Comprobante
+          </Button>
+        }
       />
       <Modal
         open={imageModalOpen}

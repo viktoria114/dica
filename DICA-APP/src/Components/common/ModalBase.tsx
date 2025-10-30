@@ -29,6 +29,7 @@ interface ModalBaseProps<T> {
   isDeleting?: boolean; // 👈 nuevo prop
   displayFields?: DisplayField[];
   children?: React.ReactNode;
+  detailsChildren?: React.ReactNode;
 }
 
 const modalStyle = {
@@ -66,6 +67,7 @@ export function ModalBase<T>({
   isDeleting,
   displayFields,
   children,
+  detailsChildren,
 }: ModalBaseProps<T>) {
   const [isEditMode, setIsEditMode] = useState(modo === "crear");
 
@@ -108,6 +110,7 @@ export function ModalBase<T>({
                       ● {field.label}: {field.value ?? "-"}
                     </Typography>
                   ))}
+                {detailsChildren}
               </>
             )}
           </Box>
