@@ -4,6 +4,9 @@ import {
   fetchEmpleados,
   fetchCrearEmpleado,
   fetchActualizarEmpleado,
+  fetchEmpleadosInvisibles,
+  fetchBorrarEmpleado,
+  fetchRestaurarEmpleado,
 } from "../../api/empleados";
 
 // Estado inicial
@@ -56,6 +59,46 @@ export const actualizarEmpleado = createAsyncThunk(
   }
 );
 
+// Obtener empleados invisibles
+export const getEmpleadosInvisibles = createAsyncThunk(
+  "empleados/getEmpleadosInvisibles",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await fetchEmpleadosInvisibles();
+      return data;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Borrar empleado
+export const borrarEmpleado = createAsyncThunk(
+  "empleados/borrarEmpleado",
+  async (dni: string, { rejectWithValue }) => {
+    try {
+      const data = await fetchBorrarEmpleado(dni);
+      return { dni, mensaje: data.mensaje };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Restaurar empleado
+export const restaurarEmpleado = createAsyncThunk(
+  "empleados/restaurarEmpleado",
+  async (dni: string, { rejectWithValue }) => {
+    try {
+      const data = await fetchRestaurarEmpleado(dni);
+      return { dni, mensaje: data.mensaje };
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+
 // Slice
 const empleadosSlice = createSlice({
   name: "empleados",
@@ -106,6 +149,42 @@ const empleadosSlice = createSlice({
       })
       .addCase(actualizarEmpleado.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // getEmpleadosInvisibles
+    builder
+      .addCase(getEmpleadosInvisibles.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getEmpleadosInvisibles.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = action.payload; // reemplaza la lista con invisibles
+      })
+      .addCase(getEmpleadosInvisibles.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // borrarEmpleado
+    builder
+      .addCase(borrarEmpleado.fulfilled, (state, action) => {
+        state.data = state.data.filter(
+          (e) => e.dni !== action.payload.dni
+        );
+      })
+      .addCase(borrarEmpleado.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
+
+    // restaurarEmpleado
+    builder
+      .addCase(restaurarEmpleado.fulfilled, (state, action) => {
+        // opcional: podrías volver a agregar el empleado si lo devuelve el backend
+        console.log(action.payload.mensaje);
+      })
+      .addCase(restaurarEmpleado.rejected, (state, action) => {
         state.error = action.payload as string;
       });
   },

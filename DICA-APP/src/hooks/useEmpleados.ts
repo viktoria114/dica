@@ -1,51 +1,48 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { getEmpleados } from "../store/slices/empleadosSlice";
-import { fetchEmpleadosInvisibles } from "../api/empleados";
-import type { Empleado } from "../types";
+import {
+  getEmpleados,
+  getEmpleadosInvisibles,
+} from "../store/slices/empleadosSlice";
+
 
 export const useEmpleados = () => {
   const dispatch = useAppDispatch();
-
-  // Estado global de Redux
   const { data: empleados, loading, error } = useAppSelector(
     (state) => state.empleados
   );
 
-  // Estado local solo para UI
-  const [empleadosInvisibles, setEmpleadosInvisibles] = useState<Empleado[]>([]);
+  // Estado local para manejar si estamos en modo papelera
   const [modoPapelera, setModoPapelera] = useState(false);
 
-  // Cargar empleados visibles (usa thunk de Redux)
+  // Cargar empleados visibles (usa Redux thunk)
   const cargarEmpleados = useCallback(() => {
     dispatch(getEmpleados());
   }, [dispatch]);
 
-  // Alternar empleados invisibles
-  const toggleInvisibles = useCallback(async () => {
-    try {
-      if (!modoPapelera) {
-        const data = await fetchEmpleadosInvisibles();
-        setEmpleadosInvisibles(data);
-        setModoPapelera(true);
-      } else {
-        setModoPapelera(false);
-      }
-    } catch (err) {
-      console.error("Error al cargar empleados invisibles:", err);
-    }
-  }, [modoPapelera]);
+  // Cargar empleados invisibles (usa Redux thunk también)
+  const cargarInvisibles = useCallback(() => {
+    dispatch(getEmpleadosInvisibles());
+  }, [dispatch]);
 
-  // Cargar empleados al montar
+  // Alternar entre visibles/invisibles
+  const toggleInvisibles = useCallback(() => {
+    if (!modoPapelera) {
+      cargarInvisibles();
+      setModoPapelera(true);
+    } else {
+      cargarEmpleados();
+      setModoPapelera(false);
+    }
+  }, [modoPapelera, cargarEmpleados, cargarInvisibles]);
+
+  // Cargar empleados por defecto al montar
   useEffect(() => {
     cargarEmpleados();
   }, [cargarEmpleados]);
 
-  // Determinar qué lista mostrar
-  const empleadosFinal = modoPapelera ? empleadosInvisibles : empleados;
-
   return {
-    empleados: empleadosFinal,
+    empleados,
     modoPapelera,
     toggleInvisibles,
     loading,
@@ -53,3 +50,4 @@ export const useEmpleados = () => {
     refetch: cargarEmpleados,
   };
 };
+

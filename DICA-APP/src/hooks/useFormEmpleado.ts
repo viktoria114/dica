@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "../store/hooks";
-import { crearEmpleado, actualizarEmpleado } from "../store/slices/empleadosSlice";
+import { crearEmpleado, actualizarEmpleado, getEmpleados } from "../store/slices/empleadosSlice";
 import type { Empleado } from "../types";
 import type { FieldConfig } from "../Components/common/FormBase";
 import { useSnackbar } from "../contexts/SnackbarContext";
@@ -101,9 +101,11 @@ export const useFormEmpleado = (
 
       if (mode === "crear") {
         await dispatch(crearEmpleado(payload)).unwrap();
+        await dispatch(getEmpleados());
         showSnackbar("Empleado creado correctamente", "success");
       } else {
         await dispatch(actualizarEmpleado(payload)).unwrap();
+        await dispatch(getEmpleados());
         showSnackbar("Empleado actualizado correctamente", "success");
       }
 

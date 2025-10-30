@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { fetchActualizarCliente, fetchCrearCliente } from "../api/clientes";
 import type { Cliente } from "../types";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -7,6 +6,9 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import type { FieldConfig } from "../Components/common/FormBase";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { actualizarCliente, crearCliente, getClientes } from "../store/slices/clientesSlice";
+
 
 const fields: FieldConfig<Cliente>[] = [
   { name: "nombre", label: "Nombre completo" },
@@ -62,6 +64,7 @@ export const useFormClientes = (
   onSuccess: () => void,
   mode: "crear" | "editar" = "editar"
 ) => {
+   const dispatch = useAppDispatch();
   const [editValues, setEditValues] = useState<Cliente>(
     initialValues ?? ({} as Cliente)
   );
@@ -123,10 +126,12 @@ export const useFormClientes = (
       };
 
       if (mode === "crear") {
-        await fetchCrearCliente(payload);
+        await dispatch(crearCliente(payload)).unwrap();
+        await dispatch(getClientes());
         showSnackbar("Cliente creado correctamente", "success");
       } else {
-        await fetchActualizarCliente(payload);
+        await dispatch(actualizarCliente(payload)).unwrap();
+        await dispatch(getClientes());
         showSnackbar("Cliente actualizado correctamente", "success");
       }
 
