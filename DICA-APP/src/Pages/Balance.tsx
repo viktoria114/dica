@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, Tab, Box, Typography } from '@mui/material';
 import { Gastos } from './Gastos';
 import { Pagos } from './Pagos';
+import { Reporte } from './Reporte';
 
 const TabPanel = (props: {
   children?: React.ReactNode;
@@ -55,7 +56,7 @@ export const Balance = () => {
         <Pagos />
       </TabPanel>
       <TabPanel value={value} index={2}>
-        <Typography color="text.primary">Placeholder para Reporte</Typography>
+        <Reporte />
       </TabPanel>
     </Box>
   );

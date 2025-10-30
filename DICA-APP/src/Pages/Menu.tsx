@@ -61,7 +61,7 @@ export const Menu = () => {
   const rowsPerPageOptions: number[] = [5, 10, 25];
   const [openEdit, setOpenEdit] = useState(false);
 
-  const [selectedMenu, setSelectedMenu] = useState<ItemsMenu | null>(null);
+
 
   React.useEffect(() => {
     setFilteredRows(menus);
