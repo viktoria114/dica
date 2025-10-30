@@ -3,7 +3,16 @@ import type { Pago } from '../types';
 import { crearPago } from '../api/pagos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { FieldConfig } from '../Components/common/FormBase';
-import { DatePicker } from '@mui/x-date-pickers';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { es } from 'date-fns/locale';
+
+const formatDateForBackend = (date: Date): string => {
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}/${month}/${day}`;
+};
 
 export const usePagoForm = (onSuccess?: () => void) => {
   const [open, setOpen] = useState(false);
@@ -40,11 +49,14 @@ export const usePagoForm = (onSuccess?: () => void) => {
       name: 'fk_fecha',
       label: 'Fecha',
       render: (value, handleChange) => (
-        <DatePicker
-          label="Fecha"
-          value={value ? new Date(value) : new Date()}
-          onChange={(newValue) => handleChange('fk_fecha', newValue)}
-        />
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+          <DatePicker
+            label="Fecha"
+            value={value ? new Date(value) : new Date()}
+            onChange={(newValue) => handleChange('fk_fecha', newValue)}
+            format="dd/MM/yy"
+          />
+        </LocalizationProvider>
       ),
     },
     {
@@ -84,7 +96,11 @@ export const usePagoForm = (onSuccess?: () => void) => {
 
     setIsSaving(true);
     try {
-      await crearPago(values);
+      const formattedValues = {
+        ...values,
+        fk_fecha: formatDateForBackend(new Date(values.fk_fecha)),
+      };
+      await crearPago(formattedValues);
       showSnackbar('Pago creado con éxito!', 'success');
       setOpen(false);
       onSuccess?.();

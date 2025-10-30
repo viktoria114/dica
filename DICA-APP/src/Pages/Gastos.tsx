@@ -122,7 +122,7 @@ export const Gastos = () => {
       .map(field => {
         let value: string | number | null = formValues[field.name] as any;
         if (field.name === 'fecha' && value) {
-          value = new Date(value).toLocaleDateString();
+          value = new Date(value).toLocaleDateString('es-AR');
         } else if (field.name === 'monto' && value) {
           value = `$${value}`;
         }
@@ -175,7 +175,7 @@ export const Gastos = () => {
                       <TableCell align="left">{row.categoria}</TableCell>
                       <TableCell align="left">{row.metodo_de_pago}</TableCell>
                       <TableCell align="left">{row.descripcion}</TableCell>
-                      <TableCell align="left">{new Date(row.fecha).toLocaleDateString()}</TableCell>
+                      <TableCell align="left">{new Date(row.fecha).toLocaleDateString('es-AR')}</TableCell>
                       <TableCell align="center">
                         <Button
                           size="small"

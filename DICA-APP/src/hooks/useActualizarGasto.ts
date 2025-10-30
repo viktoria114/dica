@@ -3,6 +3,13 @@ import { modificarGasto } from '../api/gastos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { Gasto } from '../types';
 
+const formatDateForBackend = (date: Date): string => {
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}/${month}/${day}`;
+};
+
 export const useActualizarGasto = (onSuccess?: () => void) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -10,7 +17,11 @@ export const useActualizarGasto = (onSuccess?: () => void) => {
   const actualizar = async (id: number, values: Partial<Gasto>) => {
     setIsUpdating(true);
     try {
-      await modificarGasto(id, values as Gasto);
+      const formattedValues = {
+        ...values,
+        fecha: values.fecha ? formatDateForBackend(new Date(values.fecha)) : undefined,
+      };
+      await modificarGasto(id, formattedValues as Gasto);
       showSnackbar('Gasto actualizado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

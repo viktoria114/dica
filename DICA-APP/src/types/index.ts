@@ -65,7 +65,7 @@ export interface Gasto {
   metodo_de_pago: string;
   descripcion: string;
   fk_registro_stock: number | null;
-  fecha: Date;
+  fecha: Date | string;
   stockItems: { id_stock: number; cantidad: number }[];
 }
 
@@ -76,6 +76,6 @@ export interface Pago {
   comprobante_pago: string;
   validado: boolean;
   fk_pedido: number | null;
-  fk_fecha: Date;
+  fk_fecha: Date | string;
   hora: string;
 }
