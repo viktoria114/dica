@@ -1,49 +1,47 @@
-import { useState, useEffect, useCallback } from "react";
-import { fetchMenus, fetchMenusInvisibles } from "../api/menu";
-import type { ItemsMenu } from "../types";
+// src/hooks/useMenus.ts
+import { useEffect, useCallback } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  getMenus,
+  getMenusInvisibles,
+  toggleModoPapelera,
+} from "../store/slices/menuSlice";
 
 export const useMenu = () => {
-  const [menus, setMenus] = useState<ItemsMenu[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [modoPapelera, setModoPapelera] = useState(false);
+  const dispatch = useAppDispatch();
+  const { menus, menusInvisibles, loading, error, modoPapelera } = useAppSelector(
+    (state) => state.menu
+  );
 
-  const cargarMenus = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchMenus();
-      setMenus(data);
-    } catch (err) {
-      setError("Error al cargar menús" + {err});
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const cargarMenusInvisibles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchMenusInvisibles();
-      setMenus(data);
-    } catch (err) {
-      setError("Error al cargar menús invisibles" + {err});
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const toggleInvisibles = useCallback(() => {
-    if (modoPapelera) {
-      cargarMenus();
-    } else {
-      cargarMenusInvisibles();
-    }
-    setModoPapelera((prev) => !prev);
-  }, [modoPapelera, cargarMenus, cargarMenusInvisibles]);
-
+  // 🔁 Cargar menús al montar el componente
   useEffect(() => {
-    cargarMenus();
-  }, [cargarMenus]);
+    dispatch(getMenus());
+  }, [dispatch]);
 
-  return { menus, loading, error, modoPapelera, toggleInvisibles };
+  // 🧩 Alternar entre menús visibles e invisibles
+  const toggleInvisibles = useCallback(async () => {
+    if (!modoPapelera) {
+      await dispatch(getMenusInvisibles());
+    } else {
+      await dispatch(getMenus());
+    }
+    dispatch(toggleModoPapelera());
+  }, [dispatch, modoPapelera]);
+
+  // 📦 Determinar lista base según el modo actual
+  const baseList = modoPapelera ? menusInvisibles : menus;
+
+  // 🔄 Refetch manual (por ejemplo, después de crear/editar un menú)
+  const refetch = useCallback(() => {
+    dispatch(getMenus());
+  }, [dispatch]);
+
+  return {
+    menus: baseList,
+    modoPapelera,
+    toggleInvisibles,
+    loading,
+    error,
+    refetch,
+  };
 };
