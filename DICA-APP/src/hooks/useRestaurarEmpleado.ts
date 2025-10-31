@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { fetchRestaurarEmpleado } from "../api/empleados";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { restaurarEmpleado, getEmpleadosInvisibles } from "../store/slices/empleadosSlice";
 
-export function useRestaurarEmpleado(onSuccess: () => void) {
+export function useRestaurarEmpleado(onSuccess?: () => void) {
+  const dispatch = useAppDispatch();
   const [isRestoring, setIsRestoring] = useState(false);
   const { showSnackbar } = useSnackbar();
 
@@ -12,9 +14,10 @@ export function useRestaurarEmpleado(onSuccess: () => void) {
 
     try {
       setIsRestoring(true);
-      await fetchRestaurarEmpleado(dni);
+      await dispatch(restaurarEmpleado(dni)).unwrap();
+      await dispatch(getEmpleadosInvisibles()); // Refresca la papelera
       showSnackbar("Empleado restaurado correctamente", "success");
-      onSuccess();
+      onSuccess?.();
     } catch (err) {
       if (err instanceof Error) showSnackbar(err.message, "error");
       else showSnackbar("Error desconocido al restaurar empleado", "error");

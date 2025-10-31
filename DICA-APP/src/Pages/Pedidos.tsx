@@ -2,7 +2,7 @@
 import { Container, Grid, Typography, Card, CardContent, CircularProgress, Alert } from "@mui/material";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useEffect, useState } from "react";
-import type { ItemsMenu, ItemsYPromociones, Pedido } from "../types";
+import type { ItemsYPromociones, Pedido } from "../types";
 import { getPedidos, getPedidosBorrados } from "../api/pedidos";
 import { SearchBar } from "../Components/common/SearchBar";
 import { ModalBase } from "../Components/common/ModalBase";
@@ -375,7 +375,7 @@ setPedidos((prev) =>
         { label: "Hora", value: formValues.hora },
       ]}
       >
-              <ItemSelector<ItemsMenu>
+              <ItemSelector<ItemsYPromociones>
   label="Items del menú"
   idField="item_id"
   availableItems={menus} // lista general de ítems del backend

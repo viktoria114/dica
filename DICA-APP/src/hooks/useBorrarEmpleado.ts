@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { fetchBorrarEmpleado } from "../api/empleados";
+
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { borrarEmpleado, getEmpleados} from "../store/slices/empleadosSlice";
+
 
 export const useBorrarEmpleado = (onSuccess?: () => void) => {
+    const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const { showSnackbar } = useSnackbar();
 
-  const borrarEmpleado = async (dni: string) => {
+  const borrarEmpleadoHandler  = async (dni: string) => {
     const confirmar = window.confirm(
       "¿Estás seguro de que deseas borrar este empleado?"
     );
@@ -14,7 +18,8 @@ export const useBorrarEmpleado = (onSuccess?: () => void) => {
 
     setIsDeleting(true);
     try {
-      await fetchBorrarEmpleado(dni);
+      await dispatch(borrarEmpleado(dni)).unwrap();
+      await dispatch(getEmpleados());
       showSnackbar("Empleado borrado correctamente", "success");
       onSuccess?.();
     } catch (error) {
@@ -25,5 +30,5 @@ export const useBorrarEmpleado = (onSuccess?: () => void) => {
     }
   };
 
-  return { borrarEmpleado, isDeleting };
+  return { borrarEmpleadoHandler , isDeleting };
 };

@@ -57,7 +57,7 @@ export const Clientes = () => {
   const [showForm, setShowForm] = useState(false);
   const handleAdd = useCallback(() => setShowForm(true), []);
 
-  const { borrarCliente, isDeleting } = useBorrarCliente(handleClose);
+  const { borrarClienteHandler, isDeleting } = useBorrarCliente(handleClose);
   const { restaurar, isRestoring } = useRestaurarCliente(
     handleClose ?? (() => {})
   );
@@ -97,7 +97,7 @@ export const Clientes = () => {
               getTitle={(e) => e.nombre}
               getSubtitle={(e) => (e.telefono ? `Tel: ${e.telefono}` : null)}
               useFormHook={useFormClientes}
-              borrar={borrarCliente}
+              borrar={borrarClienteHandler}
               restaurar={restaurar}
               isDeleting={isDeleting}
               isRestoring={isRestoring}

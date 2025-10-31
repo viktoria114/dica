@@ -5,6 +5,8 @@ import {
   Grid,
   Typography,
   Box,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { ActionButtons } from "./ActionButtons";
 import React from "react"; // Asegúrate de que React esté importado
@@ -13,9 +15,10 @@ import React from "react"; // Asegúrate de que React esté importado
 export interface FieldConfig<T> {
   name: keyof T;
   label: string;
-  type?: "text" | "password" | "select" | "number";
-  options?: { value: string; label: string }[]; // para selects
+  type?: "text" | "password" | "select" | "number" | "checkbox";
+  options?: { value: string | number; label: string }[]; // para selects
   onlyInCreate?: boolean; // campos visibles solo en modo "crear"
+  disabled?: boolean; // Para permitir campos deshabilitados
   // 👇 AÑADE ESTA PROPIEDAD
   render?: (
     value: any,
@@ -91,6 +94,21 @@ function GenericForm<T>({
                 );
               }
 
+              if (field.type === "checkbox" && onChange) {
+                return (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={!!values[field.name]}
+                        onChange={(e) => onChange(field.name, e.target.checked)}
+                      />
+                    }
+                    label={field.label}
+                    key={String(field.name)}
+                  />
+                );
+              }
+
               // 👇 SI NO, RENDERIZA EL TEXTFIELD NORMAL DE ANTES
               return (
                 <TextField
@@ -99,16 +117,23 @@ function GenericForm<T>({
                   label={field.label}
                   type={field.type ?? "text"}
                   value={values[field.name] ?? ""}
-                  onChange={(e) =>
-                    onChange?.(field.name, e.target.value as unknown)
-                  }
+                  onChange={(e) => {
+                    if (field.type === 'number') {
+                      const num = e.target.value === '' ? null : parseFloat(e.target.value);
+                      onChange?.(field.name, num);
+                    } else {
+                      onChange?.(field.name, e.target.value);
+                    }
+                  }}
                   margin="dense"
                   variant="standard"
                   focused
                   error={!!formErrors[field.name]}
                   helperText={formErrors[field.name]}
                   select={field.type === "select"}
-                  disabled={disabledFields.includes(field.name)}
+                  disabled={
+                    disabledFields.includes(field.name) || field.disabled
+                  } // Manejo de campos deshabilitados
                 >
                   {field.type === "select" &&
                     field.options?.map((opt) => (

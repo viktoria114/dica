@@ -29,6 +29,7 @@ interface ModalBaseProps<T> {
   isDeleting?: boolean; // 👈 nuevo prop
   displayFields?: DisplayField[];
   children?: React.ReactNode;
+  detailsChildren?: React.ReactNode;
 }
 
 const modalStyle = {
@@ -66,15 +67,15 @@ export function ModalBase<T>({
   isDeleting,
   displayFields,
   children,
+  detailsChildren,
 }: ModalBaseProps<T>) {
   const [isEditMode, setIsEditMode] = useState(modo === "crear");
 
   useEffect(() => {
-    // Si el modo cambia a "crear", forzamos edición directa
-    if (modo === "crear") {
-      setIsEditMode(true);
+    if (open) {
+      setIsEditMode(modo === "crear");
     }
-  }, [modo]);
+  }, [open, modo]);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -109,6 +110,7 @@ export function ModalBase<T>({
                       ● {field.label}: {field.value ?? "-"}
                     </Typography>
                   ))}
+                {detailsChildren}
               </>
             )}
           </Box>
@@ -130,7 +132,7 @@ export function ModalBase<T>({
             ) : (
               <ActionButtons
                 mode="edicion"
-                onEdit={() => setIsEditMode(true)}
+                onEdit={!modoPapelera ? () => setIsEditMode(true) : undefined}
                 onDelete={() =>
                   idField &&
                   values?.[idField] &&

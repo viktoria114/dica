@@ -18,6 +18,13 @@ import { Menu } from "./Pages/Menu";
 import { Pedidos } from "./Pages/Pedidos";
 import { Clientes } from "./Pages/Clientes";
 import { SnackbarProvider } from "./contexts/SnackbarContext";
+import { Promociones } from "./Pages/Promociones";
+import { Balance } from "./Pages/Balance";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { StockPage } from "./Pages/Stock";
+import { Pagos } from "./Pages/Pagos";
+import { DropboxTokenProvider } from "./contexts/DropboxTokenContext";
 
 function App() {
   const router = createBrowserRouter(
@@ -40,9 +47,13 @@ function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/menu" element={<Menu />} />
-           <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/promociones" element={<Promociones />} />
+          <Route path="/balance" element={<Balance />} />
+          <Route path="/stock" element={<StockPage />} />
+          <Route path="/pagos" element={<Pagos />} />
         </Route>
-          
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </>
     )
@@ -50,9 +61,13 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <SnackbarProvider>
-        <RouterProvider router={router} />
-      </SnackbarProvider>
+      <DropboxTokenProvider>
+        <SnackbarProvider>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <RouterProvider router={router} />
+          </LocalizationProvider>
+        </SnackbarProvider>
+      </DropboxTokenProvider>
     </ThemeProvider>
   );
 }

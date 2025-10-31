@@ -1,49 +1,53 @@
 import { useEffect, useState, useCallback } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  getClientes,
+  getClientesInvisibles,
+} from "../store/slices/clientesSlice";
 import type { Cliente } from "../types";
-import { fetchClientes, fetchClientesInvisibles } from "../api/clientes";
 
 export const useClientes = () => {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const dispatch = useAppDispatch();
+
+  // Estado global (Redux)
+  const { data: clientes, loading, error } = useAppSelector(
+    (state) => state.clientes
+  );
+
+  // Estado local solo para alternar vista
   const [clientesInvisibles, setClientesInvisibles] = useState<Cliente[]>([]);
   const [modoPapelera, setModoPapelera] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const cargarClientes = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchClientes();
-      setClientes(data);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Cargar clientes visibles (Redux thunk)
+  const cargarClientes = useCallback(() => {
+    dispatch(getClientes());
+  }, [dispatch]);
 
+  // Alternar entre visibles / invisibles
   const toggleInvisibles = useCallback(async () => {
     try {
       if (!modoPapelera) {
-        const data = await fetchClientesInvisibles();
-        setClientesInvisibles(data);
+        const action = await dispatch(getClientesInvisibles()).unwrap();
+        setClientesInvisibles(action);
         setModoPapelera(true);
       } else {
         setModoPapelera(false);
       }
     } catch (err) {
-      setError((err as Error).message);
+      console.error("Error al cargar clientes invisibles:", err);
     }
-  }, [modoPapelera]);
+  }, [modoPapelera, dispatch]);
 
+  // Cargar al montar
   useEffect(() => {
     cargarClientes();
   }, [cargarClientes]);
 
-  const baseList = modoPapelera ? clientesInvisibles : clientes;
+  // Determinar qué lista mostrar
+  const clientesFinal = modoPapelera ? clientesInvisibles : clientes;
 
   return {
-    clientes: baseList,
+    clientes: clientesFinal,
     modoPapelera,
     toggleInvisibles,
     loading,

@@ -9,21 +9,21 @@ export interface Empleado {
 }
 
 export interface Cliente {
-telefono: number | null,
-nombre: string,
-dieta: string | null,
-preferencias: string[] | null,
-agent_session_id: string | null,
-ultima_compra: string | null,
+  telefono: number | null;
+  nombre: string;
+  dieta: string | null;
+  preferencias: string[] | null;
+  agent_session_id: string | null;
+  ultima_compra: string | null;
 }
 
 export interface ItemsMenu {
- id: number,
+  id: number;
   nombre: string;
-  precio: number,
-  descripcion: string,
-  categoria: string,
-  visibilidad: boolean,
+  precio: number;
+  descripcion: string;
+  categoria: string;
+  visibilidad: boolean;
   stocks: { id_stock: number; cantidad_necesaria: number }[];
 }
 

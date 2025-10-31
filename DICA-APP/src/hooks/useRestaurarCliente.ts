@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { fetchRestaurarCliente } from "../api/clientes";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { getClientesInvisibles, restaurarCliente } from "../store/slices/clientesSlice";
 
 export function useRestaurarCliente(onSuccess: () => void) {
+  const dispatch = useAppDispatch();
   const [isRestoring, setIsRestoring] = useState(false);
   const { showSnackbar } = useSnackbar();
 
@@ -14,7 +16,8 @@ export function useRestaurarCliente(onSuccess: () => void) {
 
     try {
       setIsRestoring(true);
-      await fetchRestaurarCliente(tel);
+      await dispatch(restaurarCliente(tel)).unwrap();
+      await dispatch(getClientesInvisibles()); // Refresca la lista de clientes
       showSnackbar("Cliente restaurado correctamente", "success");
       onSuccess();
     } catch (err) {

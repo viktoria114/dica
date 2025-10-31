@@ -65,7 +65,7 @@ export const Empleados = () => {
   const [showForm, setShowForm] = useState(false);
   const handleAdd = useCallback(() => setShowForm(true), []);
 
-   const { borrarEmpleado, isDeleting } = useBorrarEmpleado(handleClose);
+   const { borrarEmpleadoHandler , isDeleting } = useBorrarEmpleado(handleClose);
     const { restaurar, isRestoring } = useRestaurarEmpleado(handleClose ?? (() => {})
   );
   
@@ -97,7 +97,7 @@ export const Empleados = () => {
         <Box sx={styleBox1}>
            {paginatedEmpleados.map((empleado) => (
     <FichaItem<Empleado>
-      key={empleado.dni}
+      key={empleado.dni }
       entityName="Empleado"
       item={empleado}
       idField="dni"
@@ -105,7 +105,7 @@ export const Empleados = () => {
       getTitle={(e) => e.nombre_completo}
       getSubtitle={(e) => (e.telefono ? `Tel: ${e.telefono}` : null)}
       useFormHook={useFormEmpleado}
-      borrar={borrarEmpleado}
+      borrar={borrarEmpleadoHandler}
       restaurar={restaurar}
       isDeleting={isDeleting}
       isRestoring={isRestoring}
