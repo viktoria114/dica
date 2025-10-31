@@ -2,13 +2,13 @@
 import { Container, Grid, Typography, Card, CardContent, CircularProgress, Alert } from "@mui/material";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useEffect, useState } from "react";
-import type { Pedido } from "../types";
+import type { ItemsMenu, ItemsYPromociones, Pedido } from "../types";
 import { getPedidos, getPedidosBorrados } from "../api/pedidos";
 import { SearchBar } from "../Components/common/SearchBar";
 import { ModalBase } from "../Components/common/ModalBase";
 import { usePedidoForm } from "../hooks/usePedidoForm";
-import { StockSelector } from "../Components/Menu/StockSelector";
 import { ItemSelector } from "../Components/common/ItemSelector";
+import { useMenu } from "../hooks/useMenu";
 
 /*const pedidosmock: Pedido[] = [
   { pedido_id: 1, id_fecha: new Date("2025-05-24"), hora: "12:00", id_cliente: 1, ubicacion: "Centro", visibilidad: true, fk_estado: 1, observaciones: "vegetariano" },
@@ -43,6 +43,7 @@ export const Pedidos = () => {
   const [pedidosFiltrados, setPedidosFiltrados] = useState<Pedido[]>([]);
 const [modo, setModo] = useState<"normal" | "borrados" | "cancelados">("normal");
 const [pedidosBorrados, setPedidosBorrados] = useState<Pedido[]>([]);
+const { menus } = useMenu();
 
 const { open,
     setOpen,
@@ -368,14 +369,41 @@ setPedidos((prev) =>
    isSaving={isSaving}
          displayFields={[
         { label: "Teléfono del Cliente", value: formValues.id_cliente },
-        { label: "Items", value: formValues.items ? formValues.items.length : 0 },
-        { label: "Promociones", value: formValues.promociones ? formValues.promociones.length : 0 },
         { label: "Observaciones", value: formValues.observaciones },
         { label: "Ubicación", value: formValues.ubicacion },
-        { label: "Fecha", value: formValues.id_fecha },
+        { label: "Fecha", value: formValues.id_fecha ? formValues.id_fecha.toISOString() : null },
         { label: "Hora", value: formValues.hora },
       ]}
-><ItemSelector<Pedido>></ItemSelector></ModalBase>
+      >
+              <ItemSelector<ItemsMenu>
+  label="Items del menú"
+  idField="item_id"
+  availableItems={menus} // lista general de ítems del backend
+  selectedItems={formValues.items || []}
+  onChange={(newItems) =>
+    setFormValues((prev) => ({ ...prev, items: newItems }))
+  }
+  columns={[
+    { key: "nombre", label: "Item" },
+    { key: "cantidad", label: "Cantidad", type: "number", editable: true },
+  ]}
+/>
+
+<ItemSelector<ItemsYPromociones>
+  label="Promociones"
+  idField="promocion_id"
+  availableItems={availablePromos} // lista general de promociones
+  selectedItems={formValues.promociones || []}
+  onChange={(newPromos) =>
+    setFormValues((prev) => ({ ...prev, promociones: newPromos }))
+  }
+  columns={[
+    { key: "nombre", label: "Promoción" },
+    { key: "cantidad", label: "Cantidad", type: "number", editable: true },
+  ]}
+/>
+
+    </ModalBase>
     </>
   );
 };

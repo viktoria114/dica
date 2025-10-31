@@ -18,7 +18,6 @@ import { useMenu } from "../hooks/useMenu";
 import InfoIcon from "@mui/icons-material/Info";
 import { useCallback, useState } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
-import { StockSelector } from "../Components/Menu/StockSelector";
 import { useMenuForm } from "../hooks/useFormMenu";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
@@ -60,7 +59,7 @@ export const Menu = () => {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const rowsPerPageOptions: number[] = [5, 10, 25];
     const [openEdit, setOpenEdit] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState<ItemsMenu | null>(null);
+  const [, setSelectedMenu] = useState<ItemsMenu | null>(null);
 
 
   React.useEffect(() => {

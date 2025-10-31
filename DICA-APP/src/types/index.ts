@@ -27,11 +27,20 @@ export interface ItemsMenu {
   stocks: { id_stock: number; cantidad_necesaria: number }[];
 }
 
-export interface Item {
+export interface Ticket {
 nombre: string,
 cantidad: number,
 subtotal: number,
 precio_unitario: number,
+}
+
+export interface ItemsYPromociones {
+    item_id?: number;
+    promocion_id?: number;
+    cantidad: number;
+    nombre: string;
+    precio: number;
+    [key: string]: unknown;
 }
 
 export interface Pedido {
@@ -43,6 +52,6 @@ id_cliente: number | null,
  observaciones: string,
  visibilidad: boolean,
  fk_estado: number,
- items?: ItemsMenu[];
- promociones?: any[];
+ items?: ItemsYPromociones[];
+ promociones?: ItemsYPromociones[];
 }

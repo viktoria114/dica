@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import Grid from "@mui/material/Grid";
 import {
-  Grid,
   TextField,
   IconButton,
   Typography,
@@ -12,20 +12,20 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  Box,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import SearchIcon from "@mui/icons-material/Search";
+import { SearchBar } from "./SearchBar";
 
 interface BaseItem {
-  id: number | string;
+  id?: number | string;
   nombre: string;
   [key: string]: unknown;
 }
 
 interface ItemSelectorProps<T extends BaseItem> {
-  label?: string; // ejemplo: "Ingredientes", "Items del menú"
+  label?: string;
+  idField: keyof T;
   availableItems: T[];
   selectedItems: T[];
   onChange: (items: T[]) => void;
@@ -37,44 +37,35 @@ interface ItemSelectorProps<T extends BaseItem> {
   }[];
 }
 
-/**
- * Componente generalizado para seleccionar ítems en formularios
- */
 export const ItemSelector = <T extends BaseItem>({
   label = "Elementos",
+  idField,
   availableItems,
   selectedItems,
   onChange,
   columns = [{ key: "nombre", label: "Nombre", editable: false }],
 }: ItemSelectorProps<T>) => {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  // Filtro de búsqueda
-  const filteredItems = useMemo(() => {
-    return availableItems.filter((item) =>
-      item.nombre.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [availableItems, search]);
+  const [filteredItems, setFilteredItems] = useState<T[]>(availableItems);
 
   const handleAdd = (item: T) => {
-    if (!selectedItems.some((i) => i.id === item.id)) {
+    if (!selectedItems.some((i) => i[idField] === item[idField])) {
       onChange([...selectedItems, item]);
     }
     setOpen(false);
   };
 
-  const handleDelete = (id: T["id"]) => {
-    onChange(selectedItems.filter((i) => i.id !== id));
+  const handleDelete = (id: T[keyof T]) => {
+    onChange(selectedItems.filter((i) => i[idField] !== id));
   };
 
-  const handleUpdate = (
-    id: T["id"],
-    key: keyof T,
-    value: string | number
+  const handleUpdate = <K extends keyof T>(
+    id: T[keyof T],
+    key: K,
+    value: T[K]
   ) => {
     const updated = selectedItems.map((i) =>
-      i.id === id ? { ...i, [key]: value } : i
+      i[idField] === id ? { ...i, [key]: value } : i
     );
     onChange(updated);
   };
@@ -86,14 +77,14 @@ export const ItemSelector = <T extends BaseItem>({
 
         {selectedItems.map((item) => (
           <Grid
-            key={item.id}
+            key={String(item[idField])}
             container
             spacing={2}
             alignItems="center"
             sx={{ mb: 1 }}
           >
             {columns.map((col) => (
-              <Grid key={String(col.key)}>
+              <Grid key={String(col.key)} size={col.editable ? 4 : 6}>
                 {col.editable ? (
                   <TextField
                     type={col.type === "number" ? "number" : "text"}
@@ -102,11 +93,11 @@ export const ItemSelector = <T extends BaseItem>({
                     value={item[col.key] ?? ""}
                     onChange={(e) =>
                       handleUpdate(
-                        item.id,
-                        col.key,
-                        col.type === "number"
+                        item[idField],
+                        col.key as keyof T,
+                        (col.type === "number"
                           ? Number(e.target.value)
-                          : e.target.value
+                          : e.target.value) as T[keyof T]
                       )
                     }
                   />
@@ -117,14 +108,16 @@ export const ItemSelector = <T extends BaseItem>({
             ))}
 
             <Grid>
-              <IconButton onClick={() => handleDelete(item.id)} color="error">
+              <IconButton
+                onClick={() => handleDelete(item[idField])}
+                color="error"
+              >
                 <DeleteIcon />
               </IconButton>
             </Grid>
           </Grid>
         ))}
 
-        {/* Botón + */}
         <Grid>
           <IconButton onClick={() => setOpen(true)} color="primary">
             <AddIcon />
@@ -132,26 +125,31 @@ export const ItemSelector = <T extends BaseItem>({
         </Grid>
       </Grid>
 
-      {/* Modal de selección */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+      {/* Modal para agregar elementos */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Agregar {label.toLowerCase()}</DialogTitle>
         <DialogContent>
-          <Box display="flex" alignItems="center" mb={2}>
-            <SearchIcon sx={{ mr: 1 }} />
-            <TextField
-              fullWidth
-              placeholder="Buscar..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </Box>
+          {/* 🔍 SearchBar integrada solo con búsqueda */}
+          <SearchBar<T>
+            baseList={availableItems}
+            getLabel={(item) => item.nombre}
+            onResults={(results) => setFilteredItems(results)}
+            placeholder="Buscar..."
+          />
 
           <List>
             {filteredItems.map((item) => (
               <ListItemButton
-                key={item.id}
+                key={String(item[idField])}
                 onClick={() => handleAdd(item)}
-                disabled={selectedItems.some((i) => i.id === item.id)}
+                disabled={selectedItems.some(
+                  (i) => i[idField] === item[idField]
+                )}
               >
                 <ListItemText primary={item.nombre} />
               </ListItemButton>
