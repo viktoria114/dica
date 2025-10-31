@@ -42,16 +42,19 @@ export  const crearPago = async (req: Request, res: Response): Promise<void> => 
 export  const actualizarPago = async (req: Request, res: Response): Promise<void> => {
     try{
         const { id } = req.params;
-        const { monto, metodoDePago, comprobantePago, validado, fk_pedido, fk_fecha, hora } = req.body;
+        const { monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora } = req.body;
 
+        const fecha = new Date(fk_fecha.replace(/\//g, '-'));
+
+        console.log(req.body)
         const query = `
         UPDATE pagos
         SET monto = $1, metodo_pago = $2, comprobante_pago = $3, validado = $4, fk_pedido = $5, fk_fecha = $6, hora = $7
         WHERE id = $8
         RETURNING *;
         `;
+        const nuevo_pago = new Pago(null, monto, metodo_pago, comprobante_pago, validado, fk_pedido, fecha, hora)
 
-        const nuevo_pago = new Pago(null, monto, metodoDePago, comprobantePago, validado, fk_pedido, fk_fecha, hora)
 
         const valores = [
             nuevo_pago.monto,

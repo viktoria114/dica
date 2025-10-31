@@ -112,7 +112,7 @@ export const StockPage = () => {
   } = useFormStock(selectedStock, onSuccessEdit, "editar");
 
   // Borrar y restaurar
-  const { borrarStock, isDeleting } = useBorrarStock(() => {
+  const { borrarStockHandler, isDeleting } = useBorrarStock(() => {
     setOpenEdit(false);
     refetch();
   });
@@ -251,7 +251,7 @@ export const StockPage = () => {
         isSaving={isSavingEdit}
         idField="id"
         modoPapelera={modoPapelera}
-        borrar={(id) => borrarStock(Number(id))}
+        borrar={(id) => borrarStockHandler(Number(id))}
         restaurar={(id) => restaurar(Number(id))}
         isDeleting={isDeleting}
         isRestoring={isRestoring}

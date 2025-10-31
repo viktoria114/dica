@@ -1,8 +1,9 @@
 import type { FieldConfig } from "../Components/common/FormBase";
 import type { Promocion } from "../types";
 import { useState } from "react";
-import { crearPromocion } from "../api/promociones";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { createPromocion, getPromociones } from "../store/slices/promocionesSlice";
 
 const promocionFields: FieldConfig<Promocion>[] = [
   {
@@ -27,6 +28,7 @@ const promocionFields: FieldConfig<Promocion>[] = [
 ];
 
 export const usePromocionForm = () => {
+  const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -72,13 +74,16 @@ export const usePromocionForm = () => {
         cantidad: item.cantidad,
       }));
 
-      await crearPromocion({
+      await dispatch(createPromocion({
         nombre: values.nombre,
         tipo: values.tipo,
         precio: values.precio,
         visibilidad: values.visibilidad,
         items: itemsForApi,
-      });
+      })).unwrap();
+
+      await dispatch(getPromociones());
+
       showSnackbar("Promoción creada con éxito!", "success");
       setOpen(false);
     } catch (error) {

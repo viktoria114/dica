@@ -1,11 +1,22 @@
 import { useState } from 'react';
 import type { Gasto } from '../types';
-import { crearGasto } from '../api/gastos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { FieldConfig } from '../Components/common/FormBase';
-import { DatePicker } from '@mui/x-date-pickers';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { useAppDispatch } from '../store/hooks';
+import { crearGastos, getGastos } from '../store/slices/gastosSlice';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { es } from 'date-fns/locale';
+
+const formatDateForBackend = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}/${month}/${day}`;
+};
 
 export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
+    const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -50,11 +61,14 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
       name: 'fecha',
       label: 'Fecha',
       render: (value, handleChange) => (
-        <DatePicker
-          label="Fecha"
-          value={value ? new Date(value) : new Date()}
-          onChange={(newValue) => handleChange('fecha', newValue)}
-        />
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+          <DatePicker
+            label="Fecha"
+            value={value ? new Date(value) : new Date()}
+            onChange={(newValue) => handleChange('fecha', newValue)}
+            format="dd/MM/yy"
+          />
+        </LocalizationProvider>
       ),
     },
   ];
@@ -89,13 +103,15 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
 
     setIsSaving(true);
     try {
-      await crearGasto({
+      await dispatch(crearGastos({
         ...values,
+        fecha: formatDateForBackend(new Date(values.fecha)),
         stockItems: values.stockItems.map(item => ({
           id_stock: item.id_stock,
           cantidad: item.cantidad,
         })),
-      });
+      }));
+      await dispatch(getGastos());
       showSnackbar('Gasto creado con éxito!', 'success');
       setOpen(false);
       onSuccess?.();

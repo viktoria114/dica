@@ -1,57 +1,51 @@
-import { useState, useEffect, useCallback } from "react";
-import { fetchPromociones, fetchPromocionesInvisibles } from "../api/promociones";
-import type { Promocion } from "../types";
+// src/hooks/usePromociones.ts
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  getPromociones,
+  getPromocionesInvisibles,
+  toggleModoPapelera,
+} from "../store/slices/promocionesSlice";
 
 export const usePromociones = () => {
-  const [promociones, setPromociones] = useState<Promocion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [modoPapelera, setModoPapelera] = useState(false);
+  const dispatch = useAppDispatch();
 
-  const cargarPromociones = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchPromociones();
-      setPromociones(data);
-    } catch (err) {
-      setError("Error al cargar promociones" + {err});
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { promociones, promocionesInvisibles, loading, error, modoPapelera } =
+    useAppSelector((state) => state.promociones);
 
-  const cargarPromocionesInvisibles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchPromocionesInvisibles();
-      setPromociones(data);
-    } catch (err) {
-      setError("Error al cargar promociones invisibles" + {err});
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const toggleInvisibles = useCallback(() => {
-    if (modoPapelera) {
-      cargarPromociones();
-    } else {
-      cargarPromocionesInvisibles();
-    }
-    setModoPapelera((prev) => !prev);
-  }, [modoPapelera, cargarPromociones, cargarPromocionesInvisibles]);
-
-  const refreshPromociones = useCallback(() => {
-    if (modoPapelera) {
-      cargarPromocionesInvisibles();
-    } else {
-      cargarPromociones();
-    }
-  }, [modoPapelera, cargarPromociones, cargarPromocionesInvisibles]);
-
+  // 🔁 Cargar promociones al montar
   useEffect(() => {
-    cargarPromociones();
-  }, [cargarPromociones]);
+    dispatch(getPromociones());
+  }, [dispatch]);
 
-  return { promociones, loading, error, modoPapelera, toggleInvisibles, refreshPromociones };
+  // 🧩 Alternar entre visibles e invisibles
+  const toggleInvisibles = async () => {
+    if (!modoPapelera) {
+      await dispatch(getPromocionesInvisibles());
+    } else {
+      await dispatch(getPromociones());
+    }
+    dispatch(toggleModoPapelera());
+  };
+
+  // 🔄 Refrescar según el modo actual (como antes)
+  const refreshPromociones = async () => {
+    if (modoPapelera) {
+      await dispatch(getPromocionesInvisibles());
+    } else {
+      await dispatch(getPromociones());
+    }
+  };
+
+  // 📦 Lista base según el modo actual
+  const baseList = modoPapelera ? promocionesInvisibles : promociones;
+
+  return {
+    promociones: baseList,
+    loading,
+    error,
+    modoPapelera,
+    toggleInvisibles,
+    refreshPromociones, // 👈 se mantiene igual que antes
+  };
 };

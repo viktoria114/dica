@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { TextField, MenuItem, Grid, Typography, Box } from "@mui/material";
+import {
+  TextField,
+  MenuItem,
+  Grid,
+  Typography,
+  Box,
+  FormControlLabel,
+  Checkbox,
+} from "@mui/material";
 import { ActionButtons } from "./ActionButtons";
 import React from "react"; // Asegúrate de que React esté importado
 
@@ -7,7 +15,7 @@ import React from "react"; // Asegúrate de que React esté importado
 export interface FieldConfig<T> {
   name: keyof T;
   label: string;
-  type?: "text" | "password" | "select" | "number";
+  type?: "text" | "password" | "select" | "number" | "checkbox";
   options?: { value: string | number; label: string }[]; // para selects
   onlyInCreate?: boolean; // campos visibles solo en modo "crear"
   disabled?: boolean; // Para permitir campos deshabilitados
@@ -86,6 +94,21 @@ function GenericForm<T>({
                 );
               }
 
+              if (field.type === "checkbox" && onChange) {
+                return (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={!!values[field.name]}
+                        onChange={(e) => onChange(field.name, e.target.checked)}
+                      />
+                    }
+                    label={field.label}
+                    key={String(field.name)}
+                  />
+                );
+              }
+
               // 👇 SI NO, RENDERIZA EL TEXTFIELD NORMAL DE ANTES
               return (
                 <TextField
@@ -94,9 +117,14 @@ function GenericForm<T>({
                   label={field.label}
                   type={field.type ?? "text"}
                   value={values[field.name] ?? ""}
-                  onChange={(e) =>
-                    onChange?.(field.name, e.target.value as unknown)
-                  }
+                  onChange={(e) => {
+                    if (field.type === 'number') {
+                      const num = e.target.value === '' ? null : parseFloat(e.target.value);
+                      onChange?.(field.name, num);
+                    } else {
+                      onChange?.(field.name, e.target.value);
+                    }
+                  }}
                   margin="dense"
                   variant="standard"
                   focused
