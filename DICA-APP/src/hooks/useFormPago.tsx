@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import type { Pago } from '../types';
-import { crearPago } from '../api/pagos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { FieldConfig } from '../Components/common/FormBase';
 import { DatePicker } from '@mui/x-date-pickers';
+import { useAppDispatch } from '../store/hooks';
+import { crearPagos, getPagos } from '../store/slices/pagosSlice';
+
 
 export const usePagoForm = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -84,7 +87,8 @@ export const usePagoForm = (onSuccess?: () => void) => {
 
     setIsSaving(true);
     try {
-      await crearPago(values);
+      await dispatch(crearPagos(values));
+      await dispatch(getPagos());
       showSnackbar('Pago creado con éxito!', 'success');
       setOpen(false);
       onSuccess?.();

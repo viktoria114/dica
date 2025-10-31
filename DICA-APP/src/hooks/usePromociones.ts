@@ -11,7 +11,7 @@ export const usePromociones = () => {
   const dispatch = useAppDispatch();
 
   const { promociones, promocionesInvisibles, loading, error, modoPapelera } =
-    useAppSelector((state) => state.Promociones);
+    useAppSelector((state) => state.promociones);
 
   // 🔁 Cargar promociones al montar
   useEffect(() => {

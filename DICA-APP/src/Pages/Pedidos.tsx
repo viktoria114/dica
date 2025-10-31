@@ -3,7 +3,8 @@ import { Container, Grid, Typography, Card, CardContent, CircularProgress, Alert
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useEffect, useState } from "react";
 import type { Pedido } from "../types";
-import { getPedidos } from "../api/pedidos";
+import { useAppDispatch } from "../store/hooks";
+import { getPedidos } from "../store/slices/pedidosSlices";
 
 const pedidosmock: Pedido[] = [
   { id: 1, id_fecha: new Date("2025-05-24"), hora: "12:00", id_cliente: 1, ubicacion: "Centro", visibilidad: true, id_estado: 1, observacion: "vegetariano" },
@@ -24,6 +25,7 @@ const estados = [
 ];
 
 export const Pedidos = () => {
+  const dispatch = useAppDispatch();
   // 1. Estados para manejar los datos del backend
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export const Pedidos = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getPedidos();
+        const data = await dispatch(getPedidos()).unwrap();
         console.log(data);
         
         // El backend usa fk_estado, pero tu mock y el componente usan id_estado.

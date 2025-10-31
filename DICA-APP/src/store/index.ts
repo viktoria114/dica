@@ -3,13 +3,21 @@ import empleadosReducer from "./slices/empleadosSlice";
 import clientesReducer from "./slices/clientesSlice";
 import menuReducer from "./slices/menuSlice";
 import promocionesReducer from "./slices/promocionesSlice";
+import stockReducer from "./slices/stockSlice";
+import pagosReducer from "./slices/pagosSlice";
+import gastosReducer from "./slices/gastosSlice";
+import pedidosReducer from "./slices/pedidosSlices";
 
 export const store = configureStore({
   reducer: {
     empleados: empleadosReducer,
     clientes: clientesReducer,
     menu: menuReducer,
-    Promociones: promocionesReducer,
+    promociones: promocionesReducer,
+    stock: stockReducer,
+    pagos: pagosReducer,
+    gastos: gastosReducer,
+    pedidos: pedidosReducer,
   },
 });
 

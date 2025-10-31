@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import type { Gasto } from '../types';
-import { crearGasto } from '../api/gastos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { FieldConfig } from '../Components/common/FormBase';
 import { DatePicker } from '@mui/x-date-pickers';
+import { useAppDispatch } from '../store/hooks';
+import { crearGastos, getGastos } from '../store/slices/gastosSlice';
 
 export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
+    const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -89,13 +91,14 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
 
     setIsSaving(true);
     try {
-      await crearGasto({
+      await dispatch(crearGastos({
         ...values,
         stockItems: values.stockItems.map(item => ({
           id_stock: item.id_stock,
           cantidad: item.cantidad,
         })),
-      });
+      }));
+      await dispatch(getGastos());
       showSnackbar('Gasto creado con éxito!', 'success');
       setOpen(false);
       onSuccess?.();

@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { modificarGasto } from '../api/gastos';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import type { Gasto } from '../types';
+import { useAppDispatch } from '../store/hooks';
+import { getGastos, modificarGastos } from '../store/slices/gastosSlice';
 
 export const useActualizarGasto = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [isUpdating, setIsUpdating] = useState(false);
   const { showSnackbar } = useSnackbar();
 
   const actualizar = async (id: number, values: Partial<Gasto>) => {
     setIsUpdating(true);
     try {
-      await modificarGasto(id, values as Gasto);
+      await dispatch(modificarGastos(id, values as Gasto));
+      await dispatch(getGastos());
       showSnackbar('Gasto actualizado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

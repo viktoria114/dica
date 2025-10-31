@@ -9,6 +9,9 @@ import {
   actualizarPromocion,
   agregarItemPromocion,
   eliminarItemPromocion,
+} from "../../api/promociones";
+
+import type {
   CrearPromocionPayload,
   ActualizarPromocionPayload,
   AgregarItemPromocionPayload,
@@ -95,7 +98,7 @@ export const deletePromocion = createAsyncThunk(
   async (id: number, { rejectWithValue }) => {
     try {
       await eliminarPromocion(id);
-      return id; // devolvemos el id eliminado
+      return id;
     } catch (err: unknown) {
       if (err instanceof Error) return rejectWithValue(err.message);
       return rejectWithValue("Error al eliminar la promoción");
@@ -121,12 +124,13 @@ export const restorePromocion = createAsyncThunk(
 export const addItemPromocion = createAsyncThunk(
   "promociones/addItemPromocion",
   async (
-    { id, payload }: { id: number; payload: AgregarItemPromocionPayload },
+    { id, id_menu, cantidad }: { id: number; id_menu: number; cantidad: number },
     { rejectWithValue }
   ) => {
     try {
+      const payload: AgregarItemPromocionPayload = { id_menu, cantidad };
       await agregarItemPromocion(id, payload);
-      return { id, payload };
+      return { id, id_menu, cantidad };
     } catch (err: unknown) {
       if (err instanceof Error) return rejectWithValue(err.message);
       return rejectWithValue("Error al agregar item a la promoción");
@@ -138,12 +142,13 @@ export const addItemPromocion = createAsyncThunk(
 export const removeItemPromocion = createAsyncThunk(
   "promociones/removeItemPromocion",
   async (
-    { id, payload }: { id: number; payload: EliminarItemPromocionPayload },
+    { id, id_menu, cantidad }: { id: number; id_menu: number; cantidad: number },
     { rejectWithValue }
   ) => {
     try {
+      const payload: EliminarItemPromocionPayload = { id_menu, cantidad };
       await eliminarItemPromocion(id, payload);
-      return { id, payload };
+      return { id, id_menu, cantidad };
     } catch (err: unknown) {
       if (err instanceof Error) return rejectWithValue(err.message);
       return rejectWithValue("Error al eliminar item de la promoción");
@@ -183,16 +188,7 @@ const promocionesSlice = createSlice({
 
       // ✅ Crear promoción
       .addCase(createPromocion.fulfilled, (state, action) => {
-        // normalmente el backend devuelve {id, message}, pero podrías volver a hacer fetch
-        // aquí simplemente actualizamos por claridad
-        state.promociones.push({
-          id: action.payload.id,
-          nombre: "",
-          tipo: "DESCUENTO",
-          precio: 0,
-          visibilidad: true,
-          items: [],
-        } as Promocion);
+        state.promociones.push(action.payload);
       })
 
       // ✅ Actualizar promoción
@@ -219,7 +215,12 @@ const promocionesSlice = createSlice({
       // ✅ Agregar item a promoción
       .addCase(addItemPromocion.fulfilled, (state, action) => {
         const promo = state.promociones.find((p) => p.id === action.payload.id);
-        if (promo) promo.items.push(action.payload.payload);
+        if (promo) {
+          promo.items.push({
+            id_menu: action.payload.id_menu,
+            cantidad: action.payload.cantidad,
+          });
+        }
       })
 
       // ✅ Eliminar item de promoción
@@ -227,7 +228,7 @@ const promocionesSlice = createSlice({
         const promo = state.promociones.find((p) => p.id === action.payload.id);
         if (promo) {
           promo.items = promo.items.filter(
-            (item) => item.id_menu !== action.payload.payload.id_menu
+            (item) => item.id_menu !== action.payload.id_menu
           );
         }
       });
