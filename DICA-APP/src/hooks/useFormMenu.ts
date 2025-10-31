@@ -1,25 +1,14 @@
+import { useState } from "react";
 import type { FieldConfig } from "../Components/common/FormBase";
 import type { ItemsMenu } from "../types";
-import { useState } from "react";
-import { crearMenu } from "../api/menu";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { crearMenuThunk, getMenus } from "../store/slices/menuSlice";
 
 const menuFields: FieldConfig<ItemsMenu>[] = [
-  {
-    name: "nombre",
-    label: "Nombre",
-    type: "text",
-  },
-  {
-    name: "precio",
-    label: "Precio",
-    type: "number",
-  },
-  {
-    name: "descripcion",
-    label: "Descripción",
-    type: "text",
-  },
+  { name: "nombre", label: "Nombre", type: "text" },
+  { name: "precio", label: "Precio", type: "number" },
+  { name: "descripcion", label: "Descripción", type: "text" },
   {
     name: "categoria",
     label: "Categoría",
@@ -29,14 +18,15 @@ const menuFields: FieldConfig<ItemsMenu>[] = [
       { value: "pizza", label: "Pizza" },
       { value: "bebida", label: "Bebida" },
     ],
-  },  
-
+  },
 ];
 
-export const useMenuForm = () => {
+export const useMenuForm = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
+  const { showSnackbar } = useSnackbar();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { showSnackbar } = useSnackbar();
+
   const [formValues, setFormValues] = useState<ItemsMenu>({
     id: 0,
     nombre: "",
@@ -51,13 +41,12 @@ export const useMenuForm = () => {
     Partial<Record<keyof ItemsMenu, string>>
   >({});
 
+  // ✅ Validaciones
   const validate = (values: ItemsMenu) => {
     const errors: Partial<Record<keyof ItemsMenu, string>> = {};
     if (!values.nombre?.trim()) errors.nombre = "El nombre es obligatorio";
-    if (!values.descripcion?.trim())
-      errors.descripcion = "La descripción es obligatoria";
-    if (!values.precio || values.precio <= 0)
-      errors.precio = "El precio debe ser mayor a 0";
+    if (!values.descripcion?.trim()) errors.descripcion = "La descripción es obligatoria";
+    if (!values.precio || values.precio <= 0) errors.precio = "El precio debe ser mayor a 0";
     return errors;
   };
 
@@ -65,6 +54,7 @@ export const useMenuForm = () => {
     setFormValues((prev) => ({ ...prev, [field]: value }));
   };
 
+  // ✅ Guardar menú usando Redux
   const handleSubmit = async (values: ItemsMenu) => {
     const errors = validate(values);
     setFormErrors(errors);
@@ -72,18 +62,25 @@ export const useMenuForm = () => {
 
     setIsSaving(true);
     try {
-      await crearMenu({
-        nombre: values.nombre,
-        precio: values.precio,
-        descripcion: values.descripcion,
-        categoria: values.categoria,
-        stocks: values.stocks || [],
-      });
+      await dispatch(
+        crearMenuThunk({
+          nombre: values.nombre,
+          precio: values.precio,
+          descripcion: values.descripcion,
+          categoria: values.categoria,
+          stocks: values.stocks || [],
+        })
+      ).unwrap();
+
+      // Refrescar lista global
+      await dispatch(getMenus());
+
       showSnackbar("Menú creado con éxito!", "success");
       setOpen(false);
+      onSuccess?.();
     } catch (error) {
-      console.error(error);
-      showSnackbar("Error al crear el menú", "error");
+      if (error instanceof Error) showSnackbar(error.message, "error");
+      else showSnackbar("Error desconocido al crear menú", "error");
     } finally {
       setIsSaving(false);
     }
@@ -91,9 +88,9 @@ export const useMenuForm = () => {
 
   return {
     open,
-    menuFields,
     setOpen,
     isSaving,
+    menuFields,
     formValues,
     setFormValues,
     formErrors,

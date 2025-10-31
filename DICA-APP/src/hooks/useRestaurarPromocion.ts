@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { restaurarPromocion } from "../api/promociones";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { getPromociones, restorePromocion } from "../store/slices/promocionesSlice";
 
 export function useRestaurarPromocion(onSuccess: () => void) {
+  const dispatch = useAppDispatch();
   const [isRestoring, setIsRestoring] = useState(false);
   const { showSnackbar } = useSnackbar();
 
@@ -14,7 +16,8 @@ export function useRestaurarPromocion(onSuccess: () => void) {
 
     try {
       setIsRestoring(true);
-      await restaurarPromocion(id);
+      await dispatch(restorePromocion(id)).unwrap();
+      await dispatch(getPromociones()); // Refresca la lista de promociones visibles
       showSnackbar("Promoción restaurada correctamente", "success");
       onSuccess();
     } catch (err) {
