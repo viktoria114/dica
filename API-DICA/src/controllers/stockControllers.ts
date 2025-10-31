@@ -270,6 +270,8 @@ export const validateLowStock = async (
   }
 };
 
+// controllers de registroStock
+
 export const GetRegistrosStock = async (
   req: Request,
   res: Response,
@@ -301,6 +303,180 @@ export const GetRegistrosStock = async (
     res.status(200).json(resultado.rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const crearRegistroStock = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { cantidad, fk_stock } = req.body;
+
+    const nuevoRegistro = new RegistroStock(
+      null,
+      cantidad,
+      cantidad,
+      fk_stock,
+      'disponible',
+    );
+
+    const query = `
+      INSERT INTO registro_stock (cantidad_inicial, cantidad_actual, fk_stock, fk_fecha, estado, visibilidad)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;
+    `;
+
+    const values = [
+      nuevoRegistro.cantidadInicial,
+      nuevoRegistro.cantidadActual,
+      nuevoRegistro.fk_stock,
+      nuevoRegistro.fk_fecha,
+      nuevoRegistro.estado,
+      nuevoRegistro.visibilidad,
+    ];
+
+    const result = await pool.query(query, values);
+
+    //AGREGAR AL STOCK ACTUAL LA CANTIDAD INGRESADA
+    const stockQuery = `
+      UPDATE stock
+      SET stock_actual = stock_actual + $1
+      WHERE id = $2
+    `;
+
+    await pool.query(stockQuery, [
+      nuevoRegistro.cantidadActual,
+      nuevoRegistro.fk_stock,
+    ]);
+
+    res.status(201).json({
+      mensaje: 'Registro de stock creado exitosamente.',
+      registro: result.rows[0],
+    });
+  } catch (error: any) {
+    console.error('Error al crear registro de stock:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const actualizarRegistroStock = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { cantidad_inicial, cantidad_actual, fk_stock, estado } = req.body;
+
+    //OBTENER LA CANTIDAD ACTUAL DEL REGISTRO PARA SABER LA DIFERENCIA Y ACTUALIZAR EL STOCK
+    const consulta = await pool.query(
+      `SELECT * FROM registro_stock WHERE id = $1`,
+      [id],
+    );
+    const actual = consulta.rows[0];
+
+    const query = `
+      UPDATE registro_stock
+      SET cantidad_inicial = $1, cantidad_actual = $2, fk_stock = $3, estado = $4
+      WHERE id = $5
+      RETURNING *;
+    `;
+
+    const nuevoRegistro = new RegistroStock(
+      null,
+      cantidad_inicial,
+      cantidad_actual,
+      fk_stock,
+      estado,
+    );
+
+    const values = [
+      nuevoRegistro.cantidadInicial,
+      nuevoRegistro.cantidadActual,
+      nuevoRegistro.fk_stock,
+      nuevoRegistro.estado,
+      id,
+    ];
+
+    const result = await pool.query(query, values);
+
+    //ACTUALIZAR STOCK ACTUAL EN LA TABLA STOCK
+    const diferencia = nuevoRegistro.cantidadActual - actual.cantidad_actual;
+
+    await pool.query(
+      `
+      UPDATE stock
+      SET stock_actual = stock_actual + $1
+      WHERE id = $2
+    `,
+      [diferencia, nuevoRegistro.fk_stock],
+    );
+
+    res.status(200).json({
+      mensaje: 'Registro de stock actualizado exitosamente.',
+      registro: result.rows[0],
+    });
+  } catch (error: any) {
+    console.error('Error al actualizar registro de stock:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const eliminarRegistroStock = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res.status(400).json({ error: 'id requerido' });
+      return;
+    }
+
+    // Buscar registro stock actual
+    const consulta = await pool.query(
+      `SELECT * FROM registro_stock WHERE id = $1`,
+      [id],
+    );
+    const actual = consulta.rows[0];
+
+    if (!actual) {
+      res.status(404).json({ error: 'registro de stock no encontrado' });
+      return;
+    }
+
+    const query = `
+      DELETE FROM registro_stock
+      WHERE id = $1
+      RETURNING *;
+    `;
+
+    const result = await pool.query(query, [id]);
+
+    //USAR "actual" PARA RESTARLE EL STOCK ACTUAL AL TOTAL DEL STOCK CORRESPONDIENTE
+    const stockQuery = `
+      UPDATE stock
+      SET stock_actual = stock_actual - $1
+      WHERE id = $2
+    `;
+    await pool.query(stockQuery, [actual.cantidad_actual, actual.fk_stock]);
+
+    //ELIMINAR GASTO ASOCIADO SI ES QUE EXISTE
+    const gastoQuery = `
+      DELETE FROM gastos
+      WHERE fk_registro_stock = $1
+      RETURNING *;
+    `;
+    await pool.query(gastoQuery, [id]);
+
+    res.status(200).json({
+      mensaje: 'Registro de stock eliminado exitosamente.',
+      registro: result.rows[0],
+    });
+  } catch (error: any) {
+    console.error('Error al eliminar registro de stock:', error.message);
+    res.status(400).json({ error: error.message });
   }
 };
 
