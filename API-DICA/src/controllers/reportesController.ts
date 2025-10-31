@@ -172,9 +172,6 @@ export const getReporteGastos = async (req: Request, res: Response) => {
     let query = `
       SELECT
         g.categoria,
-        df.fecha,
-        df.nombre_dia,
-        df.nombre_mes,
         SUM(g.monto) AS total_gastos
       FROM gastos g
       JOIN dim_fecha df ON g.fk_fecha::DATE = df.fecha
@@ -202,8 +199,7 @@ export const getReporteGastos = async (req: Request, res: Response) => {
     }
 
     query += `
-      GROUP BY g.categoria, df.fecha, df.nombre_dia, df.nombre_mes
-      ORDER BY df.fecha ASC;
+      GROUP BY g.categoria;
     `;
 
     const { rows } = await pool.query(query, values);
