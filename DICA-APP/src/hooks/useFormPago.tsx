@@ -134,7 +134,6 @@ export const usePagoForm = (onSuccess?: () => void) => {
         fk_fecha: formatDateForBackend(new Date(values.fk_fecha)),
       };
       await dispatch(crearPagos(formattedValues));
-      await dispatch(getPagos());
       showSnackbar('Pago creado con éxito!', 'success');
       setOpen(false);
       onSuccess?.();
