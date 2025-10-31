@@ -456,3 +456,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+package-lock.json
