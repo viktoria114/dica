@@ -19,13 +19,7 @@ const initialState: GastosState = {
 // 🔁 Obtener todos los gastos
 export const getGastos = createAsyncThunk("gastos/getGastos", async (_, { rejectWithValue }) => {
   try {
-    const gastos = await fetchGastos();
-    // @ts-ignore
-    return gastos.map(g => ({
-      ...g,
-      fecha: g.fk_fecha,
-      metodo_de_pago: g.metodo_pago
-    }))
+    return await fetchGastos();
   } catch (err) {
     if (err instanceof Error) return rejectWithValue(err.message);
     return rejectWithValue("Error desconocido al obtener gastos");

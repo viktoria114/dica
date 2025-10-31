@@ -30,16 +30,21 @@ export class Gasto {
       throw new Error("El monto debe tener máximo tres decimales.")
     }
 
-    const metodosPagoPermitidos = ["efectivo", "tarjeta", "billetera virtual"]
+    const metodosPagoPermitidos = ["efectivo", "tarjeta", "transferencia"]
+    this.metodoDePago = this.metodoDePago.toLowerCase()
 
-    if (!metodosPagoPermitidos.includes(this.metodoDePago.toLowerCase())){
+    if (!metodosPagoPermitidos.includes(this.metodoDePago)){
       throw new Error(`Metodo de pago invalido. Los metodos permitidos son: ${metodosPagoPermitidos.join(", ")}`)
     }
 
     const categoriasPermitidas = [
       "insumos",
+      "salarios",
+      "alquiler",
       "mantenimiento",
+      "equipamiento",
       "transporte",
+      "marketing",
       "impuestos",
       "otros",
     ]
@@ -54,7 +59,7 @@ export class Gasto {
       throw new Error("La categoria insumos debe estar asociada a un registro de stock")
     }
 
-  if (this.descripcion != null || this.descripcion === ""){
+  if (this.descripcion != null && this.descripcion != ""){
    if (
         this.descripcion.trim().length < 5 ||
         this.descripcion.trim().length > 255

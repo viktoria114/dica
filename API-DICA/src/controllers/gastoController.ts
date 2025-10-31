@@ -11,7 +11,25 @@ export const listarGastos = async (req: Request, res: Response): Promise<void> =
 
   try {
     const query = `
-      SELECT * FROM gastos;
+      SELECT 
+        g.id,
+        g.monto,
+        g.categoria,
+        g.descripcion,
+        g.metodo_pago as metodo_de_pago,
+        g.fk_fecha as fecha,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id_stock', rs.fk_stock, 
+              'cantidad', rs.cantidad_inicial
+            )
+          ) FILTER (WHERE rs.id IS NOT NULL), '[]'
+        ) as "stockItems"
+      FROM gastos g
+      LEFT JOIN registro_stock rs ON g.fk_registro_stock = rs.id
+      GROUP BY g.id, g.monto, g.categoria, g.descripcion, g.metodo_pago, g.fk_fecha
+      ORDER BY g.id DESC;
     `;
 
     const {rows} = await client.query(query);

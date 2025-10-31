@@ -39,6 +39,7 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
         { value: 'equipamiento', label: 'Equipamiento' },
         { value: 'transporte', label: 'Transporte' },
         { value: 'marketing', label: 'Marketing' },
+        { value: 'impuestos', label: "Impuestos"},
         { value: 'otros', label: 'Otros' },
       ],
     },
@@ -103,14 +104,18 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
 
     setIsSaving(true);
     try {
-      await dispatch(crearGastos({
+      const payload: any = {
         ...values,
         fecha: formatDateForBackend(new Date(values.fecha)),
-        stockItems: values.stockItems.map(item => ({
-          id_stock: item.id_stock,
-          cantidad: item.cantidad,
-        })),
-      }));
+      };
+
+      if (values.categoria === 'insumos' && values.stockItems && values.stockItems.length > 0) {
+        payload.fk_stock = values.stockItems[0].id_stock;
+        payload.cantidad = values.stockItems[0].cantidad;
+      }
+      delete payload.stockItems; 
+
+      await dispatch(crearGastos(payload));
       await dispatch(getGastos());
       showSnackbar('Gasto creado con éxito!', 'success');
       setOpen(false);
