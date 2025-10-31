@@ -1,18 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { getReporteGastos } from '../../api/reportes';
-import { Filter } from './Filter';
+import { DateRangeFilter } from './DateRangeFilter';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Box } from '@mui/material';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+const formatDate = (date: Date | null) => {
+  if (!date) return null;
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const GastosChart = () => {
   const [chartData, setChartData] = useState<any>(null);
 
-  const fetchData = async (filters?: any) => {
+  const fetchData = async (filters?: { fecha_inicio: Date | null; fecha_fin: Date | null }) => {
     try {
-      const data = await getReporteGastos(filters);
+      const formattedFilters = filters
+        ? {
+            fecha_inicio: formatDate(filters.fecha_inicio),
+            fecha_fin: formatDate(filters.fecha_fin),
+          }
+        : {};
+      const data = await getReporteGastos(formattedFilters);
       const chartJsData = {
         labels: data.map((item: any) => item.categoria),
         datasets: [
@@ -41,7 +55,7 @@ export const GastosChart = () => {
 
   return (
     <div>
-      <Filter onFilter={fetchData} />
+      <DateRangeFilter onFilter={fetchData} />
       <Box sx={{ maxWidth: '600px', maxHeight: '400px', margin: 'auto' }}>
         {chartData && <Doughnut data={chartData} />}
       </Box>
