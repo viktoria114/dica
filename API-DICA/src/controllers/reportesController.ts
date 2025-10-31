@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/db';
 
-export const getVentasDiarias = async (req: Request, res: Response) => {
+export const getIngresosDiarios = async (req: Request, res: Response) => {
   try {
     const { fecha_inicio, fecha_fin } = req.query;
 
@@ -11,6 +11,46 @@ export const getVentasDiarias = async (req: Request, res: Response) => {
         df.nombre_dia,
         df.nombre_mes,
         SUM(p.monto) AS total_ventas
+      FROM pagos p
+      JOIN dim_fecha df ON p.fk_fecha::DATE = df.fecha
+      WHERE p.validado = true
+    `;
+
+    const values = [];
+    let paramIndex = 1;
+
+    if (fecha_inicio) {
+      query += ` AND df.fecha >= $${paramIndex++}`;
+      values.push(fecha_inicio);
+    }
+    if (fecha_fin) {
+      query += ` AND df.fecha <= $${paramIndex++}`;
+      values.push(fecha_fin);
+    }
+
+    query += `
+      GROUP BY df.fecha, df.nombre_dia, df.nombre_mes
+      ORDER BY df.fecha ASC;
+    `;
+
+    const { rows } = await pool.query(query, values);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los ingresos diarios' });
+  }
+};
+
+export const getVentasDiarias = async (req: Request, res: Response) => {
+  try {
+    const { fecha_inicio, fecha_fin } = req.query;
+
+    let query = `
+      SELECT
+        df.fecha,
+        df.nombre_dia,
+        df.nombre_mes,
+        COUNT(p.id) AS cantidad_ventas
       FROM pagos p
       JOIN dim_fecha df ON p.fk_fecha::DATE = df.fecha
       WHERE p.validado = true
