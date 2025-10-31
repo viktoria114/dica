@@ -1,8 +1,8 @@
-import type { FieldConfig } from "../Components/common/FormBase";
-import type { Promocion } from "../types";
+import type { FieldConfig } from "../../Components/common/FormBase";
+import type { Promocion } from "../../types";
 import { useState } from "react";
-import { crearPromocion } from "../api/promociones";
-import { useSnackbar } from "../contexts/SnackbarContext";
+import { crearPromocion } from "../../api/promociones";
+import { useSnackbar } from "../../contexts/SnackbarContext";
 
 const promocionFields: FieldConfig<Promocion>[] = [
   {

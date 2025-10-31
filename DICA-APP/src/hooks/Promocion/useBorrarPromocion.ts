@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { eliminarPromocion } from "../api/promociones";
-import { useSnackbar } from "../contexts/SnackbarContext";
+import { eliminarPromocion } from "../../api/promociones";
+import { useSnackbar } from "../../contexts/SnackbarContext";
 
 export const useBorrarPromocion = (onSuccess?: () => void) => {
   const [isDeleting, setIsDeleting] = useState(false);

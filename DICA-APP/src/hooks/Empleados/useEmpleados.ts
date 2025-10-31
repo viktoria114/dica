@@ -1,9 +1,9 @@
 import { useEffect, useCallback, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   getEmpleados,
   getEmpleadosInvisibles,
-} from "../store/slices/empleadosSlice";
+} from "../../store/slices/empleadosSlice";
 
 
 export const useEmpleados = () => {

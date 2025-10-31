@@ -1,14 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Container, Grid, Typography, Card, CardContent, CircularProgress, Alert } from "@mui/material";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useEffect, useState } from "react";
-import type { ItemsYPromociones, Pedido } from "../types";
+import type { ItemsMenu, ItemsYPromociones, Pedido, Promocion } from "../types";
 import { getPedidos, getPedidosBorrados } from "../api/pedidos";
 import { SearchBar } from "../Components/common/SearchBar";
 import { ModalBase } from "../Components/common/ModalBase";
 import { usePedidoForm } from "../hooks/usePedidoForm";
-import { ItemSelector } from "../Components/common/ItemSelector";
+import { ItemSelector, type ItemSelectorColumn } from "../Components/common/ItemSelector";
 import { useMenu } from "../hooks/useMenu";
+import { usePromociones } from "../hooks/Promocion/usePromociones";
 
 /*const pedidosmock: Pedido[] = [
   { pedido_id: 1, id_fecha: new Date("2025-05-24"), hora: "12:00", id_cliente: 1, ubicacion: "Centro", visibilidad: true, fk_estado: 1, observaciones: "vegetariano" },
@@ -43,7 +45,21 @@ export const Pedidos = () => {
   const [pedidosFiltrados, setPedidosFiltrados] = useState<Pedido[]>([]);
 const [modo, setModo] = useState<"normal" | "borrados" | "cancelados">("normal");
 const [pedidosBorrados, setPedidosBorrados] = useState<Pedido[]>([]);
+
+
+
 const { menus } = useMenu();
+const { promociones } = usePromociones()
+const [selectedMenus, setSelectedMenus] = useState<ItemsYPromociones[]>([]);
+const [selectedPromos, setSelectedPromos] = useState<ItemsYPromociones[]>([]);
+const allAvailableMenus: ItemsMenu[] = [...menus];
+const allAvailablePromos: Promocion[] = [...promociones];
+
+const menuColumns: ItemSelectorColumn<ItemsYPromociones>[] = [
+  { key: "nombre", label: "Nombre", editable: false, width: 5 },
+  { key: "precio", label: "Precio", editable: false, width: 3 },
+  { key: "cantidad", label: "Cantidad", editable: true, type: "number", width: 3 },
+];
 
 const { open,
     setOpen,
@@ -71,6 +87,7 @@ useEffect(() => {
   const cargarBorrados = async () => {
     try {
       const data = await getPedidosBorrados(); // otro endpoint
+      console.log(data);
       setPedidosBorrados(data);
     } catch (err) {
       console.error("Error cargando borrados", err);
@@ -137,7 +154,7 @@ const pedidosAMostrar = () => {
   switch (modo) {
     case "normal":
       return base; // visibles
-    case "borrados":
+    case "borrados":   
       return pedidosBorrados;
     case "cancelados":
       return pedidos.filter(p => p.fk_estado === 9);
@@ -184,7 +201,7 @@ setPedidos((prev) =>
       </Container>
     );
   }
-  if (modo === "cancelados") {
+  if (modo !== "normal") {
   return (
     <Container sx={{ mt: 4 }}>
       <SearchBar
@@ -195,15 +212,80 @@ setPedidos((prev) =>
   onShowCancelados={() => cambiarModo("normal")} // cambia a modo cancelados
   canceladosLabel="VOLVER"
 />
-      <Typography variant="h6">Pedidos Cancelados</Typography>
+      <Typography variant="h6">Pedidos {modo}</Typography>
       {pedidosAMostrar().map(p => (
-        <Card key={p.pedido_id} sx={{ mb: 1, ":hover": { cursor: "pointer", bgcolor: "#f0f0f0" } }}>
+        <Card onClick={() => abrirDetallePedido(p)} key={p.pedido_id} sx={{ mb: 1, ":hover": { cursor: "pointer", bgcolor: "#f0f0f0" } }}>
           <CardContent>
             <Typography>Pedido #{p.pedido_id}</Typography>
             <Typography color="secondary.main">{p.ubicacion} – {p.hora}</Typography>
           </CardContent>
         </Card>
       ))}
+      <ModalBase<Pedido>
+  modo="editar"
+  modoPapelera={true}
+  entityName={`Pedido #${formValues.pedido_id}`}
+  open={open}
+  onClose={cerrarModalPedido}
+  values={formValues}
+  formErrors={formErrors}
+  fields={pedidoFields}
+  handleChange={handleChange}
+  handleGuardar={async () => {
+    await handleSubmit(formValues); // guarda en backend
+    setPedidos((prev) =>
+      prev.map((p) =>
+        p.pedido_id === formValues.pedido_id ? formValues : p
+      )
+    );
+    cerrarModalPedido();
+  }}
+  idField="pedido_id"
+   isSaving={isSaving}
+         displayFields={[
+        { label: "Teléfono del Cliente", value: formValues.id_cliente },
+        { label: "Observaciones", value: formValues.observaciones },
+        { label: "Ubicación", value: formValues.ubicacion },
+        { label: "Fecha", value: formValues.id_fecha ? formValues.id_fecha.toISOString() : null },
+        { label: "Hora", value: formValues.hora },
+        { label: "Items", value: formValues.items?.map(i => `${i.nombre} x${i.cantidad}`).join(", ") },
+        { label: "Promociones", value: formValues.promociones?.map(pr => `${pr.nombre} x${pr.cantidad}`).join(", ") },
+      ]}
+      >
+<ItemSelector<ItemsMenu, ItemsYPromociones>
+  label="Menús del Pedido"
+  availableItems={allAvailableMenus}
+  selectedItems={selectedMenus}
+  onChange={setSelectedMenus}
+  itemFactory={(menu) => ({
+    id: menu.id,
+    item_id: menu.id,
+    nombre: menu.nombre,
+    precio: menu.precio,
+    cantidad: 1, // Cantidad inicial
+  })}
+  columns={menuColumns}
+  modalTitle="Seleccionar Menú"
+  searchPlaceholder="Buscar menú por nombre..."
+/>
+
+<ItemSelector<Promocion, ItemsYPromociones>
+  label="Promociones del Pedido"
+  availableItems={allAvailablePromos}
+  selectedItems={selectedPromos}
+  onChange={setSelectedPromos}
+  itemFactory={(promo) => ({
+    id: promo.id,
+    promocion_id: promo.id,
+    nombre: promo.nombre,
+    precio: promo.precio, // o promo.precio_descuento, etc.
+    cantidad: 1,
+  })}
+  columns={menuColumns} // Reutilizamos las columnas
+  modalTitle="Seleccionar Promoción"
+  searchPlaceholder="Buscar promoción..."
+/>
+    </ModalBase>
     </Container>
   );
 }
@@ -349,7 +431,7 @@ setPedidos((prev) =>
     </Container>
     <ModalBase<Pedido>
   modo="editar"
-  entityName="Pedido"
+  entityName={`Pedido #${formValues.pedido_id}`}
   open={open}
   onClose={cerrarModalPedido}
   values={formValues}
@@ -375,34 +457,39 @@ setPedidos((prev) =>
         { label: "Hora", value: formValues.hora },
       ]}
       >
-              <ItemSelector<ItemsYPromociones>
-  label="Items del menú"
-  idField="item_id"
-  availableItems={menus} // lista general de ítems del backend
-  selectedItems={formValues.items || []}
-  onChange={(newItems) =>
-    setFormValues((prev) => ({ ...prev, items: newItems }))
-  }
-  columns={[
-    { key: "nombre", label: "Item" },
-    { key: "cantidad", label: "Cantidad", type: "number", editable: true },
-  ]}
+<ItemSelector<ItemsMenu, ItemsYPromociones>
+  label="Menús del Pedido"
+  availableItems={allAvailableMenus}
+  selectedItems={selectedMenus}
+  onChange={setSelectedMenus}
+  itemFactory={(menu) => ({
+    id: menu.id,
+    item_id: menu.id,
+    nombre: menu.nombre,
+    precio: menu.precio,
+    cantidad: 1, // Cantidad inicial
+  })}
+  columns={menuColumns}
+  modalTitle="Seleccionar Menú"
+  searchPlaceholder="Buscar menú por nombre..."
 />
 
-<ItemSelector<ItemsYPromociones>
-  label="Promociones"
-  idField="promocion_id"
-  availableItems={availablePromos} // lista general de promociones
-  selectedItems={formValues.promociones || []}
-  onChange={(newPromos) =>
-    setFormValues((prev) => ({ ...prev, promociones: newPromos }))
-  }
-  columns={[
-    { key: "nombre", label: "Promoción" },
-    { key: "cantidad", label: "Cantidad", type: "number", editable: true },
-  ]}
+<ItemSelector<Promocion, ItemsYPromociones>
+  label="Promociones del Pedido"
+  availableItems={allAvailablePromos}
+  selectedItems={selectedPromos}
+  onChange={setSelectedPromos}
+  itemFactory={(promo) => ({
+    id: promo.id,
+    promocion_id: promo.id,
+    nombre: promo.nombre,
+    precio: promo.precio, // o promo.precio_descuento, etc.
+    cantidad: 1,
+  })}
+  columns={menuColumns} // Reutilizamos las columnas
+  modalTitle="Seleccionar Promoción"
+  searchPlaceholder="Buscar promoción..."
 />
-
     </ModalBase>
     </>
   );

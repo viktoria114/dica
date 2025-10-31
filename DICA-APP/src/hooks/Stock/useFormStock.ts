@@ -1,9 +1,9 @@
 // src/hooks/useFormStock.ts
 import { useEffect, useState } from "react";
-import { fetchActualizarStock, fetchCrearStock } from "../api/stock";
-import type { Stock } from "../types";
-import type { FieldConfig } from "../Components/common/FormBase";
-import { useSnackbar } from "../contexts/SnackbarContext";
+import { fetchActualizarStock, fetchCrearStock } from "../../api/stock";
+import type { Stock } from "../../types";
+import type { FieldConfig } from "../../Components/common/FormBase";
+import { useSnackbar } from "../../contexts/SnackbarContext";
 
 // 📋 Campos en el orden solicitado
 const fields: FieldConfig<Stock>[] = [

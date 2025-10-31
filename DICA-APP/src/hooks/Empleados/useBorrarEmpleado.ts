@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-import { useSnackbar } from "../contexts/SnackbarContext";
-import { useAppDispatch } from "../store/hooks";
-import { borrarEmpleado, getEmpleados} from "../store/slices/empleadosSlice";
+import { useSnackbar } from "../../contexts/SnackbarContext";
+import { useAppDispatch } from "../../store/hooks";
+import { borrarEmpleado, getEmpleados} from "../../store/slices/empleadosSlice";
 
 
 export const useBorrarEmpleado = (onSuccess?: () => void) => {

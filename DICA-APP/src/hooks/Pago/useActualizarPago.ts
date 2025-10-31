@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { modificarPago } from '../api/pagos';
-import { useSnackbar } from '../contexts/SnackbarContext';
-import type { Pago } from '../types';
+import { modificarPago } from '../../api/pagos';
+import { useSnackbar } from '../../contexts/SnackbarContext';
+import type { Pago } from '../../types';
 
 const formatDateForBackend = (date: Date): string => {
   const year = date.getFullYear();

@@ -18,15 +18,15 @@ import type { Pago } from "../types";
 import { EnhancedTableHead } from "../Components/Pagos/EnhancedTableHead";
 
 import { Paginacion } from "../Components/common/Paginacion";
-import { usePagos } from "../hooks/usePagos";
 import InfoIcon from "@mui/icons-material/Info";
 import React, { useCallback, useState, useMemo, useEffect } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
-import { usePagoForm } from "../hooks/useFormPago.tsx";
-import { useActualizarPago } from "../hooks/useActualizarPago";
-import { useBorrarPago } from "../hooks/useBorrarPago";
+import { usePagoForm } from "../hooks/Pago//useFormPago.tsx";
+import { useActualizarPago } from "../hooks//Pago/useActualizarPago";
+import { useBorrarPago } from "../hooks//Pago/useBorrarPago";
 import { obtenerLinkTemporalDropbox } from "../api/pagos";
 import { useDropboxToken } from "../contexts/DropboxTokenContext";
+import { usePagos } from "../hooks/Pago/usePagos.ts";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Pago } from "../types";
-import { fetchPagos } from "../api/pagos";
+import type { Pago } from "../../types";
+import { fetchPagos } from "../../api/pagos";
 
 export const usePagos = () => {
   const [pagos, setPagos] = useState<Pago[]>([]);

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useSnackbar } from "../contexts/SnackbarContext";
-import { useAppDispatch } from "../store/hooks";
-import { restaurarEmpleado, getEmpleadosInvisibles } from "../store/slices/empleadosSlice";
+import { useSnackbar } from "../../contexts/SnackbarContext";
+import { useAppDispatch } from "../../store/hooks";
+import { restaurarEmpleado, getEmpleadosInvisibles } from "../../store/slices/empleadosSlice";
 
 export function useRestaurarEmpleado(onSuccess?: () => void) {
   const dispatch = useAppDispatch();

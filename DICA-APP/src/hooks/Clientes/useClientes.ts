@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   getClientes,
   getClientesInvisibles,
-} from "../store/slices/clientesSlice";
-import type { Cliente } from "../types";
+} from "../../store/slices/clientesSlice";
+import type { Cliente } from "../../types";
 
 export const useClientes = () => {
   const dispatch = useAppDispatch();

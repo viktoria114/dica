@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { eliminarPago } from '../api/pagos';
-import { useSnackbar } from '../contexts/SnackbarContext';
+import { eliminarPago } from '../../api/pagos';
+import { useSnackbar } from '../../contexts/SnackbarContext';
 
 export const useBorrarPago = (onSuccess?: () => void) => {
   const [isDeleting, setIsDeleting] = useState(false);

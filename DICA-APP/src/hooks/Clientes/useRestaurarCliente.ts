@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useSnackbar } from "../contexts/SnackbarContext";
-import { useAppDispatch } from "../store/hooks";
-import { getClientesInvisibles, restaurarCliente } from "../store/slices/clientesSlice";
+import { useSnackbar } from "../../contexts/SnackbarContext";
+import { useAppDispatch } from "../../store/hooks";
+import { getClientesInvisibles, restaurarCliente } from "../../store/slices/clientesSlice";
 
 export function useRestaurarCliente(onSuccess: () => void) {
   const dispatch = useAppDispatch();

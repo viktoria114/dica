@@ -12,14 +12,14 @@ import type { Gasto } from "../types";
 import { EnhancedTableHead } from "../Components/Gastos/EnhancedTableHead";
 import { EnhancedTableToolbar } from "../Components/Gastos/EnhancedTableToolbar";
 import { Paginacion } from "../Components/common/Paginacion";
-import { useGastos } from "../hooks/useGastos";
+import { useGastos } from "../hooks/Gasto/useGastos";
 import InfoIcon from "@mui/icons-material/Info";
 import { useCallback, useState } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
-import { useGastoForm } from "../hooks/useFormGasto.tsx";
-import { useStock } from "../hooks/useStock";
-import { useActualizarGasto } from "../hooks/useActualizarGasto";
-import { useBorrarGasto } from "../hooks/useBorrarGasto";
+import { useGastoForm } from "../hooks//Gasto/useFormGasto.tsx";
+import { useStock } from "../hooks/Stock/useStock";
+import { useActualizarGasto } from "../hooks//Gasto/useActualizarGasto";
+import { useBorrarGasto } from "../hooks//Gasto/useBorrarGasto";
 import { StockSelectorModal } from "../Components/Gastos/StockSelectorModal";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {

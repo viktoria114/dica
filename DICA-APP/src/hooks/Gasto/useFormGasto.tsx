@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import type { Gasto } from '../types';
-import { crearGasto } from '../api/gastos';
-import { useSnackbar } from '../contexts/SnackbarContext';
-import type { FieldConfig } from '../Components/common/FormBase';
+import type { Gasto } from '../../types';
+import { crearGasto } from '../../api/gastos';
+import { useSnackbar } from '../../contexts/SnackbarContext';
+import type { FieldConfig } from '../../Components/common/FormBase';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';

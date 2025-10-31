@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { eliminarGasto } from '../api/gastos';
-import { useSnackbar } from '../contexts/SnackbarContext';
+import { eliminarGasto } from '../../api/gastos';
+import { useSnackbar } from '../../contexts/SnackbarContext';
 
 export const useBorrarGasto = (onSuccess?: () => void) => {
   const [isDeleting, setIsDeleting] = useState(false);

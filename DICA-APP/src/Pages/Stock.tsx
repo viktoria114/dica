@@ -14,14 +14,14 @@ import {
 } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import type { Stock } from "../types";
-import { useStock } from "../hooks/useStock";
+import { useStock } from "../hooks/Stock/useStock";
 import { EnhancedTableHead } from "../Components/Stock/EnhancedTableHead";
 import { SearchBar } from "../Components/common/SearchBar";
 import { Paginacion } from "../Components/common/Paginacion";
 import { ModalBase } from "../Components/common/ModalBase";
-import { useFormStock } from "../hooks/useFormStock";
-import { useBorrarStock } from "../hooks/useBorrarStock";
-import { useRestaurarStock } from "../hooks/useRestaurarStock";
+import { useFormStock } from "../hooks//Stock/useFormStock";
+import { useBorrarStock } from "../hooks//Stock/useBorrarStock";
+import { useRestaurarStock } from "../hooks//Stock/useRestaurarStock";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;

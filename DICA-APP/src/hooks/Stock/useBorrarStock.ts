@@ -1,7 +1,7 @@
 // src/hooks/useBorrarStock.ts
 import { useState } from "react";
-import { fetchBorrarStock } from "../api/stock";
-import { useSnackbar } from "../contexts/SnackbarContext";
+import { useSnackbar } from "../../contexts/SnackbarContext";
+import { fetchBorrarStock } from "../../api/stock";
 
 export const useBorrarStock = (onSuccess?: () => void) => {
   const [isDeleting, setIsDeleting] = useState(false);

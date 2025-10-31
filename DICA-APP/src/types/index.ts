@@ -55,3 +55,12 @@ id_cliente: number | null,
  items?: ItemsYPromociones[];
  promociones?: ItemsYPromociones[];
 }
+
+export interface Promocion {
+id: number | null,
+nombre: string,
+tipo: 'MONTO_FIJO' | 'DESCUENTO',
+precio: number, // interpreta según tipo
+visibilidad: boolean,
+items?: ItemsYPromociones[];
+}

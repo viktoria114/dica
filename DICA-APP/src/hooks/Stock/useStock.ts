@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Stock } from "../types";
-import { fetchStock, fetchStockInvisible } from "../api/stock";
+import type { Stock } from "../../types";
+import { fetchStock, fetchStockInvisible } from "../../api/stock";
 
 export const useStock = () => {
   const [stock, setStock] = useState<Stock[]>([]);

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import type { Cliente } from "../types";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
-import type { FieldConfig } from "../Components/common/FormBase";
-import { useSnackbar } from "../contexts/SnackbarContext";
-import { useAppDispatch } from "../store/hooks";
-import { actualizarCliente, crearCliente, getClientes } from "../store/slices/clientesSlice";
+import type { FieldConfig } from "../../Components/common/FormBase";
+import type { Cliente } from "../../types";
+import { useAppDispatch } from "../../store/hooks";
+import { useSnackbar } from "../../contexts/SnackbarContext";
+import { actualizarCliente, crearCliente, getClientes } from "../../store/slices/clientesSlice";
 
 
 const fields: FieldConfig<Cliente>[] = [

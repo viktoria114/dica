@@ -1,14 +1,14 @@
 import { Box, Container, LinearProgress } from "@mui/material";
 import { useCallback, useState } from "react";
-import { useEmpleados } from "../hooks/useEmpleados";
 import type { Empleado } from "../types";
 import { SearchBar } from "../Components/common/SearchBar";
 import { FichaItem} from "../Components/common/FichaItem";
 import { ModalBase } from "../Components/common/ModalBase";
 import { Paginacion } from "../Components/common/Paginacion";
-import { useFormEmpleado } from "../hooks/useFormEmpleado";
-import { useBorrarEmpleado } from "../hooks/useBorrarEmpleado";
-import { useRestaurarEmpleado } from "../hooks/useRestaurarEmpleado";
+import { useFormEmpleado } from "../hooks/Empleados/useFormEmpleado";
+import { useBorrarEmpleado } from "../hooks/Empleados/useBorrarEmpleado";
+import { useRestaurarEmpleado } from "../hooks/Empleados/useRestaurarEmpleado";
+import { useEmpleados } from "../hooks/Empleados/useEmpleados";
 
 const styleBox1 = {
   bgcolor: "primary.main",

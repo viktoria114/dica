@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import type { Pago } from '../types';
-import { crearPago } from '../api/pagos';
-import { useSnackbar } from '../contexts/SnackbarContext';
-import type { FieldConfig } from '../Components/common/FormBase';
+import type { Pago } from '../../types';
+import { crearPago } from '../../api/pagos';
+import { useSnackbar } from '../../contexts/SnackbarContext';
+import type { FieldConfig } from '../../Components/common/FormBase';
 import { DatePicker, LocalizationProvider, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';

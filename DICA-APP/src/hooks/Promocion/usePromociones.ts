@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchPromociones, fetchPromocionesInvisibles } from "../api/promociones";
-import type { Promocion } from "../types";
+import { fetchPromociones, fetchPromocionesInvisibles } from "../../api/promociones";
+import type { Promocion } from "../../types";
 
 export const usePromociones = () => {
   const [promociones, setPromociones] = useState<Promocion[]>([]);

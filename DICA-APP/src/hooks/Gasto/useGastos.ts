@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Gasto } from '../types';
-import { fetchGastos } from '../api/gastos';
+import type { Gasto } from '../../types';
+import { fetchGastos } from '../../api/gastos';
 
 export const useGastos = () => {
   const [gastos, setGastos] = useState<Gasto[]>([]);

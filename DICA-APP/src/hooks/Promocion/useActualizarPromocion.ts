@@ -3,9 +3,9 @@ import {
   actualizarPromocion,
   agregarItemPromocion,
   eliminarItemPromocion,
-} from "../api/promociones";
-import { useSnackbar } from "../contexts/SnackbarContext";
-import type { Promocion } from "../types";
+} from "../../api/promociones";
+import { useSnackbar } from "../../contexts/SnackbarContext";
+import type { Promocion } from "../../types";
 
 export const useActualizarPromocion = (onSuccess?: () => void) => {
   const [isUpdating, setIsUpdating] = useState(false);

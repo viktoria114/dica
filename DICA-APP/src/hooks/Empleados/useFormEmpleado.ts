@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useAppDispatch } from "../store/hooks";
-import { crearEmpleado, actualizarEmpleado, getEmpleados } from "../store/slices/empleadosSlice";
-import type { Empleado } from "../types";
-import type { FieldConfig } from "../Components/common/FormBase";
-import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../../store/hooks";
+import { crearEmpleado, actualizarEmpleado, getEmpleados } from "../../store/slices/empleadosSlice";
+import type { Empleado } from "../../types";
+import type { FieldConfig } from "../../Components/common/FormBase";
+import { useSnackbar } from "../../contexts/SnackbarContext";
 
 const fields: FieldConfig<Empleado>[] = [
   { name: "nombre_completo", label: "Nombre Completo" },

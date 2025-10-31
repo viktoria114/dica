@@ -14,16 +14,16 @@ import type { Promocion } from "../types";
 import { EnhancedTableHead } from "../Components/Promociones/EnhancedTableHead";
 import { EnhancedTableToolbar } from "../Components/Promociones/EnhancedTableToolbar";
 import { Paginacion } from "../Components/common/Paginacion";
-import { usePromociones } from "../hooks/usePromociones";
+import { usePromociones } from "../hooks/Promocion/usePromociones";
 import InfoIcon from "@mui/icons-material/Info";
 import { useCallback, useState } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
-import { usePromocionForm } from "../hooks/useFormPromociones";
+import { usePromocionForm } from "../hooks/Promocion/useFormPromociones";
 import { MenuSelectorModal } from "../Components/Promociones/MenuSelectorModal";
 import { useMenu } from "../hooks/useMenu";
-import { useBorrarPromocion } from "../hooks/useBorrarPromocion";
-import { useActualizarPromocion } from "../hooks/useActualizarPromocion";
-import { useRestaurarPromocion } from "../hooks/useRestaurarPromocion";
+import { useBorrarPromocion } from "../hooks//Promocion/useBorrarPromocion";
+import { useActualizarPromocion } from "../hooks/Promocion/useActualizarPromocion";
+import { useRestaurarPromocion } from "../hooks/Promocion/useRestaurarPromocion";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
