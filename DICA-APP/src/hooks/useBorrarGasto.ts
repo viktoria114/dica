@@ -12,7 +12,6 @@ export const useBorrarGasto = (onSuccess?: () => void) => {
     setIsDeleting(true);
     try {
       await dispatch(eliminarGastos(id));
-      await dispatch(getGastos());
       showSnackbar('Gasto eliminado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

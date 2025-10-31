@@ -4,6 +4,7 @@ import { VentasChart } from '../Components/Estadisticas/VentasChart';
 import { ProductosChart } from '../Components/Estadisticas/ProductosChart';
 import { RendimientoChart } from '../Components/Estadisticas/RendimientoChart';
 import { GastosChart } from '../Components/Estadisticas/GastosChart';
+import { IngresosChart } from '../Components/Estadisticas/IngresosChart';
 
 const TabPanel = (props: {
   children?: React.ReactNode;
@@ -46,6 +47,7 @@ export const Estadisticas = () => {
           indicatorColor="primary"
         >
           <Tab label="Ventas" sx={{ color: 'text.primary' }} />
+          <Tab label="Ingresos" sx={{ color: 'text.primary' }} />
           <Tab label="Productos" sx={{ color: 'text.primary' }} />
           <Tab label="Rendimiento" sx={{ color: 'text.primary' }} />
           <Tab label="Gastos" sx={{ color: 'text.primary' }} />
@@ -55,12 +57,15 @@ export const Estadisticas = () => {
         <VentasChart />
       </TabPanel>
       <TabPanel value={value} index={1}>
-        <ProductosChart />
+        <IngresosChart />
       </TabPanel>
       <TabPanel value={value} index={2}>
-        <RendimientoChart />
+        <ProductosChart />
       </TabPanel>
       <TabPanel value={value} index={3}>
+        <RendimientoChart />
+      </TabPanel>
+      <TabPanel value={value} index={4}>
         <GastosChart />
       </TabPanel>
     </Box>

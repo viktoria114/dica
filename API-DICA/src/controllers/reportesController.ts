@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/db';
 
-export const getVentasDiarias = async (req: Request, res: Response) => {
+export const getIngresosDiarios = async (req: Request, res: Response) => {
   try {
-    const { anio, mes, semana_anio, trimestre, dia_semana } = req.query;
+    const { fecha_inicio, fecha_fin } = req.query;
 
     let query = `
       SELECT
@@ -19,25 +19,53 @@ export const getVentasDiarias = async (req: Request, res: Response) => {
     const values = [];
     let paramIndex = 1;
 
-    if (anio) {
-      query += ` AND df.anio = $${paramIndex++}`;
-      values.push(anio);
+    if (fecha_inicio) {
+      query += ` AND df.fecha >= $${paramIndex++}`;
+      values.push(fecha_inicio);
     }
-    if (mes) {
-      query += ` AND df.mes = $${paramIndex++}`;
-      values.push(mes);
+    if (fecha_fin) {
+      query += ` AND df.fecha <= $${paramIndex++}`;
+      values.push(fecha_fin);
     }
-    if (semana_anio) {
-      query += ` AND df.semana_anio = $${paramIndex++}`;
-      values.push(semana_anio);
+
+    query += `
+      GROUP BY df.fecha, df.nombre_dia, df.nombre_mes
+      ORDER BY df.fecha ASC;
+    `;
+
+    const { rows } = await pool.query(query, values);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener los ingresos diarios' });
+  }
+};
+
+export const getVentasDiarias = async (req: Request, res: Response) => {
+  try {
+    const { fecha_inicio, fecha_fin } = req.query;
+
+    let query = `
+      SELECT
+        df.fecha,
+        df.nombre_dia,
+        df.nombre_mes,
+        COUNT(p.id) AS cantidad_ventas
+      FROM pagos p
+      JOIN dim_fecha df ON p.fk_fecha::DATE = df.fecha
+      WHERE p.validado = true
+    `;
+
+    const values = [];
+    let paramIndex = 1;
+
+    if (fecha_inicio) {
+      query += ` AND df.fecha >= $${paramIndex++}`;
+      values.push(fecha_inicio);
     }
-    if (trimestre) {
-      query += ` AND df.trimestre = $${paramIndex++}`;
-      values.push(trimestre);
-    }
-    if (dia_semana) {
-      query += ` AND df.dia_semana = $${paramIndex++}`;
-      values.push(dia_semana);
+    if (fecha_fin) {
+      query += ` AND df.fecha <= $${paramIndex++}`;
+      values.push(fecha_fin);
     }
 
     query += `
@@ -55,7 +83,7 @@ export const getVentasDiarias = async (req: Request, res: Response) => {
 
 export const getProductosMasVendidos = async (req: Request, res: Response) => {
   try {
-    const { anio, mes, semana_anio, trimestre, dia_semana } = req.query;
+    const { fecha_inicio, fecha_fin } = req.query;
 
     let query = `
       SELECT 
@@ -71,25 +99,13 @@ export const getProductosMasVendidos = async (req: Request, res: Response) => {
     let paramIndex = 1;
     let whereClauses = [];
 
-    if (anio) {
-      whereClauses.push(`df.anio = $${paramIndex++}`);
-      values.push(anio);
+    if (fecha_inicio) {
+      whereClauses.push(`df.fecha >= $${paramIndex++}`);
+      values.push(fecha_inicio);
     }
-    if (mes) {
-      whereClauses.push(`df.mes = $${paramIndex++}`);
-      values.push(mes);
-    }
-    if (semana_anio) {
-      whereClauses.push(`df.semana_anio = $${paramIndex++}`);
-      values.push(semana_anio);
-    }
-    if (trimestre) {
-      whereClauses.push(`df.trimestre = $${paramIndex++}`);
-      values.push(trimestre);
-    }
-    if (dia_semana) {
-      whereClauses.push(`df.dia_semana = $${paramIndex++}`);
-      values.push(dia_semana);
+    if (fecha_fin) {
+      whereClauses.push(`df.fecha <= $${paramIndex++}`);
+      values.push(fecha_fin);
     }
 
     if (whereClauses.length > 0) {
@@ -112,7 +128,7 @@ export const getProductosMasVendidos = async (req: Request, res: Response) => {
 
 export const getRendimientoEmpleados = async (req: Request, res: Response) => {
   try {
-    const { anio, mes, semana_anio, trimestre, dia_semana } = req.query;
+    const { fecha_inicio, fecha_fin } = req.query;
 
     let query = `
       SELECT
@@ -127,25 +143,13 @@ export const getRendimientoEmpleados = async (req: Request, res: Response) => {
     const values = [];
     let paramIndex = 1;
 
-    if (anio) {
-      query += ` AND df.anio = $${paramIndex++}`;
-      values.push(anio);
+    if (fecha_inicio) {
+      query += ` AND df.fecha >= $${paramIndex++}`;
+      values.push(fecha_inicio);
     }
-    if (mes) {
-      query += ` AND df.mes = $${paramIndex++}`;
-      values.push(mes);
-    }
-    if (semana_anio) {
-      query += ` AND df.semana_anio = $${paramIndex++}`;
-      values.push(semana_anio);
-    }
-    if (trimestre) {
-      query += ` AND df.trimestre = $${paramIndex++}`;
-      values.push(trimestre);
-    }
-    if (dia_semana) {
-      query += ` AND df.dia_semana = $${paramIndex++}`;
-      values.push(dia_semana);
+    if (fecha_fin) {
+      query += ` AND df.fecha <= $${paramIndex++}`;
+      values.push(fecha_fin);
     }
 
     query += `
@@ -163,14 +167,11 @@ export const getRendimientoEmpleados = async (req: Request, res: Response) => {
 
 export const getReporteGastos = async (req: Request, res: Response) => {
   try {
-    const { anio, mes, semana_anio, trimestre, dia_semana, categoria } = req.query;
+    const { fecha_inicio, fecha_fin, categoria } = req.query;
 
     let query = `
       SELECT
         g.categoria,
-        df.fecha,
-        df.nombre_dia,
-        df.nombre_mes,
         SUM(g.monto) AS total_gastos
       FROM gastos g
       JOIN dim_fecha df ON g.fk_fecha::DATE = df.fecha
@@ -180,25 +181,13 @@ export const getReporteGastos = async (req: Request, res: Response) => {
     let paramIndex = 1;
     let whereClauses = [];
 
-    if (anio) {
-      whereClauses.push(`df.anio = $${paramIndex++}`);
-      values.push(anio);
+    if (fecha_inicio) {
+      whereClauses.push(`df.fecha >= $${paramIndex++}`);
+      values.push(fecha_inicio);
     }
-    if (mes) {
-      whereClauses.push(`df.mes = $${paramIndex++}`);
-      values.push(mes);
-    }
-    if (semana_anio) {
-      whereClauses.push(`df.semana_anio = $${paramIndex++}`);
-      values.push(semana_anio);
-    }
-    if (trimestre) {
-      whereClauses.push(`df.trimestre = $${paramIndex++}`);
-      values.push(trimestre);
-    }
-    if (dia_semana) {
-      whereClauses.push(`df.dia_semana = $${paramIndex++}`);
-      values.push(dia_semana);
+    if (fecha_fin) {
+      whereClauses.push(`df.fecha <= $${paramIndex++}`);
+      values.push(fecha_fin);
     }
     if (categoria) {
       whereClauses.push(`g.categoria = $${paramIndex++}`);
@@ -210,8 +199,7 @@ export const getReporteGastos = async (req: Request, res: Response) => {
     }
 
     query += `
-      GROUP BY g.categoria, df.fecha, df.nombre_dia, df.nombre_mes
-      ORDER BY df.fecha ASC;
+      GROUP BY g.categoria;
     `;
 
     const { rows } = await pool.query(query, values);

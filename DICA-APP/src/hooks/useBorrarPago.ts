@@ -12,7 +12,6 @@ export const useBorrarPago = (onSuccess?: () => void) => {
     setIsDeleting(true);
     try {
       await dispatch(eliminarPagos(id));
-      await dispatch(getPagos());
       showSnackbar('Pago eliminado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

@@ -33,8 +33,7 @@ export const useActualizarPago = (onSuccess?: () => void) => {
         payload.fk_fecha = formatDateForBackend(new Date(payload.fk_fecha));
       }
 
-      await dispatch(modificarPagos(id, payload as Pago));
-      await dispatch(getPagos());
+      await dispatch(modificarPagos({ id, payload: payload as Pago }));
       showSnackbar('Pago actualizado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

@@ -23,8 +23,7 @@ export const useActualizarGasto = (onSuccess?: () => void) => {
         ...values,
         fecha: values.fecha ? formatDateForBackend(new Date(values.fecha)) : undefined,
       };
-      await dispatch(modificarGastos(id, formattedValues as Gasto));
-      await dispatch(getGastos());
+      await dispatch(modificarGastos({ id, payload: formattedValues as Gasto }));
       showSnackbar('Gasto actualizado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

@@ -1,5 +1,10 @@
 import api from "./api";
 
+export const getIngresosDiarios = async (params?: any) => {
+  const response = await api.get("/reportes/ingresos-diarios", { params });
+  return response.data;
+};
+
 export const getVentasDiarias = async (params?: any) => {
   const response = await api.get("/reportes/ventas-diarias", { params });
   return response.data;
