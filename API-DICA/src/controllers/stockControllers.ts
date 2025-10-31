@@ -285,7 +285,7 @@ export const GetRegistrosStock = async (
 
   try {
     const consulta = `
-            SELECT id, cantidad, fk_stock, fk_fecha
+            SELECT *
             FROM registro_stock
             WHERE fk_stock = $1
             ORDER BY fk_fecha DESC
@@ -375,6 +375,11 @@ export const actualizarRegistroStock = async (
     );
     const actual = consulta.rows[0];
 
+    if (!actual) {
+      res.status(404).json({ error: 'Registro de stock no encontrado.' });
+      return;
+    }
+
     const query = `
       UPDATE registro_stock
       SET cantidad_inicial = $1, cantidad_actual = $2, fk_stock = $3, estado = $4
@@ -390,9 +395,22 @@ export const actualizarRegistroStock = async (
       estado,
     );
 
+    //Ajuste automático de cantidad_actual si cambió la cantidad_inicial
+    let nuevaCantidadActual = nuevoRegistro.cantidadActual;
+
+    if (cantidad_inicial !== actual.cantidad_inicial) {
+      const diferenciainicial =
+        nuevoRegistro.cantidadInicial - actual.cantidad_inicial;
+      nuevaCantidadActual = actual.cantidad_actual + diferenciainicial;
+
+      if (nuevaCantidadActual < 0) {
+        nuevaCantidadActual = 0; // Evitar que sea negativa REVISAR
+      }
+    }
+
     const values = [
       nuevoRegistro.cantidadInicial,
-      nuevoRegistro.cantidadActual,
+      nuevaCantidadActual,
       nuevoRegistro.fk_stock,
       nuevoRegistro.estado,
       id,
@@ -401,7 +419,7 @@ export const actualizarRegistroStock = async (
     const result = await pool.query(query, values);
 
     //ACTUALIZAR STOCK ACTUAL EN LA TABLA STOCK
-    const diferencia = nuevoRegistro.cantidadActual - actual.cantidad_actual;
+    const diferencia = nuevaCantidadActual - actual.cantidad_actual;
 
     await pool.query(
       `
