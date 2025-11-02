@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { eliminarPago } from '../../api/pagos';
 import { useSnackbar } from '../../contexts/SnackbarContext';
+import { useAppDispatch } from '../../store/hooks';
+import { eliminarPagos } from '../../store/slices/pagosSlice';
 
 export const useBorrarPago = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const { showSnackbar } = useSnackbar();
 
   const borrar = async (id: number) => {
     setIsDeleting(true);
     try {
-      await eliminarPago(id);
+      await dispatch(eliminarPagos(id));
       showSnackbar('Pago eliminado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

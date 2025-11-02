@@ -24,6 +24,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { StockPage } from "./Pages/Stock";
 import { Pagos } from "./Pages/Pagos";
+import { Estadisticas } from "./Pages/Estadisticas";
 import { DropboxTokenProvider } from "./contexts/DropboxTokenContext";
 
 function App() {
@@ -52,6 +53,7 @@ function App() {
           <Route path="/balance" element={<Balance />} />
           <Route path="/stock" element={<StockPage />} />
           <Route path="/pagos" element={<Pagos />} />
+          <Route path="/estadisticas" element={<Estadisticas />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

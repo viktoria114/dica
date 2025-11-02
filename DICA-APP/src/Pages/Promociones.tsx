@@ -45,7 +45,7 @@ function getComparator<Key extends keyof Promocion>(
 export const Promociones = () => {
   const { promociones, loading, error, modoPapelera, toggleInvisibles, refreshPromociones } = usePromociones();
   const { menus } = useMenu();
-  const { borrarPromocion, isDeleting } = useBorrarPromocion(() => {
+  const { borrarPromocionHandler, isDeleting } = useBorrarPromocion(() => {
     refreshPromociones();
     setOpenEdit(false);
   });
@@ -301,7 +301,7 @@ export const Promociones = () => {
         handleGuardar={() => actualizar(formValues.id, originalPromocion!, formValues)}
         handleClose={() => setOpenEdit(false)}
         isSaving={isUpdating}
-        borrar={() => borrarPromocion(formValues.id)}
+        borrar={() => borrarPromocionHandler(formValues.id)}
         isDeleting={isDeleting}
         restaurar={() => restaurar(formValues.id)}
         isRestoring={isRestoring}

@@ -1,9 +1,16 @@
 // src/hooks/useRestaurarStock.ts
 import { useState } from "react";
+<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useRestaurarStock.ts
 import { fetchRestaurarStock } from "../../api/stock";
 import { useSnackbar } from "../../contexts/SnackbarContext";
+=======
+import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { getStock, restaurarStock } from "../store/slices/stockSlice";
+>>>>>>> origin/main:DICA-APP/src/hooks/useRestaurarStock.ts
 
 export function useRestaurarStock(onSuccess: () => void) {
+  const dispatch = useAppDispatch();
   const [isRestoring, setIsRestoring] = useState(false);
   const { showSnackbar } = useSnackbar();
 
@@ -15,7 +22,8 @@ export function useRestaurarStock(onSuccess: () => void) {
 
     try {
       setIsRestoring(true);
-      await fetchRestaurarStock(id);
+      await dispatch(restaurarStock(id));
+      await dispatch(getStock()); // Refresca la papelera
       showSnackbar("Stock restaurado correctamente", "success");
       onSuccess();
     } catch (err) {

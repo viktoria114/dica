@@ -1,46 +1,50 @@
+<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useStock.ts
 import { useCallback, useEffect, useState } from "react";
 import type { Stock } from "../../types";
 import { fetchStock, fetchStockInvisible } from "../../api/stock";
+=======
+import { useCallback, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  getStock,
+  getStockInvisible,
+  toggleModoPapelera,
+} from "../store/slices/stockSlice";
+>>>>>>> origin/main:DICA-APP/src/hooks/useStock.ts
 
 export const useStock = () => {
-  const [stock, setStock] = useState<Stock[]>([]);
-  const [stockInvisible, setStockInvisible] = useState<Stock[]>([]);
-  const [modoPapelera, setModoPapelera] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
-  const cargarStock = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchStock();
-      setStock(data);
-    } catch (error) {
-      setError((error as Error).message || "Error al cargar el stock");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { stock, stockInvisibles, loading, error, modoPapelera } = useAppSelector(
+    (state) => state.stock
+  );
 
-  const toggleInvisibles = useCallback(async () => {
-    try {
-      if (!modoPapelera) {
-        const data = await fetchStockInvisible();
-        setStockInvisible(data);
-        setModoPapelera(true);
-      } else {
-        setModoPapelera(false);
-      }
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, [modoPapelera]);
-
+  // Carga inicial
   useEffect(() => {
-    cargarStock();
-  }, [cargarStock]);
+    dispatch(getStock());
+  }, [dispatch]);
 
-  const baseList = modoPapelera ? stockInvisible : stock;
+  // Alternar entre visibles/invisibles
+  const toggleInvisibles = useCallback(async () => {
+    if (modoPapelera) {
+      await dispatch(getStock()); // mostrar visibles
+    } else {
+      await dispatch(getStockInvisible()); // mostrar invisibles
+    }
+    dispatch(toggleModoPapelera());
+  }, [dispatch, modoPapelera]);
+
+  // Lista base según modo
+  const baseList = modoPapelera ? stockInvisibles : stock;
+
+  // Recargar según modo actual
+  const refetch = useCallback(() => {
+    if (modoPapelera) {
+      dispatch(getStockInvisible());
+    } else {
+      dispatch(getStock());
+    }
+  }, [dispatch, modoPapelera]);
 
   return {
     stock: baseList,
@@ -48,6 +52,6 @@ export const useStock = () => {
     toggleInvisibles,
     loading,
     error,
-    refetch: cargarStock,
+    refetch,
   };
 };

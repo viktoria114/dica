@@ -2,11 +2,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getPedidos, getPedidosBorrados } from '../../api/pedidos';
 import type { Pedido } from '../../types';
+import { useAppDispatch } from '../../store/hooks';
 
 // Asumimos que tienes una función para actualizar el estado en la API
 // import { updatePedidoEstado } from '../api/pedidos';
 
 export const usePedidos = () => {
+      const dispatch = useAppDispatch();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [pedidosBorrados, setPedidosBorrados] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,10 +23,10 @@ export const usePedidos = () => {
     try {
       setLoading(true);
       setError(null);
-      
+      const dataPedidos = await dispatch(getPedidos()).unwrap();
+
       // Cargamos todo en paralelo
-      const [dataPedidos, dataBorrados] = await Promise.all([
-        getPedidos(),
+      const [dataBorrados] = await Promise.all([
         getPedidosBorrados(),
       ]);
 

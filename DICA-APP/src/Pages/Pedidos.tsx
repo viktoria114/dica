@@ -10,13 +10,13 @@ import { useRestaurarPedido } from "../hooks/Pedidos/useRestaurarPedido";
 // 2. Hooks de datos para el modal
 import { useMenu } from "../hooks/useMenu";
 import { usePromociones } from "../hooks/Promocion/usePromociones";
-import { usePedidos } from "../hooks/Pedidos/usePedido";
 
 // 3. Componentes de UI
 import { PedidoKanbanBoard } from "../Components/Pedidos/PedidoKanbanBoard";
 import { PedidoBotBoard } from "../Components/Pedidos/PedidoBotBoard";
 import { PedidoListView } from "../Components/Pedidos/PedidoListView";
 import { PedidoModal } from "../Components/Pedidos/PedidoModal";
+import { usePedidos } from "../hooks/Pedidos/usePedido";
 
 export const Pedidos = () => {
   // 1. Hook de datos principal

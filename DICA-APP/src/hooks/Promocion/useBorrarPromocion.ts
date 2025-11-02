@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { eliminarPromocion } from "../../api/promociones";
+import { useAppDispatch } from "../../store/hooks";
+import { deletePromocion, getPromociones } from "../../store/slices/promocionesSlice";
 import { useSnackbar } from "../../contexts/SnackbarContext";
 
 export const useBorrarPromocion = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const { showSnackbar } = useSnackbar();
 
-  const borrarPromocion = async (id: number) => {
+  const borrarPromocionHandler = async (id: number) => {
     const confirmar = window.confirm(
       "¿Estás seguro de que deseas borrar esta promoción?"
     );
@@ -14,7 +16,8 @@ export const useBorrarPromocion = (onSuccess?: () => void) => {
 
     setIsDeleting(true);
     try {
-      await eliminarPromocion(id);
+      await dispatch(deletePromocion(id));
+      await dispatch(getPromociones());
       showSnackbar("Promoción borrada correctamente", "success");
       onSuccess?.();
     } catch (error) {
@@ -25,5 +28,5 @@ export const useBorrarPromocion = (onSuccess?: () => void) => {
     }
   };
 
-  return { borrarPromocion, isDeleting };
+  return { borrarPromocionHandler, isDeleting };
 };

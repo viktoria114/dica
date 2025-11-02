@@ -1,28 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
-import type { Pago } from "../../types";
-import { fetchPagos } from "../../api/pagos";
+import { useCallback, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { getPagos } from "../../store/slices/pagosSlice";
 
 export const usePagos = () => {
-  const [pagos, setPagos] = useState<Pago[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
-  const refreshPagos = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchPagos();
-      setPagos(data);
-    } catch (error) {
-      setError((error as Error).message || "Error al cargar los pagos");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { pagos, loading, error } = useAppSelector((state) => state.pagos);
 
+  // 🔁 Cargar pagos al montar el componente
   useEffect(() => {
-    refreshPagos();
-  }, [refreshPagos]);
+    dispatch(getPagos());
+  }, [dispatch]);
+
+  // 🔄 Refrescar manualmente los pagos
+  const refreshPagos = useCallback(() => {
+    dispatch(getPagos());
+  }, [dispatch]);
 
   return {
     pagos,

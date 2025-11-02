@@ -10,6 +10,7 @@ import pedidoRoutes from './routes/pedidoRoutes';
 import gastosRoutes from './routes/gastosRoutes';
 import promocionesRoutes from './routes/promocionesRoutes';
 import pagoRoutes from './routes/pagoRoutes'
+import reportesRoutes from './routes/reportesRoutes';
 import { errorHandler } from './middlewares/errorHandler';
 import cors from 'cors';
 
@@ -35,6 +36,7 @@ app.use('/api/pedido', pedidoRoutes);
 app.use('/api/gastos', gastosRoutes);
 app.use('/api/promociones', promocionesRoutes);
 app.use('/api/pagos', pagoRoutes)
+app.use('/api/reportes', reportesRoutes);
 
 
 app.get('/', (req, res) => {

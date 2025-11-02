@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { modificarPago } from '../../api/pagos';
 import { useSnackbar } from '../../contexts/SnackbarContext';
+import { useAppDispatch } from '../../store/hooks';
+import {modificarPagos } from '../../store/slices/pagosSlice';
 import type { Pago } from '../../types';
 
 const formatDateForBackend = (date: Date): string => {
@@ -11,6 +12,7 @@ const formatDateForBackend = (date: Date): string => {
 };
 
 export const useActualizarPago = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [isUpdating, setIsUpdating] = useState(false);
   const { showSnackbar } = useSnackbar();
 
@@ -31,7 +33,7 @@ export const useActualizarPago = (onSuccess?: () => void) => {
         payload.fk_fecha = formatDateForBackend(new Date(payload.fk_fecha));
       }
 
-      await modificarPago(id, payload);
+      await dispatch(modificarPagos({ id, payload: payload as Pago }));
       showSnackbar('Pago actualizado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

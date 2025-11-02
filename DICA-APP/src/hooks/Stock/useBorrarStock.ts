@@ -1,13 +1,20 @@
 // src/hooks/useBorrarStock.ts
 import { useState } from "react";
+<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useBorrarStock.ts
 import { useSnackbar } from "../../contexts/SnackbarContext";
 import { fetchBorrarStock } from "../../api/stock";
+=======
+import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import { borrarStock, getStock } from "../store/slices/stockSlice";
+>>>>>>> origin/main:DICA-APP/src/hooks/useBorrarStock.ts
 
 export const useBorrarStock = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const { showSnackbar } = useSnackbar();
 
-  const borrarStock = async (id: number) => {
+  const borrarStockHandler = async (id: number) => {
     const confirmar = window.confirm(
       "¿Estás seguro de que deseas borrar este stock?"
     );
@@ -15,7 +22,8 @@ export const useBorrarStock = (onSuccess?: () => void) => {
 
     setIsDeleting(true);
     try {
-      await fetchBorrarStock(id);
+      await dispatch(borrarStock(id));
+      await dispatch(getStock());
       showSnackbar("Stock borrado correctamente", "success");
       onSuccess?.();
     } catch (error) {
@@ -26,5 +34,5 @@ export const useBorrarStock = (onSuccess?: () => void) => {
     }
   };
 
-  return { borrarStock, isDeleting };
+  return { borrarStockHandler, isDeleting };
 };

@@ -1,37 +1,34 @@
+<<<<<<< HEAD:DICA-APP/src/hooks/Gasto/useGastos.ts
 import { useState, useEffect, useCallback } from 'react';
 import type { Gasto } from '../../types';
 import { fetchGastos } from '../../api/gastos';
+=======
+// src/hooks/useGastos.ts
+import { useEffect, useCallback } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { getGastos } from "../store/slices/gastosSlice";
+>>>>>>> origin/main:DICA-APP/src/hooks/useGastos.ts
 
 export const useGastos = () => {
-  const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
-  const refreshGastos = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await fetchGastos();
-      const mappedData = data.map((g: any) => ({
-        ...g,
-        id: g.id,
-        monto: parseFloat(g.monto),
-        categoria: g.categoria,
-        descripcion: g.descripcion,
-        metodo_de_pago: g.metodo_pago,
-        fecha: g.fk_fecha,
-        fk_registro_stock: g.fk_registro_stock,
-      }));
-      setGastos(mappedData);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // 🎯 Traemos el estado desde Redux
+  const { gastos, loading, error } = useAppSelector((state) => state.gastos);
 
+  // 🔁 Cargar los gastos al montar el componente
   useEffect(() => {
-    refreshGastos();
-  }, [refreshGastos]);
+    dispatch(getGastos());
+  }, [dispatch]);
 
-  return { gastos, loading, error, refreshGastos };
+  // 🔄 Permite refrescar manualmente los gastos (por ejemplo tras crear o borrar)
+  const refreshGastos = useCallback(() => {
+    dispatch(getGastos());
+  }, [dispatch]);
+
+  return {
+    gastos,
+    loading,
+    error,
+    refreshGastos,
+  };
 };

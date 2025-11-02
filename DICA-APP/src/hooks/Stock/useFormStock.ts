@@ -1,11 +1,23 @@
 // src/hooks/useFormStock.ts
 import { useEffect, useState } from "react";
+<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useFormStock.ts
 import { fetchActualizarStock, fetchCrearStock } from "../../api/stock";
 import type { Stock } from "../../types";
 import type { FieldConfig } from "../../Components/common/FormBase";
 import { useSnackbar } from "../../contexts/SnackbarContext";
+=======
+import type { Stock } from "../types";
+import type { FieldConfig } from "../Components/common/FormBase";
+import { useSnackbar } from "../contexts/SnackbarContext";
+import { useAppDispatch } from "../store/hooks";
+import {
+  crearStock,
+  actualizarStock,
+  getStock,
+} from "../store/slices/stockSlice";
+>>>>>>> origin/main:DICA-APP/src/hooks/useFormStock.ts
 
-// 📋 Campos en el orden solicitado
+// 📋 Campos del formulario
 const fields: FieldConfig<Stock>[] = [
   { name: "nombre", label: "Nombre del producto" },
   {
@@ -21,8 +33,8 @@ const fields: FieldConfig<Stock>[] = [
     name: "stock_actual",
     label: "Stock actual",
     type: "number",
-    disabled: true, //  Campo deshabilitado
-  } as unknown as FieldConfig<Stock>,
+    disabled: true,
+  } as FieldConfig<Stock>,
   {
     name: "vencimiento",
     label: "Días para vencimiento",
@@ -52,6 +64,7 @@ export const useFormStock = (
   onSuccess: () => void,
   mode: "crear" | "editar" = "editar"
 ) => {
+  const dispatch = useAppDispatch();
   const [editValues, setEditValues] = useState<Stock>(
     initialValues ?? ({} as Stock)
   );
@@ -61,108 +74,70 @@ export const useFormStock = (
   const [isSaving, setIsSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
 
+  // 🧩 Cargar valores iniciales
   useEffect(() => {
     if (initialValues && Object.keys(initialValues).length > 0) {
-      setEditValues((prev) => {
-        if (JSON.stringify(prev) !== JSON.stringify(initialValues)) {
-          return initialValues;
-        }
-        return prev;
-      });
+      setEditValues(initialValues);
     }
   }, [initialValues]);
 
+  // ✏️ Manejar cambios
   const handleChange = (field: keyof Stock, value: string | number) => {
     setEditValues((prev) => {
-      const newValues = { ...prev, [field]: value };
-
-      // 🔄 Si cambia el tipo a NO PERECEDERO, resetear vencimiento a 0
+      const updated = { ...prev, [field]: value };
       if (field === "tipo" && value === "NO PERECEDERO") {
-        newValues.vencimiento = 0;
+        updated.vencimiento = 0;
       }
-
-      return newValues;
+      return updated;
     });
   };
 
+  // 💾 Guardar (crear o actualizar)
   const handleGuardar = async (values: Stock) => {
     setIsSaving(true);
-    const nuevosErrores: Partial<Record<keyof Stock, string>> = {};
 
-    // Validaciones
-    if (!values.nombre?.trim()) {
-      nuevosErrores.nombre = "El nombre es obligatorio";
-    }
+    const errores: Partial<Record<keyof Stock, string>> = {};
 
-    // 🔢 Convertir a número si viene como string
-    const stockActual =
-      typeof values.stock_actual === "string"
-        ? Number(values.stock_actual)
-        : values.stock_actual;
+    // 🔎 Validaciones básicas
+    if (!values.nombre?.trim()) errores.nombre = "El nombre es obligatorio";
+    if (!values.tipo?.trim()) errores.tipo = "El tipo es obligatorio";
+    if (!values.medida?.trim()) errores.medida = "La unidad de medida es obligatoria";
 
-    if (stockActual === undefined || stockActual < 0) {
-      nuevosErrores.stock_actual = "El stock actual debe ser mayor o igual a 0";
-    }
+    const stockActual = Number(values.stock_actual ?? 0);
+    const stockMinimo = Number(values.stock_minimo ?? 0);
+    const vencimiento = Number(values.vencimiento ?? 0);
 
-    // Solo validar vencimiento si es PERECEDERO
-    if (values.tipo === "PERECEDERO") {
-      const vencimiento =
-        typeof values.vencimiento === "string"
-          ? Number(values.vencimiento)
-          : values.vencimiento;
+    if (stockActual < 0) errores.stock_actual = "El stock actual debe ser >= 0";
+    if (stockMinimo < 0) errores.stock_minimo = "El stock mínimo debe ser >= 0";
+    if (values.tipo === "PERECEDERO" && vencimiento < 0)
+      errores.vencimiento = "Los días de vencimiento deben ser >= 0";
 
-      if (vencimiento === undefined || vencimiento < 0) {
-        nuevosErrores.vencimiento =
-          "Los días de vencimiento deben ser mayor o igual a 0";
-      }
-    }
-
-    if (!values.tipo?.trim()) {
-      nuevosErrores.tipo = "El tipo es obligatorio";
-    }
-
-    const stockMinimo =
-      typeof values.stock_minimo === "string"
-        ? Number(values.stock_minimo)
-        : values.stock_minimo;
-
-    if (stockMinimo === undefined || stockMinimo < 0) {
-      nuevosErrores.stock_minimo = "El stock mínimo debe ser mayor o igual a 0";
-    }
-
-    if (!values.medida?.trim()) {
-      nuevosErrores.medida = "La unidad de medida es obligatoria";
-    }
-
-    setFormErrors(nuevosErrores);
-
-    if (Object.keys(nuevosErrores).length > 0) {
+    setFormErrors(errores);
+    if (Object.keys(errores).length > 0) {
       setIsSaving(false);
       return;
     }
 
-    try {
-      const payload: Stock = {
-        ...values,
-        stock_actual: stockActual,
-        stock_minimo: stockMinimo,
-        vencimiento:
-          values.tipo === "NO PERECEDERO"
-            ? 0
-            : typeof values.vencimiento === "string"
-            ? Number(values.vencimiento)
-            : values.vencimiento,
-        visibilidad: true,
-      };
+    // 🧱 Crear payload limpio
+    const payload: Stock = {
+      ...values,
+      stock_actual: stockActual,
+      stock_minimo: stockMinimo,
+      vencimiento: values.tipo === "NO PERECEDERO" ? 0 : vencimiento,
+      visibilidad: true,
+    };
 
+    try {
       if (mode === "crear") {
-        await fetchCrearStock(payload);
+        await dispatch(crearStock(payload)).unwrap();
         showSnackbar("Stock creado correctamente", "success");
       } else {
-        await fetchActualizarStock(payload);
+        await dispatch(actualizarStock(payload)).unwrap();
         showSnackbar("Stock actualizado correctamente", "success");
       }
 
+      // 🔄 Refrescar lista
+      dispatch(getStock());
       onSuccess();
     } catch (error) {
       if (error instanceof Error) showSnackbar(error.message, "error");
@@ -172,26 +147,13 @@ export const useFormStock = (
     }
   };
 
-  //  Filtrar campos según el tipo
-  const filteredFields = fields
-    .map((field) => {
-      if (field.name === "vencimiento" && editValues.tipo === "NO PERECEDERO") {
-        // Si es NO PERECEDERO, deshabilitar el campo de vencimiento
-        return {
-          ...field,
-          type: "number" as const,
-          render: () => null, // No mostrar el campo
-        };
-      }
-      return field;
-    })
-    .filter((field) => {
-      // Ocultar completamente el campo vencimiento si es NO PERECEDERO
-      if (field.name === "vencimiento" && editValues.tipo === "NO PERECEDERO") {
-        return false;
-      }
-      return true;
-    });
+  // 🧮 Filtrar campos según tipo
+  const filteredFields = fields.filter((field) => {
+    if (field.name === "vencimiento" && editValues.tipo === "NO PERECEDERO") {
+      return false;
+    }
+    return true;
+  });
 
   return {
     editValues,

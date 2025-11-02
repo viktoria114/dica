@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { Pago } from '../../types';
-import { crearPago } from '../../api/pagos';
 import { useSnackbar } from '../../contexts/SnackbarContext';
 import type { FieldConfig } from '../../Components/common/FormBase';
 import { DatePicker, LocalizationProvider, TimePicker } from '@mui/x-date-pickers';
+import { useAppDispatch } from '../../store/hooks';
+import { crearPagos } from '../../store/slices/pagosSlice';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 
@@ -15,6 +16,7 @@ const formatDateForBackend = (date: Date): string => {
 };
 
 export const usePagoForm = (onSuccess?: () => void) => {
+  const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -131,7 +133,7 @@ export const usePagoForm = (onSuccess?: () => void) => {
         ...values,
         fk_fecha: formatDateForBackend(new Date(values.fk_fecha)),
       };
-      await crearPago(formattedValues);
+      await dispatch(crearPagos(formattedValues));
       showSnackbar('Pago creado con éxito!', 'success');
       setOpen(false);
       onSuccess?.();
