@@ -1,55 +1,55 @@
 export class Pedido {
-    public hora: string;
-    public fk_estado: number;
+  public hora: string;
+  public fk_estado: number;
 
-    constructor(
-        public id: number | null,
-        public fk_fecha: Date | null = new Date(),
-        hora: string | null = null,
-        fk_estado: number | null = null,   // ahora recibe id del estado
-        public fk_cliente: number | null,
-        public ubicacion: string,
-        public observacion: string,
-        public visibilidad: boolean = true,
-    ) {
-        // Hora por defecto
-        this.hora = hora ?? Pedido.obtenerHoraActual();
+  constructor(
+    public id: number | null,
+    public fk_fecha: Date | null = new Date(),
+    hora: string | null = null,
+    fk_estado: number | null = null, // ahora recibe id del estado
+    public fk_cliente: number | null,
+    public ubicacion: string,
+    public observacion: string,
+    public visibilidad: boolean = true,
+  ) {
+    // Hora por defecto
+    this.hora = hora ?? Pedido.obtenerHoraActual();
 
-        // Estado por defecto (1 = pendiente)
-        this.fk_estado = fk_estado ?? 1;
+    // Estado por defecto (1 = pendiente)
+    this.fk_estado = fk_estado ?? 1;
 
-        // Validación de la hora
-        const horaRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-        if (!horaRegex.test(this.hora)) {
-            throw new Error("La hora debe tener el formato HH:MM.");
-        }
-
-        // Validación de cliente
-        if (fk_cliente === null || isNaN(fk_cliente)) {
-            throw new Error("Debe asignarse un cliente válido al pedido.");
-        }
-
-        // Validación de ubicación
-        if (!ubicacion || ubicacion.trim().length === 0) {
-            throw new Error("La ubicación no puede estar vacía.");
-        }
-        if (ubicacion.length > 200) {
-            throw new Error("La ubicación no puede superar los 200 caracteres.");
-        }
-
-        // Validación de observación
-        if (observacion && observacion.length > 500) {
-            throw new Error("La observación no puede superar los 500 caracteres.");
-        }
-        if (typeof visibilidad !== "boolean") {
-            throw new Error("La visibilidad debe ser un valor booleano.");
-        }
+    // Validación de la hora
+    const horaRegex = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
+    if (!horaRegex.test(this.hora)) {
+      throw new Error('La hora debe tener el formato HH:MM o HH:MM:SS.');
     }
 
-    private static obtenerHoraActual(): string {
-        const ahora = new Date();
-        const horas = ahora.getHours().toString().padStart(2, '0');
-        const minutos = ahora.getMinutes().toString().padStart(2, '0');
-        return `${horas}:${minutos}`;
+    // Validación de cliente
+    if (fk_cliente === null || isNaN(fk_cliente)) {
+      throw new Error('Debe asignarse un cliente válido al pedido.');
     }
+
+    // Validación de ubicación
+    if (!ubicacion || ubicacion.trim().length === 0) {
+      throw new Error('La ubicación no puede estar vacía.');
+    }
+    if (ubicacion.length > 200) {
+      throw new Error('La ubicación no puede superar los 200 caracteres.');
+    }
+
+    // Validación de observación
+    if (observacion && observacion.length > 500) {
+      throw new Error('La observación no puede superar los 500 caracteres.');
+    }
+    if (typeof visibilidad !== 'boolean') {
+      throw new Error('La visibilidad debe ser un valor booleano.');
+    }
+  }
+
+  private static obtenerHoraActual(): string {
+    const ahora = new Date();
+    const horas = ahora.getHours().toString().padStart(2, '0');
+    const minutos = ahora.getMinutes().toString().padStart(2, '0');
+    return `${horas}:${minutos}`;
+  }
 }

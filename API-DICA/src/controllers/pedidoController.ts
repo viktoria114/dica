@@ -245,19 +245,19 @@ export const crearPedido = async (req: Request, res: Response) => {
 export const actualizarPedido = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { fk_cliente, ubicacion, observacion, fk_estado } = req.body;
+    const { fk_cliente, ubicacion, observacion, fk_estado, fecha, hora } = req.body;
 
     const query = `
             UPDATE pedidos
-            SET id_estado = $1, id_cliente = $2, ubicacion = $3, observaciones = $4
-            WHERE id = $5
+            SET id_estado = $1, id_cliente = $2, ubicacion = $3, observaciones = $4, fecha = $5, hora = $6
+            WHERE id = $7
             RETURNING *;
         `;
 
     const pedido = new Pedido(
       null,
-      null,
-      null,
+      fecha,
+      hora,
       fk_estado,
       fk_cliente,
       ubicacion,
@@ -269,7 +269,8 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       pedido.fk_cliente,
       pedido.ubicacion,
       pedido.observacion,
-
+      pedido.fk_fecha,
+      pedido.hora,
       id,
     ]);
     if (rows.length === 0) {
