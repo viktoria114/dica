@@ -1,16 +1,10 @@
-<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useStock.ts
-import { useCallback, useEffect, useState } from "react";
-import type { Stock } from "../../types";
-import { fetchStock, fetchStockInvisible } from "../../api/stock";
-=======
 import { useCallback, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   getStock,
   getStockInvisible,
   toggleModoPapelera,
-} from "../store/slices/stockSlice";
->>>>>>> origin/main:DICA-APP/src/hooks/useStock.ts
+} from "../../store/slices/stockSlice";
 
 export const useStock = () => {
   const dispatch = useAppDispatch();

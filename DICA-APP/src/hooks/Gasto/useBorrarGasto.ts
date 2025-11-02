@@ -1,12 +1,7 @@
 import { useState } from 'react';
-<<<<<<< HEAD:DICA-APP/src/hooks/Gasto/useBorrarGasto.ts
-import { eliminarGasto } from '../../api/gastos';
 import { useSnackbar } from '../../contexts/SnackbarContext';
-=======
-import { useSnackbar } from '../contexts/SnackbarContext';
-import { useAppDispatch } from '../store/hooks';
-import { eliminarGastos, getGastos } from '../store/slices/gastosSlice';
->>>>>>> origin/main:DICA-APP/src/hooks/useBorrarGasto.ts
+import { useAppDispatch } from '../../store/hooks';
+import { eliminarGastos } from '../../store/slices/gastosSlice';
 
 export const useBorrarGasto = (onSuccess?: () => void) => {
   const dispatch = useAppDispatch();

@@ -1,17 +1,10 @@
 import { useState } from 'react';
-<<<<<<< HEAD:DICA-APP/src/hooks/Gasto/useFormGasto.tsx
 import type { Gasto } from '../../types';
-import { crearGasto } from '../../api/gastos';
 import { useSnackbar } from '../../contexts/SnackbarContext';
 import type { FieldConfig } from '../../Components/common/FormBase';
-=======
-import type { Gasto } from '../types';
-import { useSnackbar } from '../contexts/SnackbarContext';
-import type { FieldConfig } from '../Components/common/FormBase';
->>>>>>> origin/main:DICA-APP/src/hooks/useFormGasto.tsx
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
-import { useAppDispatch } from '../store/hooks';
-import { crearGastos, getGastos } from '../store/slices/gastosSlice';
+import { useAppDispatch } from '../../store/hooks';
+import { crearGastos, getGastos } from '../../store/slices/gastosSlice';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 

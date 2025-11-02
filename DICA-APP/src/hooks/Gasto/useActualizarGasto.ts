@@ -1,14 +1,8 @@
 import { useState } from 'react';
-<<<<<<< HEAD:DICA-APP/src/hooks/Gasto/useActualizarGasto.ts
-import { modificarGasto } from '../../api/gastos';
 import { useSnackbar } from '../../contexts/SnackbarContext';
 import type { Gasto } from '../../types';
-=======
-import { useSnackbar } from '../contexts/SnackbarContext';
-import type { Gasto } from '../types';
-import { useAppDispatch } from '../store/hooks';
-import { getGastos, modificarGastos } from '../store/slices/gastosSlice';
->>>>>>> origin/main:DICA-APP/src/hooks/useActualizarGasto.ts
+import { useAppDispatch } from '../../store/hooks';
+import {  modificarGastos } from '../../store/slices/gastosSlice';
 
 const formatDateForBackend = (date: Date): string => {
   const year = date.getFullYear();

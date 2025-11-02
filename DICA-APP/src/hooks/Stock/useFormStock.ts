@@ -1,21 +1,14 @@
 // src/hooks/useFormStock.ts
 import { useEffect, useState } from "react";
-<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useFormStock.ts
-import { fetchActualizarStock, fetchCrearStock } from "../../api/stock";
 import type { Stock } from "../../types";
 import type { FieldConfig } from "../../Components/common/FormBase";
 import { useSnackbar } from "../../contexts/SnackbarContext";
-=======
-import type { Stock } from "../types";
-import type { FieldConfig } from "../Components/common/FormBase";
-import { useSnackbar } from "../contexts/SnackbarContext";
-import { useAppDispatch } from "../store/hooks";
+import { useAppDispatch } from "../../store/hooks";
 import {
   crearStock,
   actualizarStock,
   getStock,
-} from "../store/slices/stockSlice";
->>>>>>> origin/main:DICA-APP/src/hooks/useFormStock.ts
+} from "../../store/slices/stockSlice";
 
 // 📋 Campos del formulario
 const fields: FieldConfig<Stock>[] = [

@@ -1,13 +1,8 @@
 // src/hooks/useBorrarStock.ts
 import { useState } from "react";
-<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useBorrarStock.ts
 import { useSnackbar } from "../../contexts/SnackbarContext";
-import { fetchBorrarStock } from "../../api/stock";
-=======
-import { useSnackbar } from "../contexts/SnackbarContext";
-import { useAppDispatch } from "../store/hooks";
-import { borrarStock, getStock } from "../store/slices/stockSlice";
->>>>>>> origin/main:DICA-APP/src/hooks/useBorrarStock.ts
+import { useAppDispatch } from "../../store/hooks";
+import { borrarStock, getStock } from "../../store/slices/stockSlice";
 
 export const useBorrarStock = (onSuccess?: () => void) => {
   const dispatch = useAppDispatch();

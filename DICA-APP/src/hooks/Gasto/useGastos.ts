@@ -1,13 +1,6 @@
-<<<<<<< HEAD:DICA-APP/src/hooks/Gasto/useGastos.ts
-import { useState, useEffect, useCallback } from 'react';
-import type { Gasto } from '../../types';
-import { fetchGastos } from '../../api/gastos';
-=======
-// src/hooks/useGastos.ts
 import { useEffect, useCallback } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { getGastos } from "../store/slices/gastosSlice";
->>>>>>> origin/main:DICA-APP/src/hooks/useGastos.ts
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { getGastos } from "../../store/slices/gastosSlice";
 
 export const useGastos = () => {
   const dispatch = useAppDispatch();

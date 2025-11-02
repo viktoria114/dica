@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getPedidos, getPedidosBorrados } from '../../api/pedidos';
+import {  getPedidosBorrados } from '../../api/pedidos';
 import type { Pedido } from '../../types';
 import { useAppDispatch } from '../../store/hooks';
-
-// Asumimos que tienes una función para actualizar el estado en la API
-// import { updatePedidoEstado } from '../api/pedidos';
+import { getPedidos } from '../../store/slices/pedidosSlices';
 
 export const usePedidos = () => {
       const dispatch = useAppDispatch();

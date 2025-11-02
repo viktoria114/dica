@@ -1,13 +1,8 @@
 // src/hooks/useRestaurarStock.ts
 import { useState } from "react";
-<<<<<<< HEAD:DICA-APP/src/hooks/Stock/useRestaurarStock.ts
-import { fetchRestaurarStock } from "../../api/stock";
 import { useSnackbar } from "../../contexts/SnackbarContext";
-=======
-import { useSnackbar } from "../contexts/SnackbarContext";
-import { useAppDispatch } from "../store/hooks";
-import { getStock, restaurarStock } from "../store/slices/stockSlice";
->>>>>>> origin/main:DICA-APP/src/hooks/useRestaurarStock.ts
+import { useAppDispatch } from "../../store/hooks";
+import { getStock, restaurarStock } from "../../store/slices/stockSlice";
 
 export function useRestaurarStock(onSuccess: () => void) {
   const dispatch = useAppDispatch();
