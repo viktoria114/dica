@@ -64,7 +64,7 @@ export const usePedidos = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     cargarDatos();
