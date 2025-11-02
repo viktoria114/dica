@@ -11,6 +11,8 @@ export const PEDIDO_FIELDS = `
   p.ubicacion,
   p.observaciones,
   p.id_estado,
+  p.fecha,
+  p.hora,
   
   -- Detalle de items del menú
   COALESCE(
@@ -1326,6 +1328,8 @@ export const getTicketPedido = async (req: Request, res: Response) => {
     p.id_cliente,
     p.ubicacion,
     p.observaciones,
+    p.fecha,
+    p.hora,
     -- Detalle de items
     COALESCE(
       (SELECT json_agg(
