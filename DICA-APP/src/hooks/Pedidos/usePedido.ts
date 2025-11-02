@@ -1,19 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import {  getPedidosBorrados } from '../../api/pedidos';
-import type { Pedido } from '../../types';
-import { useAppDispatch } from '../../store/hooks';
-import { getPedidos } from '../../store/slices/pedidosSlices';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { getPedidosBorrados } from "../../api/pedidos";
+import type { Pedido } from "../../types";
+import { useAppDispatch } from "../../store/hooks";
+import { getPedidos } from "../../store/slices/pedidosSlices";
 
 export const usePedidos = () => {
-      const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [pedidosBorrados, setPedidosBorrados] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // 1. Estado de la UI y filtros
-  const [modo, setModo] = useState<"normal" | "borrados" | "cancelados">("normal");
+  const [modo, setModo] = useState<"normal" | "borrados" | "cancelados">(
+    "normal"
+  );
   const [pedidosFiltrados, setPedidosFiltrados] = useState<Pedido[]>([]);
 
   // 2. Carga inicial de datos
@@ -24,41 +26,54 @@ export const usePedidos = () => {
       const dataPedidos = await dispatch(getPedidos()).unwrap();
 
       // Cargamos todo en paralelo
-      const [dataBorrados] = await Promise.all([
-        getPedidosBorrados(),
-      ]);
+      const [dataBorrados] = await Promise.all([getPedidosBorrados()]);
 
       // Tu lógica de mapeo
-      const pedidosBackend = dataPedidos.map((p: any) => ({
-       // --- IDs y Estado ---
-  pedido_id: p.pedido_id ?? null,
-  fk_estado: p.fk_estado ?? p.id_estado ?? 1, // Fallback a 1 (Pendiente) si no viene nada
+      const pedidosBackend = dataPedidos.map((p: any) => {
+        const rawDate = p.fecha;
+        let normalizedFecha: string | null = null;
 
-  // --- Cliente y Ubicación ---
-  id_cliente: p.id_cliente ?? null,
-  ubicacion: p.ubicacion ?? "", // Es mejor un string vacío que null
+        if (rawDate) {
+          // Si el backend convierte a Date, ya es un objeto Date.
+          // Si aún es un string ISO, new Date() lo convierte a Date.
+          const dateObj = rawDate instanceof Date ? rawDate : new Date(rawDate);
 
-  // --- Fecha y Hora (¡Importante la conversión!) ---
-  id_fecha: p.id_fecha ? new Date(p.id_fecha) : null,
-  hora: p.hora ?? null,
+          // Asegúrate de que la fecha sea válida antes de convertirla a string ISO
+          if (!isNaN(dateObj.getTime())) {
+            normalizedFecha = dateObj.toISOString();
+          }
+        }
 
-  // --- Contenido del Pedido ---
-  items: p.items ?? [], // Es mejor un array vacío que undefined
-  promociones: p.promociones ?? [], // Igual aquí
+        return {
+          // --- IDs y Estado ---
+          pedido_id: p.pedido_id ?? null,
+          fk_estado: p.fk_estado ?? p.id_estado ?? 1, // Fallback a 1 (Pendiente) si no viene nada
 
-  // --- Precios (Calculados en el backend) ---
-  precio_por_items: p.precio_por_items ?? 0,
-  precio_por_promociones: p.precio_por_promociones ?? 0,
-  precio_total: p.precio_total ?? 0,
+          // --- Cliente y Ubicación ---
+          id_cliente: p.id_cliente ?? null,
+          ubicacion: p.ubicacion ?? "", // Es mejor un string vacío que null
 
-  // --- Metadatos ---
-  observaciones: p.observaciones ?? "",
-  visibilidad: p.visibilidad ?? true, // Asumimos true si no se especifica
-      }));
-      
+          // --- Fecha y Hora (¡Importante la conversión!) ---
+          fecha: normalizedFecha,
+          hora: p.hora ?? null,
+
+          // --- Contenido del Pedido ---
+          items: p.items ?? [], // Es mejor un array vacío que undefined
+          promociones: p.promociones ?? [], // Igual aquí
+
+          // --- Precios (Calculados en el backend) ---
+          precio_por_items: p.precio_por_items ?? 0,
+          precio_por_promociones: p.precio_por_promociones ?? 0,
+          precio_total: p.precio_total ?? 0,
+
+          // --- Metadatos ---
+          observaciones: p.observaciones ?? "",
+          visibilidad: p.visibilidad ?? true, // Asumimos true si no se especifica
+        };
+      });
+
       setPedidos(pedidosBackend);
       setPedidosBorrados(dataBorrados);
-
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -71,10 +86,13 @@ export const usePedidos = () => {
   }, [cargarDatos]); // Cargar solo una vez al montar
 
   // 3. Lógica de filtrado y modo
-  const cambiarModo = useCallback((nuevoModo: "borrados" | "cancelados" | "normal") => {
-    setModo(nuevoModo);
-    setPedidosFiltrados([]); // Resetea el filtro al cambiar de modo
-  }, []);
+  const cambiarModo = useCallback(
+    (nuevoModo: "borrados" | "cancelados" | "normal") => {
+      setModo(nuevoModo);
+      setPedidosFiltrados([]); // Resetea el filtro al cambiar de modo
+    },
+    []
+  );
 
   const actualizarPedidosFiltrados = useCallback((filtered: Pedido[]) => {
     setPedidosFiltrados(filtered);
@@ -91,7 +109,7 @@ export const usePedidos = () => {
         return pedidosBorrados;
       case "cancelados":
         // El estado base `pedidos` ya contiene los cancelados
-        return pedidos.filter(p => p.fk_estado === 9); 
+        return pedidos.filter((p) => p.fk_estado === 9);
       default:
         return base;
     }
@@ -104,20 +122,18 @@ export const usePedidos = () => {
 
     const newEstadoId = Number(destination.droppableId);
     const pedidoId = Number(draggableId);
-    
+
     // Guardar estado original para rollback
-    const pedidoOriginal = pedidos.find(p => p.pedido_id === pedidoId);
+    const pedidoOriginal = pedidos.find((p) => p.pedido_id === pedidoId);
     if (!pedidoOriginal) return;
 
     // Actualización optimista de UI
     setPedidos((prev) =>
       prev.map((p) =>
-        p.pedido_id === pedidoId
-          ? { ...p, fk_estado: newEstadoId }
-          : p
+        p.pedido_id === pedidoId ? { ...p, fk_estado: newEstadoId } : p
       )
     );
-    
+
     // Llamada a la API
     try {
       // Deberías tener una función así en tu API
@@ -145,7 +161,7 @@ export const usePedidos = () => {
       )
     );
   };
-  
+
   return {
     loading,
     error,

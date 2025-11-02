@@ -35,17 +35,17 @@ precio_unitario: number,
 }
 
 export interface ItemsYPromociones {
-    item_id?: number;
-    promocion_id?: number;
+    id_menu?: number;
+    id_promocion?: number;
     cantidad: number;
     nombre: string;
-    precio: number;
+    precio_unitario: number;
     [key: string]: unknown;
 }
 
 export interface Pedido {
 pedido_id: number | null,
-id_fecha: Date | null,
+fecha: string | null,
 hora: string | null,
 id_cliente: number | null,
  ubicacion: string,

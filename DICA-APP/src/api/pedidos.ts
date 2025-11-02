@@ -59,11 +59,15 @@ export const actualizarPedido = async (
     // Campos que el backend requiere
     fk_empleado: fk_empleado, // <-- 3. Úsalo desde el argumento
     fk_cliente: pedido.id_cliente,
+    fk_estado: pedido.fk_estado,
+    fecha: pedido.fecha,
+    hora: pedido.hora,
     ubicacion: pedido.ubicacion,
     observacion: pedido.observaciones, // Asumo que esto estaba bien
     items: pedido.items,
     promociones: pedido.promociones,
   };
+console.log(payload);
 
   try {
   const res = await api.put<Pedido>(`${PEDIDOS_URL}/${id}`, payload);

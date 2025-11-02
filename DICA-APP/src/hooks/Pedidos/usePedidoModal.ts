@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
-import type { Pedido, ItemsYPromociones } from '../../types';
-import { usePedidoForm } from './usePedidoForm';
+import { useState, useEffect } from "react";
+import type { Pedido, ItemsYPromociones } from "../../types";
+import { usePedidoForm } from "./usePedidoForm";
 
 // Hook para manejar toda la lógica del modal de Pedido
 export const usePedidoModal = (
   // Callback para actualizar la lista en `usePedidos`
-  onFormSubmitSuccess: (pedido: Pedido) => void 
+  onFormSubmitSuccess: (pedido: Pedido) => void
 ) => {
   const [open, setOpen] = useState(false);
-  
+
   // 1. Usamos tu hook de formulario
   const form = usePedidoForm();
-  const { 
-    formValues, 
-    setFormValues, 
+  const {
+    formValues,
+    setFormValues,
     handleSubmit,
     // ...resto de props de usePedidoForm
   } = form;
@@ -26,21 +26,26 @@ export const usePedidoModal = (
   useEffect(() => {
     // El tipo de `ItemsYPromociones` no tiene 'id', pero ItemSelector lo necesita.
     // Lo "adaptamos" al vuelo.
-    const adaptToSelector = (items: ItemsYPromociones[], key: 'item_id' | 'promocion_id') => {
-      return items.map(item => ({
+    const adaptToSelector = (
+      items: ItemsYPromociones[],
+      key: "item_id" | "promocion_id"
+    ) => {
+      return items.map((item) => ({
         ...item,
         id: item[key]!, // Asigna 'id' desde item_id o promocion_id
       }));
     };
 
     if (formValues?.items) {
-      setSelectedMenus(adaptToSelector(formValues.items, 'item_id'));
+      setSelectedMenus(adaptToSelector(formValues.items, "item_id"));
     } else {
       setSelectedMenus([]);
     }
-    
+
     if (formValues?.promociones) {
-      setSelectedPromos(adaptToSelector(formValues.promociones, 'promocion_id'));
+      setSelectedPromos(
+        adaptToSelector(formValues.promociones, "promocion_id")
+      );
     } else {
       setSelectedPromos([]);
     }
@@ -63,21 +68,21 @@ export const usePedidoModal = (
   };
 
   // 5. Wrapper para el 'handleSubmit'
-const handleSubmitModal = async () => {
+  const handleSubmitModal = async () => {
     // Antes de enviar, inyectamos los items/promos actualizados
     const pedidoCompleto = {
       ...formValues,
       items: selectedMenus,
       promociones: selectedPromos,
     };
-    
+
     try {
-      await handleSubmit(pedidoCompleto); 
-      onFormSubmitSuccess(pedidoCompleto); 
+      await handleSubmit(pedidoCompleto);
+      onFormSubmitSuccess(pedidoCompleto);
     } catch (error) {
       console.error("Error en handleSubmitModal wrapper:", error);
     }
-};
+  };
 
   return {
     open,

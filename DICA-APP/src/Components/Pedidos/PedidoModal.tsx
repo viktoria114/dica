@@ -62,7 +62,10 @@ export const PedidoModal = ({
         { label: "Teléfono del Cliente", value: formValues.id_cliente },
         { label: "Observaciones", value: formValues.observaciones },
         { label: "Ubicación", value: formValues.ubicacion },
-        { label: "Fecha", value: formValues.id_fecha ? formValues.id_fecha.toISOString() : null },
+        { label: "Fecha", value: formValues.fecha 
+            ? new Date(formValues.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' }) 
+            : '-'
+},
         { label: "Hora", value: formValues.hora },
   ];
 
@@ -99,9 +102,9 @@ export const PedidoModal = ({
   onChange={setSelectedMenus}
   itemFactory={(menu) => ({
     id: menu.id,
-    item_id: menu.id,
+    id_menu: menu.id,
     nombre: menu.nombre,
-    precio: menu.precio,
+    precio_unitario: menu.precio,
     cantidad: 1, // Cantidad inicial
   })}
   columns={menuColumns}
@@ -116,9 +119,9 @@ export const PedidoModal = ({
   onChange={setSelectedPromos}
   itemFactory={(promo) => ({
     id: promo.id,
-    promocion_id: promo.id,
+    id_promocion: promo.id,
     nombre: promo.nombre,
-    precio: promo.precio, // o promo.precio_descuento, etc.
+    precio_unitario: promo.precio, // o promo.precio_descuento, etc.
     cantidad: 1,
   })}
   columns={menuColumns} // Reutilizamos las columnas
