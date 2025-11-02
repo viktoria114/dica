@@ -464,6 +464,7 @@ export const getListaCompletaPedidos = async (_req: Request, res: Response) => {
       LEFT JOIN menu m ON m.id = pm.fk_menu
       LEFT JOIN pedidos_promociones pp ON p.id = pp.id_pedido
       LEFT JOIN promociones pr ON pr.id = pp.id_promocion
+      WHERE p.visibilidad = false
       GROUP BY p.id
       ORDER BY p.id ASC;
     `;

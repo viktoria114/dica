@@ -5,7 +5,7 @@ import { TabPanel } from "@mui/lab";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import { usePerfil } from "../hooks/usePerfil";
-import { useFormEmpleado } from "../hooks/useFormEmpleado";
+import { useFormEmpleado } from "../hooks/Empleados/useFormEmpleado";
 import GenericForm from "../Components/common/FormBase";
 import type { Empleado } from "../types";
 import { useFormPassword } from "../hooks/useFormPassword";

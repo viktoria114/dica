@@ -4,11 +4,11 @@ import { SearchBar } from "../Components/common/SearchBar";
 import { FichaItem } from "../Components/common/FichaItem";
 import { ModalBase } from "../Components/common/ModalBase";
 import { Paginacion } from "../Components/common/Paginacion";
-import { useClientes } from "../hooks/useClientes";
+import { useClientes } from "../hooks/Clientes/useClientes";
 import type { Cliente } from "../types";
-import { useFormClientes } from "../hooks/useFormClientes";
-import { useBorrarCliente } from "../hooks/useBorrarCliente";
-import { useRestaurarCliente } from "../hooks/useRestaurarCliente";
+import { useFormClientes } from "../hooks/Clientes/useFormClientes";
+import { useBorrarCliente } from "../hooks/Clientes/useBorrarCliente";
+import { useRestaurarCliente } from "../hooks/Clientes/useRestaurarCliente";
 import dayjs from "dayjs";
 
 const styleBox1 = {

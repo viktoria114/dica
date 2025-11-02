@@ -1,8 +1,8 @@
 
 
 import { Button, Box, Typography } from '@mui/material';
-import { useGastos } from '../hooks/useGastos';
-import { usePagos } from '../hooks/usePagos';
+import { useGastos } from '../hooks/Gasto/useGastos';
+import { usePagos } from '../hooks/Pago/usePagos';
 import { generarBalancePDF } from '../services/pdfGenerator';
 
 export const Reporte = () => {

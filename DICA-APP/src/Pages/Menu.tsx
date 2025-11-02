@@ -18,8 +18,8 @@ import { useMenu } from "../hooks/useMenu";
 import InfoIcon from "@mui/icons-material/Info";
 import { useCallback, useState } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
-import { StockSelector } from "../Components/Menu/StockSelector";
 import { useMenuForm } from "../hooks/useFormMenu";
+import { ItemSelector, type BaseAvailableItem, type ItemSelectorColumn } from "../Components/common/ItemSelector";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -59,8 +59,73 @@ export const Menu = () => {
   const [dense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const rowsPerPageOptions: number[] = [5, 10, 25];
-  const [openEdit, setOpenEdit] = useState(false);
+    const [openEdit, setOpenEdit] = useState(false);
+    
+const allAvailableStocks: BaseAvailableItem[] = [
+    { id: 1, nombre: "Harina" },
+    { id: 2, nombre: "Queso" },
+    { id: 3, nombre: "Jamón" },
+    { id: 4, nombre: "Tomate" },
+  ];
 
+interface AdaptedStockItem {
+    id: number;
+    nombre: string;
+    cantidad: number;
+  }
+
+const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
+    { key: "nombre", label: "Item de Stock", editable: false, width: 6 },
+    {
+      key: "cantidad",
+      label: "Cantidad Necesaria",
+      editable: true,
+      type: "number",
+      width: 4,
+    },
+  ];
+
+
+  const stockItemFactory = (
+    stockItem: BaseAvailableItem
+  ): AdaptedStockItem => ({
+    id: Number(stockItem.id),
+    nombre: stockItem.nombre,
+    cantidad: 1, // Cantidad por defecto al agregar
+  });
+
+  const adaptedStocks = React.useMemo(() => {
+    // Si no hay stocks en el form o no han cargado los disponibles, devuelve vacío
+    if (!formValues.stocks || !allAvailableStocks.length) {
+      return [];
+    }
+    
+    return formValues.stocks.map((stockEnForm) => {
+      // Busca el 'nombre' del stock en la lista completa
+      const stockInfo = allAvailableStocks.find(
+        (a) => a.id === stockEnForm.id_stock
+      );
+      
+      return {
+        id: stockEnForm.id_stock,
+        nombre: stockInfo?.nombre || "Stock Desconocido",
+        cantidad: stockEnForm.cantidad_necesaria,
+      };
+    });
+  }, [formValues.stocks, allAvailableStocks]);
+
+  // --- 6. ADAPTADOR DE "VUELTA" (Handler) ---
+  // Recibe `AdaptedStockItem[]` del ItemSelector y lo transforma
+  // de nuevo a `{ id_stock, cantidad_necesaria }[]` antes de guardarlo en el form.
+  const handleStockChange = (newAdaptedStocks: AdaptedStockItem[]) => {
+    const newStocksForForm = newAdaptedStocks.map((a) => ({
+      id_stock: a.id,
+      cantidad_necesaria: a.cantidad,
+    }));
+    
+    // Usamos el 'handleChange' del hook useMenuForm
+    handleChange("stocks", newStocksForForm);
+  };
 
 
   React.useEffect(() => {
@@ -267,14 +332,15 @@ export const Menu = () => {
         handleClose={() => setOpen(false)}
         isSaving={isSaving}
       >
-        <StockSelector
-          availableStocks={[
-            { id_stock: 1, nombre: "Harina" },
-            { id_stock: 2, nombre: "Queso" },
-            { id_stock: 3, nombre: "Jamón" },
-          ]}
-          selectedStocks={formValues.stocks ?? []}
-          onChange={(newStocks) => handleChange("stocks", newStocks)}
+        <ItemSelector<BaseAvailableItem, AdaptedStockItem>
+          label="Items de Stock Requeridos"
+          availableItems={allAvailableStocks}
+          selectedItems={adaptedStocks}
+          onChange={handleStockChange}
+          itemFactory={stockItemFactory}
+          columns={stockColumns}
+          modalTitle="Seleccionar Stock"
+          searchPlaceholder="Buscar item de stock..."
         />
       </ModalBase>
 
@@ -297,14 +363,15 @@ export const Menu = () => {
           { label: "Descripción", value: formValues.descripcion },
         ]}
       >
-        <StockSelector
-          availableStocks={[
-            { id_stock: 1, nombre: "Harina" },
-            { id_stock: 2, nombre: "Queso" },
-            { id_stock: 3, nombre: "Jamón" },
-          ]}
-          selectedStocks={formValues.stocks ?? []}
-          onChange={(newStocks) => handleChange("stocks", newStocks)}
+        <ItemSelector<BaseAvailableItem, AdaptedStockItem>
+          label="Items de Stock Requeridos"
+          availableItems={allAvailableStocks}
+          selectedItems={adaptedStocks}
+          onChange={handleStockChange}
+          itemFactory={stockItemFactory}
+          columns={stockColumns}
+          modalTitle="Seleccionar Stock"
+          searchPlaceholder="Buscar item de stock..."
         />
       </ModalBase>
     </>

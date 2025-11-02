@@ -27,16 +27,38 @@ export interface ItemsMenu {
   stocks: { id_stock: number; cantidad_necesaria: number }[];
 }
 
-export interface Pedido {
-  id: number | null;
-  id_fecha: Date | null;
-  hora: string | null;
-  id_cliente: number | null;
-  ubicacion: string;
-  observacion: string;
-  visibilidad: boolean;
-  id_estado: number;
+export interface Ticket {
+nombre: string,
+cantidad: number,
+subtotal: number,
+precio_unitario: number,
 }
+
+export interface ItemsYPromociones {
+    item_id?: number;
+    promocion_id?: number;
+    cantidad: number;
+    nombre: string;
+    precio: number;
+    [key: string]: unknown;
+}
+
+export interface Pedido {
+pedido_id: number | null,
+id_fecha: Date | null,
+hora: string | null,
+id_cliente: number | null,
+ ubicacion: string,
+ observaciones: string,
+ visibilidad: boolean,
+ fk_estado: number,
+ items?: ItemsYPromociones[];
+ precio_por_items?: number;
+ precio_por_promociones?: number;
+ precio_total?: number;
+ promociones?: ItemsYPromociones[];
+}
+
 
 export interface Stock {
   id: number | null;
