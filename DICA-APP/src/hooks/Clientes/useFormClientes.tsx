@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import type { FieldConfig } from "../../Components/common/FormBase";
 import type { Cliente } from "../../types";
 import { useAppDispatch } from "../../store/hooks";
@@ -37,11 +37,12 @@ const fields: FieldConfig<Cliente>[] = [
           label="Última compra"
           // El valor que llega es el string del estado, lo convertimos a Dayjs
           value={value ? dayjs(value) : null}
-          onChange={(newValue: Dayjs | null) => {
-            // Al cambiar, guardamos el string ISO en el estado
+          onChange={(newValue) => {
+            // Convertimos el valor entrante a Dayjs y guardamos el string ISO en el estado
+            const parsed = newValue ? dayjs(newValue as Date) : null;
             handleChange(
               "ultima_compra",
-              newValue && newValue.isValid() ? newValue.toISOString() : null
+              parsed && parsed.isValid() ? parsed.toISOString() : null
             );
           }}
           slotProps={{

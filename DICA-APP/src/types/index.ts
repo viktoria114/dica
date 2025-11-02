@@ -53,14 +53,51 @@ id_cliente: number | null,
  visibilidad: boolean,
  fk_estado: number,
  items?: ItemsYPromociones[];
+ precio_por_items?: number;
+ precio_por_promociones?: number;
+ precio_total?: number;
  promociones?: ItemsYPromociones[];
 }
 
+
+export interface Stock {
+  id: number | null;
+  nombre: string;
+  stock_actual: number;
+  vencimiento: number;
+  tipo: string;
+  stock_minimo: number;
+  medida: string;
+  visibilidad: boolean;
+}
+
 export interface Promocion {
-id: number | null,
-nombre: string,
-tipo: 'MONTO_FIJO' | 'DESCUENTO',
-precio: number, // interpreta según tipo
-visibilidad: boolean,
-items?: ItemsYPromociones[];
+  id: number;
+  nombre: string;
+  tipo: 'DESCUENTO' | 'MONTO_FIJO';
+  precio: number;
+  visibilidad: boolean;
+  items: { id: number; nombre: string; precio: number; cantidad: number }[];
+}
+
+export interface Gasto {
+  id: number | null;
+  monto: number;
+  categoria: string;
+  metodo_de_pago: string;
+  descripcion: string;
+  fk_registro_stock: number | null;
+  fecha: Date | string;
+  stockItems: { id_stock: number; cantidad: number }[];
+}
+
+export interface Pago {
+  id: number | null;
+  monto: number;
+  metodo_pago: string;
+  comprobante_pago: string;
+  validado: boolean;
+  fk_pedido: number | null;
+  fk_fecha: Date | string;
+  hora: string;
 }

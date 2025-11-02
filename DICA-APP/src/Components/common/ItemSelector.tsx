@@ -28,6 +28,7 @@ export interface BaseAvailableItem {
 
 // K: El tipo de item ya seleccionado (ej: { id, cantidad, nombre })
 export interface BaseSelectedItem {
+  nombre: string;
   id: number | string;
   cantidad: number;
 }

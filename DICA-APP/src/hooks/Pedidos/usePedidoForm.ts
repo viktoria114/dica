@@ -1,8 +1,10 @@
-import type { FieldConfig } from "../Components/common/FormBase";
+import type { FieldConfig } from "../../Components/common/FormBase";
 import { useState } from "react";
-import { useSnackbar } from "../contexts/SnackbarContext";
-import type { Pedido } from "../types";
-import { crearPedido, actualizarPedido } from "../api/pedidos"; // endpoints supuestos
+import { useSnackbar } from "../../contexts/SnackbarContext";
+import type { Pedido } from "../../types";
+// Asumo que tienes los endpoints actualizados para recibir fk_empleado
+import { crearPedido, actualizarPedido } from "../../api/pedidos"; 
+import { useAuth } from "../useAuth";
 
 export const pedidoFields: FieldConfig<Pedido>[] = [
   {
@@ -44,6 +46,7 @@ export const pedidoFields: FieldConfig<Pedido>[] = [
 ];
 
 export const usePedidoForm = () => {
+  const { usuario } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { showSnackbar } = useSnackbar();
@@ -63,8 +66,16 @@ export const usePedidoForm = () => {
     Partial<Record<keyof Pedido, string>>
   >({});
 
+  // ⚠️ Importante: validate ya NO necesita manejar el error del usuario, 
+  // solo debe validar los campos del formulario.
   const validate = (values: Pedido) => {
     const errors: Partial<Record<keyof Pedido, string>> = {};
+
+    // ❌ ELIMINADA: La comprobación del usuario no debe estar en 'validate'
+    //if (!usuario?.dni) { 
+    //  setIsSaving(false);
+    //  throw new Error("Usuario no autenticado. No se puede guardar.");
+    //}
 
     if (values.id_cliente === null || isNaN(values.id_cliente))
       errors.id_cliente = "Debe asignarse un cliente válido";
@@ -84,25 +95,37 @@ export const usePedidoForm = () => {
   };
 
   const handleChange = (field: keyof Pedido, value: unknown) => {
-   if (field === "fk_estado") {
-    setFormValues((prev) => ({ ...prev, [field]: Number(value) }));
-  } else {
-    setFormValues((prev) => ({ ...prev, [field]: value }));
-  }
-};
+    if (field === "fk_estado") {
+      setFormValues((prev) => ({ ...prev, [field]: Number(value) }));
+    } else {
+      setFormValues((prev) => ({ ...prev, [field]: value }));
+    }
+  };
 
   const handleSubmit = async (values: Pedido) => {
     const errors = validate(values);
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
+    // 🎯 CORRECCIÓN CLAVE 1: Comprobación del usuario antes de setIsSaving(true)
+    if (!usuario || !usuario.dni) {
+      showSnackbar("Error de autenticación. Inicie sesión nuevamente.", "error");
+      return; // Sale de la función si no hay usuario/dni
+    }
+
     setIsSaving(true);
+    
     try {
       if (values.pedido_id === null) {
-        await crearPedido(values);
+        // En crear pedido también debes enviar el DNI
+        await crearPedido(values); 
         showSnackbar("Pedido creado con éxito!", "success");
       } else {
-        await actualizarPedido(values.pedido_id, values);
+        await actualizarPedido(
+          values.pedido_id,
+          values,
+          usuario.dni // <-- ¡Error 18047 solucionado!
+        );
         showSnackbar("Pedido actualizado con éxito!", "success");
       }
       setOpen(false);
