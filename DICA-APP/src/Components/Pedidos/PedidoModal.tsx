@@ -106,6 +106,7 @@ export const PedidoModal = ({
     nombre: menu.nombre,
     precio_unitario: menu.precio,
     cantidad: 1, // Cantidad inicial
+    subtotal: menu.precio * 1,
   })}
   columns={menuColumns}
   modalTitle="Seleccionar Menú"
@@ -123,6 +124,7 @@ export const PedidoModal = ({
     nombre: promo.nombre,
     precio_unitario: promo.precio, // o promo.precio_descuento, etc.
     cantidad: 1,
+    subtotal: promo.precio * 1,
   })}
   columns={menuColumns} // Reutilizamos las columnas
   modalTitle="Seleccionar Promoción"

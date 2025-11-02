@@ -50,7 +50,7 @@ export const Pedidos = () => {
   const menuColumns: ItemSelectorColumn<ItemsYPromociones & { id: number }>[] =
     [
       { key: "nombre", label: "Nombre", editable: false, width: 5 },
-      { key: "precio", label: "Precio", editable: false, width: 3 },
+      { key: "subtotal", label: "Subtotal", editable: false, width: 3 },
       {
         key: "cantidad",
         label: "Cantidad",

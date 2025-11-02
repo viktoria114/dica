@@ -28,23 +28,27 @@ export const usePedidoModal = (
     // Lo "adaptamos" al vuelo.
     const adaptToSelector = (
       items: ItemsYPromociones[],
-      key: "item_id" | "promocion_id"
+      key: string
     ) => {
       return items.map((item) => ({
         ...item,
-        id: item[key]!, // Asigna 'id' desde item_id o promocion_id
+        // 1. Preserva el ID de fila único (ej: 101, 102) para la 'key' de React
+        uniqueKey: item.id,
+        // 2. Sobrescribe 'id' para que sea el ID de producto (ej: 5, 12)
+        //    (Esto es necesario para que tu 'handleAdd' siga funcionando)
+        id: item[key]!,
       }));
     };
 
     if (formValues?.items) {
-      setSelectedMenus(adaptToSelector(formValues.items, "item_id"));
+      setSelectedMenus(adaptToSelector(formValues.items, "id_menu"));
     } else {
       setSelectedMenus([]);
     }
 
     if (formValues?.promociones) {
       setSelectedPromos(
-        adaptToSelector(formValues.promociones, "promocion_id")
+        adaptToSelector(formValues.promociones, "id_promocion")
       );
     } else {
       setSelectedPromos([]);
