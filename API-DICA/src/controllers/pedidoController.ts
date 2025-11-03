@@ -52,16 +52,18 @@ export const crearPedido = async (req: Request, res: Response) => {
   const client: PoolClient = await pool.connect();
   try {
     const {
-      fk_cliente = null,
+      id_cliente = null,
       ubicacion = null,
-      observacion = null,
-      items_menu = [],
+      observaciones = null,
+      items = [],
+      promociones = [],
     } = req.body;
+
     const rol = (req as any).rol;
     let dni_empleado = (req as any).dni;
 
-    // 🚨 Validación: Si es agente, verificar si ya existe un pedido activo en estado 6 o 7
-    if (rol === 'agente' && fk_cliente) {
+    // 🚨 Validación: Si es agente, no puede tener pedidos activos
+    if (rol === 'agente' && id_cliente) {
       const validacionQuery = `
         SELECT id, id_estado
         FROM pedidos 
@@ -70,125 +72,108 @@ export const crearPedido = async (req: Request, res: Response) => {
         AND visibilidad = true
         LIMIT 1;
       `;
-      const { rows: pedidosExistentes } = await client.query(validacionQuery, [
-        fk_cliente,
-      ]);
+      const { rows: pedidosExistentes } = await client.query(validacionQuery, [id_cliente]);
 
       if (pedidosExistentes.length > 0) {
         const { id_estado } = pedidosExistentes[0];
-
-        let mensaje;
-        if (id_estado === 6) {
-          mensaje =
-            'El cliente ya cuenta con un carrito activo. Usa la herramienta correspondiente para obtener informacion';
-        } else if (id_estado === 7) {
-          mensaje =
-            'El cliente tiene un pedido pendiente de confirmación. No puedes crear uno nuevo. Hay que esperar que un empleado lo acepte.';
-        }
-
+        let mensaje =
+          id_estado === 6
+            ? 'El cliente ya cuenta con un carrito activo.'
+            : 'El cliente tiene un pedido pendiente de confirmación.';
         return res.status(400).json({ message: mensaje });
       }
     }
 
-    // 🔹 Validar items_menu solo si viene con datos
-    if (items_menu && items_menu.length > 0) {
-      for (const item of items_menu) {
+    // 🔹 Validar cantidades
+    const validarCantidades = (lista: any[], tipo: string, campoId: string) => {
+      for (const item of lista) {
         if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
+          return `La cantidad para ${tipo} con id=${item[campoId]} debe ser mayor a 0`;
+        }
+      }
+      return null;
+    };
+
+    const errorItems = validarCantidades(items, 'ítem', 'id_menu');
+    const errorPromos = validarCantidades(promociones, 'promoción', 'id_promocion');
+    if (errorItems || errorPromos) {
+      return res.status(400).json({ message: errorItems || errorPromos });
+    }
+
+    await client.query('BEGIN');
+
+    // 🔹 Validación de stock para los items del menú
+    for (const item of items) {
+      const ingredientesQuery = `
+        SELECT ms.fk_stock, ms.cantidad_necesaria
+        FROM menu_stock ms
+        WHERE ms.fk_menu = $1;
+      `;
+      const { rows: ingredientes } = await client.query(ingredientesQuery, [item.id_menu]);
+
+      for (const ing of ingredientes) {
+        const totalNecesario = ing.cantidad_necesaria * item.cantidad;
+
+        const stockQuery = `SELECT stock_actual FROM stock WHERE id = $1`;
+        const { rows: stockRows } = await client.query(stockQuery, [ing.fk_stock]);
+
+        if (stockRows.length === 0) {
+          await client.query('ROLLBACK');
           return res.status(400).json({
-            message: `La cantidad para el ítem con id_menu=${item.id_menu} debe ser mayor a 0`,
+            message: `No existe el stock con id=${ing.fk_stock} para el menú ${item.id_menu}`,
+          });
+        }
+
+        if (stockRows[0].stock_actual < totalNecesario) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            message: `Stock insuficiente para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
+          });
+        }
+
+        // FIFO
+        const registrosQuery = `
+          SELECT id, cantidad_actual
+          FROM registro_stock
+          WHERE fk_stock = $1 AND cantidad_actual > 0
+          ORDER BY fk_fecha ASC;
+        `;
+        const { rows: registros } = await client.query(registrosQuery, [ing.fk_stock]);
+
+        const disponible = registros.reduce((acc, r) => acc + r.cantidad_actual, 0);
+        if (disponible < totalNecesario) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            message: `Stock insuficiente (registro_stock) para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
           });
         }
       }
     }
 
-    await client.query('BEGIN');
-
-    // 🔹 Validación de stock solo si hay items
-    if (items_menu && items_menu.length > 0) {
-      for (const item of items_menu) {
-        const ingredientesQuery = `
-          SELECT ms.fk_stock, ms.cantidad_necesaria
-          FROM menu_stock ms
-          WHERE ms.fk_menu = $1;
-        `;
-        const { rows: ingredientes } = await client.query(ingredientesQuery, [
-          item.id_menu,
-        ]);
-
-        for (const ing of ingredientes) {
-          const totalNecesario = ing.cantidad_necesaria * item.cantidad;
-
-          // Stock principal
-          const stockQuery = `SELECT stock_actual FROM stock WHERE id = $1`;
-          const { rows: stockRows } = await client.query(stockQuery, [
-            ing.fk_stock,
-          ]);
-
-          if (stockRows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(400).json({
-              message: `No existe el stock con id=${ing.fk_stock} para el menú ${item.id_menu}`,
-            });
-          }
-
-          if (stockRows[0].stock_actual < totalNecesario) {
-            await client.query('ROLLBACK');
-            return res.status(400).json({
-              message: `Stock insuficiente para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
-            });
-          }
-
-          // Registro_stock FIFO
-          const registrosQuery = `
-            SELECT id, cantidad_actual
-            FROM registro_stock
-            WHERE fk_stock = $1 AND cantidad_actual > 0
-            ORDER BY fk_fecha ASC;
-          `;
-          const { rows: registros } = await client.query(registrosQuery, [
-            ing.fk_stock,
-          ]);
-
-          let disponible = registros.reduce(
-            (acc, r) => acc + r.cantidad_actual,
-            0,
-          );
-          if (disponible < totalNecesario) {
-            await client.query('ROLLBACK');
-            return res.status(400).json({
-              message: `Stock insuficiente (registro_stock) para el ingrediente ${ing.fk_stock} en el menú ${item.id_menu}`,
-            });
-          }
-        }
-      }
-    }
-
     // 🔹 Estado inicial depende del rol
-    let estadoInicial = 1; // pendiente
+    let estadoInicial = 1; // Pendiente
     if (rol === 'agente') {
-      estadoInicial = 6; // en construccion
+      estadoInicial = 6; // En construcción
       dni_empleado = null;
     }
 
-    // Crear pedido
+    // 1️⃣ Crear el pedido
     const pedidoQuery = `
       INSERT INTO pedidos (fecha, hora, id_estado, id_cliente, ubicacion, observaciones, visibilidad)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, true)
       RETURNING id;
     `;
     const { rows: pedidoRows } = await client.query(pedidoQuery, [
       new Date(),
       new Date().toLocaleTimeString(),
       estadoInicial,
-      fk_cliente, // Puede ir null
-      ubicacion, // Puede ir null
-      observacion, // Puede ir null
-      true,
+      id_cliente,
+      ubicacion,
+      observaciones,
     ]);
-
     const pedidoId = pedidoRows[0].id;
 
-    // Registro de estado
+    // 2️⃣ Registrar estado
     const registroEstadoQuery = `
       INSERT INTO registro_de_estados (id_pedido, id_estado, id_fecha, hora, dni_empleado)
       VALUES ($1, $2, $3, $4, $5);
@@ -201,38 +186,63 @@ export const crearPedido = async (req: Request, res: Response) => {
       dni_empleado,
     ]);
 
-    // Insertar ítems solo si hay
-    if (items_menu && items_menu.length > 0) {
-      const pedido_menuQuery = `
-        INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
-        VALUES ($1, $2, $3, $4);
-      `;
+    // 3️⃣ Insertar ítems del menú
+    const itemsAgregados: any[] = [];
+    for (const item of items) {
+      const result = await client.query(
+        'SELECT id, nombre, precio FROM menu WHERE id = $1',
+        [item.id_menu],
+      );
 
-      for (const item of items_menu) {
-        const result = await client.query(
-          'SELECT precio FROM menu WHERE id = $1',
-          [item.id_menu],
-        );
-        const precioUnitario = result.rows[0].precio;
-
-        await client.query(pedido_menuQuery, [
-          pedidoId,
-          item.id_menu,
-          precioUnitario,
-          item.cantidad,
-        ]);
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: `No existe el menú con id=${item.id_menu}` });
       }
+
+      const { id: id_menu, nombre, precio } = result.rows[0];
+      await client.query(
+        `INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
+         VALUES ($1, $2, $3, $4);`,
+        [pedidoId, id_menu, precio, item.cantidad],
+      );
+      itemsAgregados.push({ id_menu, nombre, cantidad: item.cantidad });
+    }
+
+    // 4️⃣ Insertar promociones (✅ corregido)
+    const promocionesAgregadas: any[] = [];
+    for (const promo of promociones) {
+      const result = await client.query(
+        'SELECT id, nombre, precio FROM promociones WHERE id = $1',
+        [promo.id_promocion],
+      );
+
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: `No existe la promoción con id=${promo.id_promocion}` });
+      }
+
+      const { id: id_promocion, nombre } = result.rows[0];
+      await client.query(
+        `INSERT INTO pedidos_promociones (id_pedido, id_promocion, cantidad)
+         VALUES ($1, $2, $3);`,
+        [pedidoId, id_promocion, promo.cantidad],
+      );
+      promocionesAgregadas.push({ id_promocion, nombre, cantidad: promo.cantidad });
     }
 
     await client.query('COMMIT');
-    if (rol === 'agente') {
-      return res.status(200).json({
-        id: pedidoId,
-        message:
-          'Pedido creado con exito. Debes esperar que un empleado lo revise y acepte',
-      });
-    }
-    res.status(201).json({ id: pedidoId, message: 'Pedido creado con éxito' });
+
+    // 🔹 Respuesta final
+    const respuesta = {
+      id: pedidoId,
+      message: rol === 'agente'
+        ? 'Pedido creado con éxito. Espera la revisión de un empleado.'
+        : 'Pedido creado con éxito.',
+      items: itemsAgregados,
+      promociones: promocionesAgregadas,
+    };
+
+    res.status(201).json(respuesta);
   } catch (error) {
     await client.query('ROLLBACK');
     console.error(error);
@@ -248,12 +258,12 @@ export const actualizarPedido = async (req: Request, res: Response) => {
     const { id } = req.params;
     const {
       fk_empleado,
-      fk_cliente,
+      id_cliente,
       fk_estado,
       fecha,
       hora,
       ubicacion,
-      observacion,
+      observaciones,
       items = [],
       promociones = [],
     } = req.body;
@@ -274,9 +284,9 @@ export const actualizarPedido = async (req: Request, res: Response) => {
     `;
     const { rows } = await client.query(updateQuery, [
       fk_estado,
-      fk_cliente,
+      id_cliente,
       ubicacion,
-      observacion,
+      observaciones,
       fecha,
       hora,
       id,
@@ -293,8 +303,8 @@ export const actualizarPedido = async (req: Request, res: Response) => {
 
     // 3️⃣ Insertar nuevos ítems del menú
     const insertMenuQuery = `
-      INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
-      VALUES ($1, $2, $3, $4);
+      INSERT INTO pedidos_menu (fk_pedido, fk_menu, cantidad)
+      VALUES ($1, $2, $3);
     `;
     const itemsAgregados: any[] = [];
 
@@ -312,8 +322,8 @@ export const actualizarPedido = async (req: Request, res: Response) => {
         return res.status(400).json({ message: `El menú con id=${item.id_menu} no existe` });
       }
 
-      const { id: id_menu, nombre, precio } = precioRes.rows[0];
-      await client.query(insertMenuQuery, [id, id_menu, precio, item.cantidad]);
+      const { id: id_menu, nombre } = precioRes.rows[0];
+      await client.query(insertMenuQuery, [id, id_menu, item.cantidad]);
 
       itemsAgregados.push({ id_menu, nombre, cantidad: item.cantidad });
     }
