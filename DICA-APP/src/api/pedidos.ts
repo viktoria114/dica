@@ -168,19 +168,67 @@ export const agregarPromocionPedido = async (
 };
 
 // DELETE Quitar promoción del pedido
+
 export const eliminarPromocionPedido = async (
+
   id: number,
+
   payload: PromocionPedidoPayload
+
 ): Promise<void> => {
+
   try {
+
     await api.delete(`${PROMOCIONES_URL}/${id}`, { data: payload });
+
   } catch (err: unknown) {
+
     if (axios.isAxiosError(err)) {
+
       throw new Error(
+
         err.response?.data?.message ||
+
           "Error al eliminar promoción del pedido"
+
       );
+
     }
+
     throw err;
+
   }
+
+};
+
+
+
+export const getTicketPedido = async (id: number): Promise<any> => {
+
+  try {
+
+    const res = await api.get(`${PEDIDOS_URL}/ticket/${id}`, {
+
+      responseType: 'blob',
+
+    });
+
+    return res.data;
+
+  } catch (err: unknown) {
+
+    if (axios.isAxiosError(err)) {
+
+      const errorMessage =
+
+        err.response?.data?.message || "Error al obtener el ticket del pedido.";
+
+      throw new Error(errorMessage);
+
+    }
+
+    throw err;
+
+  }
+
 };

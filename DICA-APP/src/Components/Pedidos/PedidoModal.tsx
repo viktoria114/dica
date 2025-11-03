@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ModalBase } from "../common/ModalBase";
 import { Button, Modal, Box, CircularProgress } from "@mui/material";
 import { useState, useEffect } from "react";
@@ -11,6 +10,8 @@ import type { Pedido, ItemsMenu, Promocion, ItemsYPromociones } from "../../type
 import type { usePedidoModal } from "../../hooks/Pedidos/usePedidoModal";
 import type { useRestaurarPedido } from "../../hooks/Pedidos/useRestaurarPedido";
 import { useBorrarPedido } from "../../hooks/Pedidos/useBorrarPedido";
+import { getTicketPedido } from "../../api/pedidos";
+import { descargarTicketPDF } from "../../services/pdfGenerator";
 
 // Props que recibe de los hooks
 type PedidoModalProps = {
@@ -92,6 +93,17 @@ export const PedidoModal = ({
     }
   };
 
+  const handleImprimirTicket = async () => {
+    if (!formValues.pedido_id) return;
+    try {
+      const ticketBlob = await getTicketPedido(formValues.pedido_id);
+      descargarTicketPDF(ticketBlob, formValues.pedido_id);
+    } catch (error) {
+      console.error("Error al imprimir el ticket:", error);
+      alert("Error al imprimir el ticket. Intente de nuevo más tarde.");
+    }
+  };
+
 
   // Lógica de displayFields (la mantienes aquí)
   const displayFields = [
@@ -130,15 +142,25 @@ export const PedidoModal = ({
       isRestoring={isRestoringPedido}
       detailsChildren={
         formValues.estado !== "en construccion" && (
+          <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
           <Button
             size="small"
             variant="outlined"
             disabled={!pago?.comprobante_pago}
             onClick={() => handleViewReceipt(pago?.comprobante_pago!)}
-            sx={{ mt: 2 }}
+            
           >
             Ver Comprobante
           </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleImprimirTicket}
+            disabled={formValues.estado === "en construccion"}
+          >
+            Imprimir Ticket
+          </Button>
+          </Box>
         )
       }
     >

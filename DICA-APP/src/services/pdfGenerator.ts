@@ -120,4 +120,15 @@ export const generarBalancePDFConTabla = (gastos: Gasto[], pagos: Pago[], period
   document.body.removeChild(a);
   URL.revokeObjectURL(pdfUrl);
 };
+
+export const descargarTicketPDF = (ticketBlob: Blob, pedidoId: number) => {
+  const pdfUrl = URL.createObjectURL(ticketBlob);
+  const a = document.createElement('a');
+  a.href = pdfUrl;
+  a.download = `ticket_pedido_${pedidoId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(pdfUrl);
+};
   
