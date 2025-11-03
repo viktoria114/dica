@@ -434,12 +434,13 @@ export const getListaPedidosPorTelefono = async (
   }
 };
 
+
 export const getPedidosEnConstruccion = async (req: Request, res: Response) => {
   try {
     const { tel } = req.params;
 
     const query = `
-      SELECT p.id AS cart_id, m.nombre, pm.precio_unitario as precio_item, pm.cantidad
+      SELECT p.id AS cart_id, m.nombre, pm.precio_unitario AS precio_item, pm.cantidad
       FROM pedidos p
       LEFT JOIN pedidos_menu pm ON p.id = pm.fk_pedido 
       LEFT JOIN menu m ON pm.fk_menu = m.id
@@ -456,17 +457,14 @@ export const getPedidosEnConstruccion = async (req: Request, res: Response) => {
 
     const { cart_id } = result.rows[0];
     const items = result.rows
-      .filter((row) => row.menuid !== null)
+      .filter((row) => row.nombre !== null)
       .map(({ nombre, precio_item, cantidad }) => ({
         nombre,
-        precio_item,
-        cantidad,
+        precio_item: parseFloat(precio_item),
+        cantidad: Number(cantidad),
       }));
 
-    let total = 0;
-    for (const item of items) {
-      total += item.precio_item;
-    }
+    const total = items.reduce((acc, item) => acc + item.precio_item * item.cantidad, 0);
 
     res.status(200).json({ cartID: cart_id, items, PrecioTotal: total });
   } catch (err: any) {
