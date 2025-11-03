@@ -20,7 +20,7 @@ interface ModalBaseProps<T> {
   isSaving?: boolean;
   values?: T;
   modoPapelera?: boolean;
-  modo: "crear" | "editar";
+  modo: string | "crear" | "editar";
   formErrors: Partial<Record<keyof T, string>>;
   borrar?: (id: string) => void; // 👈 genérico
   restaurar?: (id: string) => void; // 👈 genérico
@@ -30,6 +30,9 @@ interface ModalBaseProps<T> {
   displayFields?: DisplayField[];
   children?: React.ReactNode;
   detailsChildren?: React.ReactNode;
+  handleEditar?: () => void; // El handler que se dispara al hacer clic en EDITAR/CONFIRMAR
+  labelEdit?: string;
+  labelsave?: string;
 }
 
 const modalStyle = {
@@ -68,6 +71,9 @@ export function ModalBase<T>({
   displayFields,
   children,
   detailsChildren,
+  handleEditar,
+  labelEdit,
+  labelsave,
 }: ModalBaseProps<T>) {
   const [isEditMode, setIsEditMode] = useState(modo === "crear");
 
@@ -99,6 +105,7 @@ export function ModalBase<T>({
                 onChange={handleChange!}
                 onSubmit={handleGuardar!}
                 isSaving={isSaving}
+                labelSave={labelsave}
               >
                 {children}
               </GenericForm>
@@ -132,7 +139,8 @@ export function ModalBase<T>({
             ) : (
               <ActionButtons
                 mode="edicion"
-                onEdit={!modoPapelera ? () => setIsEditMode(true) : undefined}
+                onEdit={handleEditar ? handleEditar : () => setIsEditMode(true)}
+                labelEdit={labelEdit}
                 onDelete={() =>
                   idField &&
                   values?.[idField] &&
