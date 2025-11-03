@@ -8,9 +8,10 @@ import { RegistroStock } from '../models/registroStock';
 
 export const listarGastos = async (req: Request, res: Response): Promise<void> => {
   const client: PoolClient = await pool.connect();
+  const { year, month } = req.query;
 
   try {
-    const query = `
+    let query = `
       SELECT 
         g.id,
         g.monto,
@@ -28,11 +29,32 @@ export const listarGastos = async (req: Request, res: Response): Promise<void> =
         ) as "stockItems"
       FROM gastos g
       LEFT JOIN registro_stock rs ON g.fk_registro_stock = rs.id
+    `;
+
+    const params: (string | number)[] = [];
+    let whereClause = '';
+
+    if (year) {
+      whereClause += `EXTRACT(YEAR FROM g.fk_fecha) = $${params.length + 1}`;
+      params.push(year as string);
+    }
+
+    if (month) {
+      if (whereClause) whereClause += ' AND ';
+      whereClause += `EXTRACT(MONTH FROM g.fk_fecha) = $${params.length + 1}`;
+      params.push(month as string);
+    }
+
+    if (whereClause) {
+      query += ` WHERE ${whereClause}`;
+    }
+
+    query += `
       GROUP BY g.id, g.monto, g.categoria, g.descripcion, g.metodo_pago, g.fk_fecha
       ORDER BY g.id DESC;
     `;
 
-    const {rows} = await client.query(query);
+    const {rows} = await client.query(query, params);
 
     res.status(200).json(rows);
 

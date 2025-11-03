@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { getPagos } from "../../store/slices/pagosSlice";
 
@@ -7,14 +7,8 @@ export const usePagos = () => {
 
   const { pagos, loading, error } = useAppSelector((state) => state.pagos);
 
-  // 🔁 Cargar pagos al montar el componente
-  useEffect(() => {
-    dispatch(getPagos());
-  }, [dispatch]);
-
-  // 🔄 Refrescar manualmente los pagos
-  const refreshPagos = useCallback(() => {
-    dispatch(getPagos());
+  const refreshPagos = useCallback((year?: number, month?: number) => {
+    dispatch(getPagos({ year, month }));
   }, [dispatch]);
 
   return {

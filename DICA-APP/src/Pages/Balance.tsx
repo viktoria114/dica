@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, Tab, Box, Typography } from '@mui/material';
+import { Tabs, Tab, Box, Typography, Select, MenuItem, FormControl, InputLabel, Button } from '@mui/material';
 import { Gastos } from './Gastos';
 import { Pagos } from './Pagos';
 import { Reporte } from './Reporte';
@@ -21,7 +21,7 @@ const TabPanel = (props: {
     >
       {value === index && (
         <Box sx={{ p: 3 }}>
-          <Typography>{children}</Typography>
+          {children}
         </Box>
       )}
     </div>
@@ -30,10 +30,15 @@ const TabPanel = (props: {
 
 export const Balance = () => {
   const [value, setValue] = useState(0);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
   };
+
+  const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -49,14 +54,30 @@ export const Balance = () => {
           <Tab label="Reporte" sx={{ color: 'text.primary' }} />
         </Tabs>
       </Box>
+
+      <Box display="flex" gap={2} p={2}>
+        <FormControl>
+          <InputLabel>Año</InputLabel>
+          <Select value={year} onChange={(e) => setYear(e.target.value as number)}>
+            {years.map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+          </Select>
+        </FormControl>
+        <FormControl>
+          <InputLabel>Mes</InputLabel>
+          <Select value={month} onChange={(e) => setMonth(e.target.value as number)}>
+            {months.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+          </Select>
+        </FormControl>
+      </Box>
+
       <TabPanel value={value} index={0}>
-        <Gastos />
+        <Gastos year={year} month={month} />
       </TabPanel>
       <TabPanel value={value} index={1}>
-        <Pagos />
+        <Pagos year={year} month={month} />
       </TabPanel>
       <TabPanel value={value} index={2}>
-        <Reporte />
+        <Reporte year={year} month={month} />
       </TabPanel>
     </Box>
   );

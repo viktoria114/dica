@@ -5,9 +5,11 @@ import api from "./api";
 const PAGOS_URL = import.meta.env.VITE_PAGOS;
 
 // GET Pagos
-export const fetchPagos = async (): Promise<Pago[]> => {
+export const fetchPagos = async (year?: number, month?: number): Promise<Pago[]> => {
   try {
-    const res = await api.get<Pago[]>(PAGOS_URL);
+    const res = await api.get<Pago[]>(PAGOS_URL, {
+      params: { year, month },
+    });
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {

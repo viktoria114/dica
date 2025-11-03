@@ -119,8 +119,28 @@ export  const getPagoPorId = async (req: Request, res: Response): Promise<void> 
 
 //Obtener pagos
 export  const getPagos = async (req: Request, res: Response): Promise<void> => {
+    const { year, month } = req.query;
     try{
-        const result = await pool.query<Pago>("SELECT * FROM pagos");
+        let query = "SELECT * FROM pagos";
+        const params: (string | number)[] = [];
+        let whereClause = '';
+
+        if (year) {
+          whereClause += `EXTRACT(YEAR FROM fk_fecha) = $${params.length + 1}`;
+          params.push(year as string);
+        }
+
+        if (month) {
+          if (whereClause) whereClause += ' AND ';
+          whereClause += `EXTRACT(MONTH FROM fk_fecha) = $${params.length + 1}`;
+          params.push(month as string);
+        }
+
+        if (whereClause) {
+          query += ` WHERE ${whereClause}`;
+        }
+
+        const result = await pool.query<Pago>(query, params);
         const pagos = result.rows;
 
         res.status(200).json(pagos);

@@ -1,36 +1,54 @@
-
-
-import { Button, Box, Typography } from '@mui/material';
+import { Box, Typography, CircularProgress, Button } from '@mui/material';
+import { useEffect } from 'react';
 import { useGastos } from '../hooks/Gasto/useGastos';
 import { usePagos } from '../hooks/Pago/usePagos';
-import { generarBalancePDF } from '../services/pdfGenerator';
+import { GastosTable } from '../Components/Reporte/GastosTable';
+import { PagosTable } from '../Components/Reporte/PagosTable';
+import { generarBalancePDFConTabla } from '../services/pdfGenerator';
 
-export const Reporte = () => {
-  const { gastos } = useGastos();
-  const { pagos } = usePagos();
+export const Reporte = ({ year, month }: { year: number, month: number }) => {
+  const { gastos, loading: loadingGastos, error: errorGastos, refreshGastos } = useGastos();
+  const { pagos, loading: loadingPagos, error: errorPagos, refreshPagos } = usePagos();
 
-  const handleGenerateReport = async () => {
-    const totalIngresos = pagos.reduce((acc, pago) => acc + parseFloat(pago.monto), 0);
-    const totalEgresos = gastos.reduce((acc, gasto) => acc + parseFloat(gasto.monto), 0);
+  useEffect(() => {
+    refreshGastos(year, month);
+    refreshPagos(year, month);
+  }, [year, month, refreshGastos, refreshPagos]);
 
-    const datos = {
-      ingresos: pagos.map(p => ({ descripcion: p.metodo_pago, monto: parseFloat(p.monto) })),
-      egresos: gastos.map(g => ({ descripcion: g.descripcion, monto: parseFloat(g.monto) })),
-      totalIngresos,
-      totalEgresos,
-    };
+  const loading = loadingGastos || loadingPagos;
+  const error = errorGastos || errorPagos;
 
-    await generarBalancePDF(datos, 'mensual');
+  const handleDownloadPDF = () => {
+    const periodo = `${year}-${String(month).padStart(2, '0')}`;
+    generarBalancePDFConTabla(gastos, pagos, periodo);
   };
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Generar Reporte de Balance
-      </Typography>
-      <Button variant="contained" color="primary" onClick={handleGenerateReport}>
-        Calcular Balance y Generar PDF
-      </Button>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4" gutterBottom>
+          Reporte de Balance
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleDownloadPDF}
+          disabled={loading || !!error}
+        >
+          Descargar PDF
+        </Button>
+      </Box>
+
+      {loading && <CircularProgress />}
+      {error && <Typography color="error">{error}</Typography>}
+      {!loading && !error && (
+        <Box>
+          <Typography variant="h5" gutterBottom>Gastos</Typography>
+          <GastosTable gastos={gastos} />
+          <Typography variant="h5" gutterBottom mt={4}>Ingresos</Typography>
+          <PagosTable pagos={pagos} />
+        </Box>
+      )}
     </Box>
   );
 };
