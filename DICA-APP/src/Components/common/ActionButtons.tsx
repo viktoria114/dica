@@ -47,7 +47,7 @@ export const ActionButtons = ({
             <Button
               sx={{ height: 50 }}
               variant="contained"
-              startIcon={labelEdit === "Editar y Confirmar" ? <CheckIcon /> : <EditIcon />}
+              startIcon={labelEdit === "Confirmar" ? <CheckIcon /> : <EditIcon />}
               onClick={onEdit}
             >
               {labelEdit || "Editar"}

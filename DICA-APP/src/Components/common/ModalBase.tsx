@@ -33,7 +33,6 @@ interface ModalBaseProps<T> {
   handleEditar?: () => void; // El handler que se dispara al hacer clic en EDITAR/CONFIRMAR
   labelEdit?: string;
   labelsave?: string;
-  loadingSave?: boolean;
 }
 
 const modalStyle = {
@@ -74,7 +73,6 @@ export function ModalBase<T>({
   detailsChildren,
   handleEditar,
   labelEdit,
-  loadingSave,
   labelsave,
 }: ModalBaseProps<T>) {
   const [isEditMode, setIsEditMode] = useState(modo === "crear");
@@ -107,6 +105,7 @@ export function ModalBase<T>({
                 onChange={handleChange!}
                 onSubmit={handleGuardar!}
                 isSaving={isSaving}
+                labelSave={labelsave}
               >
                 {children}
               </GenericForm>
@@ -149,8 +148,6 @@ export function ModalBase<T>({
                 }
                 onCancel={handleClose}
                 loadingDelete={isDeleting}
-                labelSave= {labelsave}
-                loadingSave={loadingSave}
               />
             )}
           </>
