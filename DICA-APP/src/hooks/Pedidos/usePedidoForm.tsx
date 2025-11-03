@@ -5,6 +5,10 @@ import type { Pedido } from "../../types";
 // Asumo que tienes los endpoints actualizados para recibir fk_empleado
 import { crearPedido, actualizarPedido } from "../../api/pedidos"; 
 import { useAuth } from "../useAuth";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers";
+import dayjs from "dayjs";
 
 export const pedidoFields: FieldConfig<Pedido>[] = [
   {
@@ -16,6 +20,35 @@ export const pedidoFields: FieldConfig<Pedido>[] = [
     name: "hora",
     label: "Hora",
     type: "text",
+  },
+  { name: "fecha",
+    label: "Fecha",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render: (value: string | null | undefined, handleChange: (field: keyof Pedido, value: any) => void, error) => (
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <DatePicker
+          label="Fecha"
+          value={value ? dayjs(value) : null}
+         onChange={(newValue) => { 
+          const parsed = newValue ? dayjs(newValue) : null;
+          handleChange(
+            "fecha",
+            parsed && parsed.isValid() ? parsed.toISOString() : null
+          );
+        }}
+          // ... slotProps para manejar el error/estilo (como en tu ejemplo)
+          slotProps={{
+            textField: {
+              color: "primary",
+              focused: true,
+              fullWidth: true,
+              error: !!error,
+              helperText: error,
+            },
+          }}
+        />
+      </LocalizationProvider>
+    ),
   },
   {
     name: "fk_estado",
@@ -43,6 +76,11 @@ export const pedidoFields: FieldConfig<Pedido>[] = [
     label: "Observaciones",
     type: "text",
   },
+  {
+    name: "precio_total",
+    label: "Precio Total",
+    type: "number",
+  }
 ];
 
 export const usePedidoForm = () => {
@@ -53,13 +91,16 @@ export const usePedidoForm = () => {
 
   const [formValues, setFormValues] = useState<Pedido>({
     pedido_id: null,
-    id_fecha: new Date(),
+    fecha: null,
     hora: "",
     fk_estado: 1,
     id_cliente: null,
     ubicacion: "",
     observaciones: "",
     visibilidad: true,
+    precio_por_items: null,
+    precio_por_promociones: null,
+    precio_total: null,
   } as Pedido & { hora: string });
 
   const [formErrors, setFormErrors] = useState<
@@ -71,12 +112,6 @@ export const usePedidoForm = () => {
   const validate = (values: Pedido) => {
     const errors: Partial<Record<keyof Pedido, string>> = {};
 
-    // ❌ ELIMINADA: La comprobación del usuario no debe estar en 'validate'
-    //if (!usuario?.dni) { 
-    //  setIsSaving(false);
-    //  throw new Error("Usuario no autenticado. No se puede guardar.");
-    //}
-
     if (values.id_cliente === null || isNaN(values.id_cliente))
       errors.id_cliente = "Debe asignarse un cliente válido";
     if (!values.ubicacion?.trim())
@@ -87,9 +122,10 @@ export const usePedidoForm = () => {
       errors.observaciones = "La observación no puede superar 500 caracteres";
 
     // Validar formato de hora HH:MM
-    const horaRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-    if (!horaRegex.test(values.hora ?? ""))
-      errors.hora = "La hora debe tener formato HH:MM";
+const horaRegex = /^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?$/;
+if (!horaRegex.test(values.hora ?? ""))
+  errors.hora = "La hora debe tener formato HH:MM o HH:MM:SS";
+  ;
 
     return errors;
   };
@@ -107,16 +143,15 @@ export const usePedidoForm = () => {
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    // 🎯 CORRECCIÓN CLAVE 1: Comprobación del usuario antes de setIsSaving(true)
     if (!usuario || !usuario.dni) {
       showSnackbar("Error de autenticación. Inicie sesión nuevamente.", "error");
-      return; // Sale de la función si no hay usuario/dni
+      return; 
     }
 
     setIsSaving(true);
     
     try {
-      if (values.pedido_id === null) {
+     if (!values.pedido_id) {
         // En crear pedido también debes enviar el DNI
         await crearPedido(values); 
         showSnackbar("Pedido creado con éxito!", "success");
@@ -124,14 +159,14 @@ export const usePedidoForm = () => {
         await actualizarPedido(
           values.pedido_id,
           values,
-          usuario.dni // <-- ¡Error 18047 solucionado!
+          usuario.dni 
         );
         showSnackbar("Pedido actualizado con éxito!", "success");
       }
       setOpen(false);
     } catch (error) {
       console.error(error);
-      showSnackbar("Error al guardar el pedido", "error");
+      showSnackbar("Error al guardar el pedido" , "error");
     } finally {
       setIsSaving(false);
     }

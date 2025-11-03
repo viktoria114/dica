@@ -45,14 +45,14 @@ function getComparator<Key extends keyof Pago>(
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-export const Pagos = () => {
+export const Pagos = ({ year, month }: { year: number, month: number }) => {
   const { pagos, loading, error, refreshPagos } = usePagos();
   const { actualizar, isUpdating } = useActualizarPago(() => {
-    refreshPagos();
+    refreshPagos(year, month);
     setOpenEdit(false);
   });
   const { borrar, isDeleting } = useBorrarPago(() => {
-    refreshPagos();
+    refreshPagos(year, month);
     setOpenEdit(false);
   });
   const {
@@ -65,7 +65,7 @@ export const Pagos = () => {
     formErrors,
     handleChange,
     handleSubmit,
-  } = usePagoForm(refreshPagos);
+  } = usePagoForm(() => refreshPagos(year, month));
   const { token: dropboxToken } = useDropboxToken();
 
   const [order, setOrder] = useState<Order>("asc");
@@ -76,6 +76,10 @@ export const Pagos = () => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
+
+  useEffect(() => {
+    refreshPagos(year, month);
+  }, [year, month, refreshPagos]);
 
   useEffect(() => {
     setFilteredRows(pagos);

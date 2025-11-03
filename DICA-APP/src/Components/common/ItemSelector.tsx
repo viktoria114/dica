@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import {
   Grid,
@@ -46,7 +47,7 @@ export interface ItemSelectorColumn<K> {
   /** Si el campo se puede editar (ej: cantidad) o es solo lectura (ej: nombre) */
   editable: boolean;
   /** Ancho de la columna (Material UI Grid) */
-  width?: number; 
+  width?: number;
 }
 
 interface ItemSelectorProps<
@@ -62,7 +63,7 @@ interface ItemSelectorProps<
   /** Callback para actualizar la lista de seleccionados */
   onChange: (items: K[]) => void;
   /**
-   * Función "fábrica" que crea un item seleccionado (K) 
+   * Función "fábrica" que crea un item seleccionado (K)
    * a partir de un item disponible (T).
    * Aquí se define la 'cantidad' inicial.
    */
@@ -118,15 +119,27 @@ export const ItemSelector = <
   };
 
   // Actualizar un campo de un item seleccionado (ej. 'cantidad')
-  const handleUpdate = (
-    id: K["id"],
-    key: keyof K,
-    value: K[keyof K]
-  ) => {
-    const updated = selectedItems.map((i) =>
-      i.id === id ? { ...i, [key]: value } : i
-    );
-    onChange(updated);
+  const handleUpdate = (id: K["id"], key: keyof K, value: K[keyof K]) => {
+    const updated = selectedItems.map((i) => {
+      if (i.id === id) {
+        // ✅ Paso 1: Actualizar el ítem con el nuevo valor (ya sea cantidad u otro)
+        const updatedItem = { ...i, [key]: value };
+
+        // Aseguramos que los valores a usar para el cálculo sean siempre números
+        const currentQuantity = Number(updatedItem.cantidad);
+        // Usamos 'i' para obtener el precio_unitario original y forzamos a número
+        const unitPrice = Number((i as any).precio_unitario);
+        // ✅ Paso 2: Recalcular subtotal si se cambió la cantidad Y el precio unitario es válido
+        if (key === "cantidad" && !isNaN(unitPrice)) {
+          // Recalculo: Precio Unitario * Nueva Cantidad
+          (updatedItem as any).subtotal = unitPrice * currentQuantity;
+        }
+
+        return updatedItem;
+      }
+      return i;
+    });
+    onChange(updated as K[]);
   };
 
   // Lógica de búsqueda
@@ -169,13 +182,13 @@ export const ItemSelector = <
         {/* Lista de Items Seleccionados */}
         <Grid container direction="column" spacing={1}>
           {selectedItems.length === 0 ? (
-            <Typography variant="body2" color="textSecondary" sx={{p: 1}}>
+            <Typography variant="body2" color="textSecondary" sx={{ p: 1 }}>
               No hay elementos seleccionados.
             </Typography>
           ) : (
             selectedItems.map((item) => (
               <Grid
-                key={String(item.id)}
+                key={String((item as any).uniqueKey || item.id)}
                 container
                 spacing={2}
                 alignItems="center"
@@ -183,8 +196,16 @@ export const ItemSelector = <
               >
                 {/* Renderizar columnas dinámicamente */}
                 {columns.map((col) => (
-                  <Grid size={ typeof col.width === 'number' ? col.width : (col.editable ? 4 : "auto") }
-  key={String(col.key)}>
+                  <Grid
+                    size={
+                      typeof col.width === "number"
+                        ? col.width
+                        : col.editable
+                        ? 4
+                        : "auto"
+                    }
+                    key={String(col.key)}
+                  >
                     {col.editable ? (
                       <TextField
                         type={col.type === "number" ? "number" : "text"}
@@ -213,7 +234,11 @@ export const ItemSelector = <
                     ) : (
                       // Campos no editables
                       <Box>
-                        <Typography variant="caption" color="textSecondary" component="div">
+                        <Typography
+                          variant="caption"
+                          color="textSecondary"
+                          component="div"
+                        >
                           {col.label}
                         </Typography>
                         <Typography variant="body1">
@@ -241,7 +266,12 @@ export const ItemSelector = <
       </Box>
 
       {/* Modal para Agregar Items */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>{modalTitle}</DialogTitle>
         <DialogContent>
           {/* Barra de búsqueda */}

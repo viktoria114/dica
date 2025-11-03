@@ -29,7 +29,7 @@ export interface FieldConfig<T> {
 
 interface GenericFormProps<T> {
   entityName: string; // ej: "Empleado", "Cliente"
-  modo: "crear" | "editar";
+  modo: string |"crear" | "editar";
   fields?: FieldConfig<T>[];
   formErrors: Partial<Record<keyof T, string>>;
   values: T;
@@ -39,6 +39,7 @@ interface GenericFormProps<T> {
   isSaving?: boolean;
   disabledFields?: (keyof T)[];
   children?: React.ReactNode;
+  labelSave?: string;
 }
 
 function GenericForm<T>({
@@ -53,6 +54,7 @@ function GenericForm<T>({
   isSaving,
   disabledFields = [],
   children,
+  labelSave,
 }: GenericFormProps<T>) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +151,7 @@ function GenericForm<T>({
 
             <ActionButtons
               mode="form"
-              labelSave={modo === "crear" ? "Crear" : "Guardar"}
+              labelSave={labelSave || (modo === "crear" ? "Crear" : "Guardar")}
               onSave={() => onSubmit?.(values)}
               onCancel={onCancel}
               loadingSave={isSaving}

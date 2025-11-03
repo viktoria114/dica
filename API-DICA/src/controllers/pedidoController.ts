@@ -3,6 +3,8 @@ import { PoolClient } from 'pg';
 import { pool } from '../config/db';
 import { Pedido } from '../models/pedido';
 import { descargarImagen, subirADropbox } from '../utils/image';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // queryParts.ts
 export const PEDIDO_FIELDS = `
@@ -339,14 +341,14 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       if (!Number.isInteger(promo.cantidad) || promo.cantidad <= 0) {
         await client.query('ROLLBACK');
         return res.status(400).json({
-          message: `Cantidad inválida para id_promocion=${promo.id_menu}`,
+          message: `Cantidad inválida para id_promocion=${promo.id_promocion}`,
         });
       }
 
-      const precioRes = await client.query('SELECT id, nombre, precio FROM promociones WHERE id = $1', [promo.id_menu]);
+      const precioRes = await client.query('SELECT id, nombre, precio FROM promociones WHERE id = $1', [promo.id_promocion]);
       if (precioRes.rows.length === 0) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ message: `La promoción con id=${promo.id_menu} no existe` });
+        return res.status(400).json({ message: `La promoción con id=${promo.id_promocion} no existe` });
       }
 
       const { id: id_promocion, nombre} = precioRes.rows[0];
@@ -993,10 +995,26 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
           ]);
 
           if (registros.length === 0) {
-            throw new Error(
-              `No hay suficiente stock en registro_stock para el ingrediente ${ing.fk_stock}`,
-            );
-          }
+            // 1. Obtener el nombre del ingrediente (stock)
+    const nombreStockQuery = `
+        SELECT nombre 
+        FROM stock
+        WHERE id = $1;
+    `;
+    const { rows: stockRows } = await client.query(nombreStockQuery, [
+        ing.fk_stock,
+    ]);
+
+    const nombreIngrediente = stockRows.length > 0 ? stockRows[0].nombre : 'Desconocido';
+
+    // 2. Rollback y Devolver un mensaje más descriptivo
+    await client.query('ROLLBACK');
+    return res.status(400).json({
+        message: `No hay suficiente stock disponible para el ingrediente: ${nombreIngrediente}. Por favor, revise el inventario.`,
+        // Opcional: Podrías añadir el ID para debugging
+        ingrediente_id: ing.fk_stock, 
+    });
+}
 
           const registro = registros[0];
           const cantidadDisponible = registro.cantidad_actual;
@@ -1459,7 +1477,74 @@ export const getTicketPedido = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
-    res.json(rows[0]);
+    const pedido = rows[0];
+
+    const doc = new jsPDF();
+    let y = 15;
+
+    // Título
+    doc.setFontSize(18);
+    doc.text(`Ticket Pedido #${pedido.pedido_id}`, 105, y, { align: 'center' });
+    y += 10;
+
+    // Información del pedido
+    doc.setFontSize(12);
+    doc.text(`Fecha: ${new Date(pedido.fecha).toLocaleDateString()}`, 14, y);
+    doc.text(`Hora: ${pedido.hora}`, 150, y);
+    y += 7;
+    doc.text(`Cliente: ${pedido.id_cliente || 'Consumidor Final'}`, 14, y);
+    y += 7;
+    if (pedido.ubicacion) {
+      doc.text(`Ubicación: ${pedido.ubicacion}`, 14, y);
+      y += 7;
+    }
+    if (pedido.observaciones) {
+      doc.text(`Observaciones: ${pedido.observaciones}`, 14, y);
+      y += 7;
+    }
+    y += 10;
+
+    // Items
+    autoTable(doc, {
+      startY: y,
+      head: [['Cantidad', 'Producto', 'Precio Unit.', 'Subtotal']],
+      body: pedido.items.map((item: any) => [
+        item.cantidad,
+        item.nombre,
+        `$${item.precio_unitario.toFixed(2)}`,
+        `$${item.subtotal.toFixed(2)}`,
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+
+    // Promociones
+    if (pedido.promociones.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [['Cantidad', 'Promoción', 'Precio Unit.', 'Subtotal']],
+        body: pedido.promociones.map((promo: any) => [
+          promo.cantidad,
+          promo.nombre,
+          `$${promo.precio_unitario.toFixed(2)}`,
+          `$${promo.subtotal.toFixed(2)}`,
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [22, 160, 133] },
+      });
+      y = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // Totales
+    doc.setFontSize(14);
+    doc.text(`Total: $${parseFloat(pedido.precio_total).toFixed(2)}`, 14, y);
+
+    // Enviar el PDF
+    const pdfBuffer = doc.output('arraybuffer');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=ticket_${pedido.pedido_id}.pdf`);
+    res.send(Buffer.from(pdfBuffer));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al calcular el ticket del pedido' });

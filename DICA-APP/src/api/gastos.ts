@@ -5,9 +5,11 @@ import api from "./api";
 const GASTOS_URL = import.meta.env.VITE_GASTOS;
 
 // GET Gastos
-export const fetchGastos = async (): Promise<Gasto[]> => {
+export const fetchGastos = async (year?: number, month?: number): Promise<Gasto[]> => {
   try {
-    const res = await api.get<Gasto[]>(GASTOS_URL);
+    const res = await api.get<Gasto[]>(GASTOS_URL, {
+      params: { year, month },
+    });
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
