@@ -17,14 +17,17 @@ const initialState: GastosState = {
 };
 
 // 🔁 Obtener todos los gastos
-export const getGastos = createAsyncThunk("gastos/getGastos", async (_, { rejectWithValue }) => {
-  try {
-    return await fetchGastos();
-  } catch (err) {
-    if (err instanceof Error) return rejectWithValue(err.message);
-    return rejectWithValue("Error desconocido al obtener gastos");
+export const getGastos = createAsyncThunk(
+  "gastos/getGastos",
+  async (filters: { year?: number; month?: number } | undefined = {}, { rejectWithValue }) => {
+    try {
+      return await fetchGastos(filters.year, filters.month);
+    } catch (err) {
+      if (err instanceof Error) return rejectWithValue(err.message);
+      return rejectWithValue("Error desconocido al obtener gastos");
+    }
   }
-});
+);
 
 // ➕ Crear un nuevo gasto
 export const crearGastos = createAsyncThunk(

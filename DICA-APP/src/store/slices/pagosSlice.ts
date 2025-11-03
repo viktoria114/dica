@@ -16,14 +16,17 @@ const initialState: PagosState = {
   error: null,
 };
 // 📦 Thunks asíncronos
-export const getPagos = createAsyncThunk("pagos/getPagos", async (_, { rejectWithValue }) => {
-  try {
-    return await fetchPagos();
-  } catch (err: unknown) {
-    if (err instanceof Error) return rejectWithValue(err.message);
-    return rejectWithValue("Error desconocido al obtener los pagos");
+export const getPagos = createAsyncThunk(
+  "pagos/getPagos",
+  async (filters: { year?: number; month?: number } | undefined = {}, { rejectWithValue }) => {
+    try {
+      return await fetchPagos(filters.year, filters.month);
+    } catch (err: unknown) {
+      if (err instanceof Error) return rejectWithValue(err.message);
+      return rejectWithValue("Error desconocido al obtener los pagos");
+    }
   }
-});
+);
 
 export const crearPagos = createAsyncThunk(
   "pagos/crearPagos",

@@ -141,3 +141,23 @@ export const updatePedidoEstado = async (id: number): Promise<Pedido> => {
     throw err;
   }
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getTicketPedido = async (id: number): Promise<any> => {
+  try {
+    const res = await api.get(`${PEDIDOS_URL}/ticket/${id}`, {
+      responseType: 'blob',
+    });
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      const errorMessage =
+        err.response?.data?.message || "Error al obtener el ticket del pedido.";
+      throw new Error(errorMessage);
+       }
+
+    throw err;
+
+  }
+
+};

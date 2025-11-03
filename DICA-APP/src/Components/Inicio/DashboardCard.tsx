@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 
 type Props = {
  label: string,
- value: number,
+ value: number | string,
  color: string
 }
 export const DashboardCard = ({ label, value, color }: Props) => {

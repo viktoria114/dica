@@ -39,15 +39,15 @@ function getComparator<Key extends keyof Gasto>(
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-export const Gastos = () => {
+export const Gastos = ({ year, month }: { year: number, month: number }) => {
   const { gastos, loading, error, refreshGastos } = useGastos();
   const { stock } = useStock();
   const { actualizar, isUpdating } = useActualizarGasto(() => {
-    refreshGastos();
+    refreshGastos(year, month);
     setOpenEdit(false);
   });
   const { borrar, isDeleting } = useBorrarGasto(() => {
-    refreshGastos();
+    refreshGastos(year, month);
     setOpenEdit(false);
   });
   const {
@@ -60,7 +60,7 @@ export const Gastos = () => {
     formErrors,
     handleChange,
     handleSubmit,
-  } = useGastoForm(refreshGastos, stock);
+  } = useGastoForm(() => refreshGastos(year, month), stock);
 
   const fieldsWithStock = React.useMemo(() => { return gastoFields }, [gastoFields]);
 
@@ -70,6 +70,10 @@ export const Gastos = () => {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [openEdit, setOpenEdit] = useState(false);
   const [isStockSelectorOpen, setStockSelectorOpen] = useState(false);
+
+  React.useEffect(() => {
+    refreshGastos(year, month);
+  }, [year, month, refreshGastos]);
 
   React.useEffect(() => {
     setFilteredRows(gastos);

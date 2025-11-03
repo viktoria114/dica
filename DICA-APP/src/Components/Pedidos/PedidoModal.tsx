@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ModalBase } from "../common/ModalBase";
+import { Button, Modal, Box, CircularProgress } from "@mui/material";
+import { useState, useEffect } from "react";
+import { getPagoByPedidoId } from "../../api/pagos";
+import type { Pago } from "../../types";
+import { obtenerLinkTemporalDropbox } from "../../api/pagos";
+import { useDropboxToken } from "../../contexts/DropboxTokenContext";
 import { ItemSelector, type ItemSelectorColumn } from "../common/ItemSelector";
 import type {
   Pedido,
@@ -10,7 +16,8 @@ import type {
 import type { usePedidoModal } from "../../hooks/Pedidos/usePedidoModal";
 import type { useRestaurarPedido } from "../../hooks/Pedidos/useRestaurarPedido";
 import { useBorrarPedido } from "../../hooks/Pedidos/useBorrarPedido";
-import { useState } from "react";
+import { getTicketPedido } from "../../api/pedidos";
+import { descargarTicketPDF } from "../../services/pdfGenerator";
 import { ConfirmationModal } from "../common/ConfirmationModal";
 import { useConfirmarPedido } from "../../hooks/Pedidos/useConfirmarPedido";
 
@@ -50,14 +57,21 @@ export const PedidoModal = ({
   };
 
   const { restaurarP, isRestoringPedido } = restaurarState;
-  const { isDeleting, handleDelete } = useBorrarPedido(handleBorrarSuccess);
-
+  const { isDeleting,  handleDelete}= useBorrarPedido(handleBorrarSuccess);
   // --- ESTADOS PARA LA CONFIRMACIÓN ---
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<
     "borrar" | "restaurar" | null
   >(null);
   const pedidoId = formValues.pedido_id;
+
+
+  const { token: dropboxToken } = useDropboxToken();
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+  const [pago, setPago] = useState<Pago | null>(null);
+
 
   const handleBorrarRequest = () => {
     if (pedidoId) {
@@ -116,6 +130,45 @@ export const PedidoModal = ({
     }
   };
 
+
+  useEffect(() => {
+    if (formValues.pedido_id) {
+      getPagoByPedidoId(formValues.pedido_id)
+        .then(setPago)
+        .catch(() => setPago(null));
+    }
+  }, [formValues.pedido_id]);
+
+  const handleViewReceipt = async (path: string) => {
+    if (!dropboxToken) {
+      alert("No se pudo obtener el token de Dropbox. Intente de nuevo más tarde.");
+      return;
+    }
+    setLoadingImage(true);
+    setImageModalOpen(true);
+    try {
+      const url = await obtenerLinkTemporalDropbox(path, dropboxToken);
+      setImageUrl(url);
+    } catch (error) {
+      console.error("Error getting temporary link:", error);
+      alert("Error al obtener el comprobante.");
+      setImageModalOpen(false);
+    } finally {
+      setLoadingImage(false);
+    }
+  };
+
+  const handleImprimirTicket = async () => {
+    if (!formValues.pedido_id) return;
+    try {
+      const ticketBlob = await getTicketPedido(formValues.pedido_id);
+      descargarTicketPDF(ticketBlob, formValues.pedido_id);
+    } catch (error) {
+      console.error("Error al imprimir el ticket:", error);
+      alert("Error al imprimir el ticket. Intente de nuevo más tarde.");
+    }
+  };
+
   // Lógica de displayFields (la mantienes aquí)
   const displayFields = [
     {
@@ -152,7 +205,7 @@ export const PedidoModal = ({
 
   return (
     <>
-      <ModalBase<Pedido>
+    <ModalBase<Pedido>
         modo={mode}
         modoPapelera={modoPapelera}
         entityName={`Pedido #${formValues.pedido_id}`}
@@ -178,6 +231,29 @@ export const PedidoModal = ({
         // Lógica de restauración
         restaurar={handleRestaurarRequest}
         isRestoring={isRestoringPedido}
+detailsChildren={
+        formValues.fk_estado !== 6 && (
+          <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!pago?.comprobante_pago}
+            onClick={() => handleViewReceipt(pago?.comprobante_pago!)}
+            
+          >
+            Ver Comprobante
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleImprimirTicket}
+            disabled={formValues.fk_estado === 6}
+          >
+            Imprimir Ticket
+          </Button>
+          </Box>
+        )
+}
       >
         {/* Los selectores solo se muestran si NO estamos en modo papelera */}
         {!modoPapelera && (
@@ -231,7 +307,36 @@ export const PedidoModal = ({
         )}
       </ModalBase>
 
-      <ConfirmationModal
+      <Modal
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        aria-labelledby="image-modal-title"
+        aria-describedby="image-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          {loadingImage ? (
+            <CircularProgress />
+          ) : (
+            <img
+              src={imageUrl || ""}
+              alt="Comprobante de pago"
+              style={{ maxWidth: "100%", maxHeight: "90vh" }}
+            />
+          )}
+        </Box>
+      </Modal>
+
+<ConfirmationModal
         open={confirmOpen}
         onClose={handleCloseConfirm}
         onConfirm={handleConfirmAction} // Usa el handler unificado
@@ -253,6 +358,6 @@ export const PedidoModal = ({
         cancelText="Cancelar"
         confirmButtonColor={confirmAction === "borrar" ? "error" : "success"}
       />
-    </>
+      </>
   );
 };

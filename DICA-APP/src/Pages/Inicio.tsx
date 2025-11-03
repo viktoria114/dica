@@ -5,12 +5,14 @@ import {
   Paper,
   Grid,
   Divider,
+  CircularProgress,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { PedidoItem } from "../Components/Inicio/PedidoItem";
 import { InfoCard } from "../Components/Inicio/InfoCard";
 import { DashboardCard } from "../Components/Inicio/DashboardCard";
 import { useAuth } from "../hooks/useAuth";
+import { useDashboard } from "../hooks/useDashboard";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ChatItem = ({ texto }: any) => (
@@ -23,6 +25,7 @@ const ChatItem = ({ texto }: any) => (
 export const Inicio = () => {
   const [fecha, setFecha] = useState(new Date());
   const { usuario } = useAuth();
+  const { dashboardData, loading, error } = useDashboard();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -34,7 +37,7 @@ export const Inicio = () => {
 
   const hora = fecha.toLocaleTimeString("es-AR", {
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
 
   const fechaTexto = fecha.toLocaleDateString("es-AR", {
@@ -67,16 +70,40 @@ export const Inicio = () => {
     "3804911045: Hola, ¿me podés mandar 3 lomitos completos?",
   ];
 
-  const dashboard = [
-    { label: "Pedidos Activos", value: 37, color: "#8B1D1D" },
-    { label: "Pedidos Completados", value: 10, color: "#E5C58B" },
-    { label: "Tiempo Promedio", value: 27, color: "#8B1D1D" },
-  ];
+  const formatTiempoPromedio = (tiempo: string | null) => {
+    if (!tiempo) return "N/A";
+    const parts = tiempo.split(":");
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    const seconds = parseInt(parts[2], 10);
+    const totalMinutes = hours * 60 + minutes + seconds / 60;
+    return `${totalMinutes.toFixed(0)} min`;
+  };
+
+  const dashboard = dashboardData
+    ? [
+        {
+          label: "Pedidos Activos",
+          value: dashboardData.pedidos_activos,
+          color: "#8B1D1D",
+        },
+        {
+          label: "Pedidos Completados",
+          value: dashboardData.pedidos_completados,
+          color: "#E5C58B",
+        },
+        {
+          label: "Tiempo Promedio",
+          value: formatTiempoPromedio(dashboardData.tiempo_promedio),
+          color: "#8B1D1D",
+        },
+      ]
+    : [];
 
   return (
     <Grid container spacing={2}>
       {/* Lateral izquierdo */}
-      <Grid size={2}>
+      <Grid item md={2}>
         <Paper sx={{ m: 4, p: 4, borderRadius: 8 }}>
           <Typography variant="h5">Pedidos 24</Typography>
           <Divider
@@ -89,7 +116,7 @@ export const Inicio = () => {
       </Grid>
 
       {/* Contenido central */}
-      <Grid size={8}>
+      <Grid item md={10}>
         <Container>
           <Box display="flex" justifyContent="right" gap={1} mt={2}>
             <Typography
@@ -155,6 +182,8 @@ export const Inicio = () => {
           </Typography>
 
           <Box display="flex" justifyContent="center" gap={8}>
+            {loading && <CircularProgress />}
+            {error && <Typography color="error">{error}</Typography>}
             {dashboard.map((d, i) => (
               <DashboardCard key={i} {...d} />
             ))}
@@ -162,26 +191,7 @@ export const Inicio = () => {
         </Container>
       </Grid>
 
-      {/* Lateral derecho */}
-      <Grid size={2}>
-        <Paper sx={{ m: 4, p: 4, borderRadius: 8 }}>
-          <Typography variant="h5" align="center">
-            Dica-Bot 🟢
-          </Typography>
-          <Divider
-            sx={{ p: 0.5, borderColor: "primary.main", borderBottomWidth: 1 }}
-          />
-          <Typography variant="h6" mt={2}>
-            Chats actuales 12
-          </Typography>
-          <Divider
-            sx={{ p: 0.5, borderColor: "primary.main", borderBottomWidth: 1 }}
-          />
-          {chats.map((c, i) => (
-            <ChatItem key={i} texto={c} />
-          ))}
-        </Paper>
-      </Grid>
+
     </Grid>
   );
 };
