@@ -243,46 +243,125 @@ export const crearPedido = async (req: Request, res: Response) => {
 };
 
 export const actualizarPedido = async (req: Request, res: Response) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { fk_cliente, ubicacion, observacion, fk_estado, fecha, hora } = req.body;
-
-    const query = `
-            UPDATE pedidos
-            SET id_estado = $1, id_cliente = $2, ubicacion = $3, observaciones = $4, fecha = $5, hora = $6
-            WHERE id = $7
-            RETURNING *;
-        `;
-
-    const pedido = new Pedido(
-      null,
+    const {
+      fk_empleado,
+      fk_cliente,
+      fk_estado,
       fecha,
       hora,
+      ubicacion,
+      observacion,
+      items = [],
+      promociones = [],
+    } = req.body;
+
+    await client.query('BEGIN');
+
+    // 1️⃣ Actualizar los datos generales del pedido
+    const updateQuery = `
+      UPDATE pedidos
+      SET id_estado = $1,
+          id_cliente = $2,
+          ubicacion = $3,
+          observaciones = $4,
+          fecha = $5,
+          hora = $6
+      WHERE id = $7
+      RETURNING *;
+    `;
+    const { rows } = await client.query(updateQuery, [
       fk_estado,
       fk_cliente,
       ubicacion,
       observacion,
-    );
-
-    const { rows } = await pool.query(query, [
-      pedido.fk_estado,
-      pedido.fk_cliente,
-      pedido.ubicacion,
-      pedido.observacion,
-      pedido.fk_fecha,
-      pedido.hora,
+      fecha,
+      hora,
       id,
     ]);
+
     if (rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
-    res.json(rows[0]);
+    // 2️⃣ Borrar ítems y promociones actuales
+    await client.query(`DELETE FROM pedidos_menu WHERE fk_pedido = $1`, [id]);
+    await client.query(`DELETE FROM pedidos_promociones WHERE id_pedido = $1`, [id]);
+
+    // 3️⃣ Insertar nuevos ítems del menú
+    const insertMenuQuery = `
+      INSERT INTO pedidos_menu (fk_pedido, fk_menu, precio_unitario, cantidad)
+      VALUES ($1, $2, $3, $4);
+    `;
+    const itemsAgregados: any[] = [];
+
+    for (const item of items) {
+      if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          message: `Cantidad inválida para id_menu=${item.id_menu}`,
+        });
+      }
+
+      const precioRes = await client.query('SELECT id, nombre, precio FROM menu WHERE id = $1', [item.id_menu]);
+      if (precioRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: `El menú con id=${item.id_menu} no existe` });
+      }
+
+      const { id: id_menu, nombre, precio } = precioRes.rows[0];
+      await client.query(insertMenuQuery, [id, id_menu, precio, item.cantidad]);
+
+      itemsAgregados.push({ id_menu, nombre, cantidad: item.cantidad });
+    }
+
+    // 4️⃣ Insertar nuevas promociones
+    const insertPromoQuery = `
+      INSERT INTO pedidos_promociones (id_pedido, id_promocion, cantidad)
+      VALUES ($1, $2, $3);
+    `;
+    const promocionesAgregadas: any[] = [];
+
+    for (const promo of promociones) {
+      if (!Number.isInteger(promo.cantidad) || promo.cantidad <= 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          message: `Cantidad inválida para id_promocion=${promo.id_menu}`,
+        });
+      }
+
+      const precioRes = await client.query('SELECT id, nombre, precio FROM promociones WHERE id = $1', [promo.id_menu]);
+      if (precioRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: `La promoción con id=${promo.id_menu} no existe` });
+      }
+
+      const { id: id_promocion, nombre} = precioRes.rows[0];
+      await client.query(insertPromoQuery, [id, id_promocion, promo.cantidad]);
+
+      promocionesAgregadas.push({ id_promocion, nombre, cantidad: promo.cantidad });
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: 'Pedido actualizado con éxito',
+      pedido: rows[0],
+      items: itemsAgregados,
+      promociones: promocionesAgregadas,
+    });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error(error);
     res.status(500).json({ message: 'Error al actualizar el Pedido' });
+  } finally {
+    client.release();
   }
 };
+
 
 export const getListaPedidos = async (_req: Request, res: Response) => {
   try {
