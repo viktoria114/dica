@@ -126,7 +126,7 @@ export const Pedidos = () => {
         allAvailablePromos={promociones}
         menuColumns={menuColumns}
         modoPapelera={modo !== "normal"}
-      />
+      ></PedidoModal>
     </>
   );
 };

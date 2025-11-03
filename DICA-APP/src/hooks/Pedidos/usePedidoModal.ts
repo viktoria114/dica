@@ -8,15 +8,9 @@ export const usePedidoModal = (
   onFormSubmitSuccess: (pedido: Pedido) => void
 ) => {
   const [open, setOpen] = useState(false);
-
   // 1. Usamos tu hook de formulario
   const form = usePedidoForm();
-  const {
-    formValues,
-    setFormValues,
-    handleSubmit,
-    // ...resto de props de usePedidoForm
-  } = form;
+  const { formValues, setFormValues, handleSubmit } = form;
 
   // 2. Estados para los ItemSelector (viven junto al formulario)
   const [selectedMenus, setSelectedMenus] = useState<ItemsYPromociones[]>([]);
@@ -26,10 +20,7 @@ export const usePedidoModal = (
   useEffect(() => {
     // El tipo de `ItemsYPromociones` no tiene 'id', pero ItemSelector lo necesita.
     // Lo "adaptamos" al vuelo.
-    const adaptToSelector = (
-      items: ItemsYPromociones[],
-      key: string
-    ) => {
+    const adaptToSelector = (items: ItemsYPromociones[], key: string) => {
       return items.map((item) => ({
         ...item,
         // 1. Preserva el ID de fila único (ej: 101, 102) para la 'key' de React
@@ -71,6 +62,7 @@ export const usePedidoModal = (
     setOpen(false);
   };
 
+
   // 5. Wrapper para el 'handleSubmit'
   const handleSubmitModal = async () => {
     // Antes de enviar, inyectamos los items/promos actualizados
@@ -90,7 +82,7 @@ export const usePedidoModal = (
 
   return {
     open,
-    form, // Pasamos el hook 'form' completo
+    form,
     selectedMenus,
     setSelectedMenus,
     selectedPromos,

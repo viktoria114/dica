@@ -4,20 +4,25 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import RestoreIcon from "@mui/icons-material/Restore";
 import SaveIcon from "@mui/icons-material/Save";
+import CheckIcon from "@mui/icons-material/Check";
 
 type Mode = "edicion" | "form" | "papelera";
 
 type Props = {
   mode: Mode;
-   labelSave?: string; 
-  onEdit?: () => void;
+
+   onEdit?: () => void;
   onDelete?: () => void;
   onRestore?: () => void;
   onSave?: () => void;
   onCancel?: () => void;
-  loadingDelete?: boolean;
+
+   loadingDelete?: boolean;
   loadingRestore?: boolean;
   loadingSave?: boolean;
+  
+   labelSave?: string; 
+  labelEdit?: string;
 };
 
 export const ActionButtons = ({
@@ -31,6 +36,8 @@ export const ActionButtons = ({
   loadingDelete,
   loadingRestore,
   loadingSave,
+  labelEdit,
+
 }: Props) => {
   return (
     <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
@@ -40,10 +47,10 @@ export const ActionButtons = ({
             <Button
               sx={{ height: 50 }}
               variant="contained"
-              startIcon={<EditIcon />}
+              startIcon={labelEdit === "Editar y Confirmar" ? <CheckIcon /> : <EditIcon />}
               onClick={onEdit}
             >
-              Editar
+              {labelEdit || "Editar"}
             </Button>
           )}
           <Button
@@ -80,6 +87,7 @@ export const ActionButtons = ({
           startIcon={<SaveIcon />}
           onClick={onSave}
           disabled={loadingSave}
+          loading={loadingSave}
         >
          {labelSave ?? "Crear"}
         </Button>

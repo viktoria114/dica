@@ -5,6 +5,9 @@ import type { Pedido, ItemsMenu, Promocion, ItemsYPromociones } from "../../type
 import type { usePedidoModal } from "../../hooks/Pedidos/usePedidoModal";
 import type { useRestaurarPedido } from "../../hooks/Pedidos/useRestaurarPedido";
 import { useBorrarPedido } from "../../hooks/Pedidos/useBorrarPedido";
+import { useState } from "react";
+import { ConfirmationModal } from "../common/ConfirmationModal";
+import { useConfirmarPedido } from "../../hooks/Pedidos/useConfirmarPedido";
 
 // Props que recibe de los hooks
 type PedidoModalProps = {
@@ -44,7 +47,7 @@ export const PedidoModal = ({
     formErrors, 
     pedidoFields, 
     handleChange, 
-    isSaving 
+    isSaving,
   } = form;
   
   const handleBorrarSuccess = () => {
@@ -53,6 +56,73 @@ export const PedidoModal = ({
 
   const { restaurarP, isRestoringPedido } = restaurarState;
   const { isDeleting,  handleDelete}= useBorrarPedido(handleBorrarSuccess);
+
+  // --- NUEVOS ESTADOS PARA LA CONFIRMACIÓN ---
+const [confirmOpen, setConfirmOpen] = useState(false);
+// 2. Estado para saber qué acción se está confirmando
+const [confirmAction, setConfirmAction] = useState<"borrar" | "restaurar" | null>(null);
+// 3. Obtener el ID del pedido actual (para el modal y las acciones)
+const pedidoId = formValues.pedido_id;
+
+const handleBorrarRequest = () => {
+  if (pedidoId) {
+    setConfirmAction("borrar");
+    setConfirmOpen(true);
+  }
+};
+
+// Lo que hace el botón de "Restaurar"
+const handleRestaurarRequest = () => {
+  if (pedidoId) {
+    setConfirmAction("restaurar");
+    setConfirmOpen(true);
+  }
+};
+
+const handleConfirmAction = () => {
+  if (!pedidoId) return; // Salir si no hay ID
+
+  if (confirmAction === "borrar") {
+    // Si confirmamos borrar
+    handleDelete(Number(pedidoId)); // Llama a la lógica de borrado del hook
+  } else if (confirmAction === "restaurar") {
+    // Si confirmamos restaurar
+    restaurarP(pedidoId); // Llama a la lógica de restauración del hook
+  }
+
+  // Cerrar el modal y resetear la acción
+  setConfirmOpen(false);
+  setConfirmAction(null);
+};
+
+const handleCloseConfirm = () => {
+  setConfirmOpen(false);
+  setConfirmAction(null);
+};
+
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { confirmar, isConfirming } = useConfirmarPedido((_updatedPedido) => {
+    cerrarModal(); 
+});
+const isSavingOrConfirming = isSaving || isConfirming;
+
+const pedidoRequiereConfirmacion =
+  (formValues as any).origen === "bot" && formValues.fk_estado === 7;
+
+  const handleSaveOrConfirm = () => {
+    console.log("ayuda");
+    
+    // 1. Si requiere confirmación Y el botón GUARDAR fue presionado, ejecutamos la confirmación.
+    if (pedidoRequiereConfirmacion && pedidoId) {
+        // Enviar el pedido completo (formValues) al hook
+        confirmar(formValues as Pedido); // 👈 Pasamos el objeto pedido
+    }
+
+    // 2. Ejecutar el guardado del formulario (siempre se guarda, sea confirmación o cambios)
+    handleSubmitModal();
+};
+
 
   // Lógica de displayFields (la mantienes aquí)
   const displayFields = [
@@ -70,8 +140,9 @@ export const PedidoModal = ({
   ];
 
   return (
+    <>
     <ModalBase<Pedido>
-      modo={"editar"} // El modal es 'detalle' si está en modo papelera
+      modo={"editar"}
       modoPapelera={modoPapelera}
       entityName={`Pedido #${formValues.pedido_id}`}
       open={open}
@@ -85,11 +156,16 @@ export const PedidoModal = ({
       idField="pedido_id"
       isSaving={isSaving}
       displayFields={displayFields}
- borrar={(id) => handleDelete(Number(id))}
-    isDeleting={isDeleting}
-
+borrar={handleBorrarRequest}
+      isDeleting={isDeleting}
+//handleEditar={handleEditOrConfirmRequest}
+      labelEdit={pedidoRequiereConfirmacion ? "Editar y Confirmar" : "Editar"}
+  labelsave={
+        pedidoRequiereConfirmacion ? "Confirmar" : "Guardar"
+      } 
+      loadingSave={isSavingOrConfirming}
       // Lógica de restauración
-      restaurar={() => {if (formValues.pedido_id) { restaurarP(formValues.pedido_id)}}}
+      restaurar={handleRestaurarRequest}
       isRestoring={isRestoringPedido}
     >
       {/* Los selectores solo se muestran si NO estamos en modo papelera */}
@@ -133,5 +209,23 @@ export const PedidoModal = ({
         </>
       )}
     </ModalBase>
+    
+    <ConfirmationModal
+              open={confirmOpen}
+      onClose={handleCloseConfirm}
+      onConfirm={handleConfirmAction} // Usa el handler unificado
+      // **Título y Mensaje Dinámico**
+      title={confirmAction === "borrar" ? "Confirmar Eliminación" : "Confirmar Restauración"}
+      message={
+        confirmAction === "borrar"
+          ? `¿Está seguro de que desea el pedido #${pedidoId}?`
+          : `¿Está seguro de que desea restaurar el pedido #${pedidoId}?`
+      }
+      // **Color de Botón Dinámico**
+      confirmText={confirmAction === "borrar" ? "Sí, Eliminar" : "Sí, Restaurar"}
+      cancelText="Cancelar"
+      confirmButtonColor={confirmAction === "borrar" ? "error" : "success"}
+    />
+            </>
   );
 };

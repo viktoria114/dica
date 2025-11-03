@@ -30,6 +30,10 @@ interface ModalBaseProps<T> {
   displayFields?: DisplayField[];
   children?: React.ReactNode;
   detailsChildren?: React.ReactNode;
+  handleEditar?: () => void; // El handler que se dispara al hacer clic en EDITAR/CONFIRMAR
+  labelEdit?: string;
+  labelsave?: string;
+  loadingSave?: boolean;
 }
 
 const modalStyle = {
@@ -68,6 +72,10 @@ export function ModalBase<T>({
   displayFields,
   children,
   detailsChildren,
+  handleEditar,
+  labelEdit,
+  loadingSave,
+  labelsave,
 }: ModalBaseProps<T>) {
   const [isEditMode, setIsEditMode] = useState(modo === "crear");
 
@@ -132,7 +140,8 @@ export function ModalBase<T>({
             ) : (
               <ActionButtons
                 mode="edicion"
-                onEdit={!modoPapelera ? () => setIsEditMode(true) : undefined}
+                onEdit={handleEditar ? handleEditar : () => setIsEditMode(true)}
+                labelEdit={labelEdit}
                 onDelete={() =>
                   idField &&
                   values?.[idField] &&
@@ -140,6 +149,8 @@ export function ModalBase<T>({
                 }
                 onCancel={handleClose}
                 loadingDelete={isDeleting}
+                labelSave= {labelsave}
+                loadingSave={loadingSave}
               />
             )}
           </>
