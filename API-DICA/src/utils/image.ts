@@ -21,10 +21,6 @@ async function refrescarToken(): Promise<{ access_token: string; expires_in: num
     body: params,
   });
 
-//DEBUG DROPBOX
-const resText = await res.text();
-console.log("Status:", res.status, res.statusText, "Body:", resText);
-
   if (!res.ok) throw new Error(`Error al refrescar token: ${res.statusText}`);
   return await res.json(); // { access_token, expires_in, ... }
 }
