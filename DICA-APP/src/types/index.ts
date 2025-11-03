@@ -53,9 +53,9 @@ id_cliente: number | null,
  visibilidad: boolean,
  fk_estado: number,
  items?: ItemsYPromociones[];
- precio_por_items?: number;
- precio_por_promociones?: number;
- precio_total?: number;
+ precio_por_items?: number | null;
+ precio_por_promociones?: number | null;
+ precio_total?: number | null;
  promociones?: ItemsYPromociones[];
 }
 

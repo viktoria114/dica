@@ -29,7 +29,7 @@ export interface FieldConfig<T> {
 
 interface GenericFormProps<T> {
   entityName: string; // ej: "Empleado", "Cliente"
-  modo: "crear" | "editar";
+  modo: string |"crear" | "editar";
   fields?: FieldConfig<T>[];
   formErrors: Partial<Record<keyof T, string>>;
   values: T;

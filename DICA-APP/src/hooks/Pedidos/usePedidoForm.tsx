@@ -76,6 +76,11 @@ export const pedidoFields: FieldConfig<Pedido>[] = [
     label: "Observaciones",
     type: "text",
   },
+  {
+    name: "precio_total",
+    label: "Precio Total",
+    type: "number",
+  }
 ];
 
 export const usePedidoForm = () => {
@@ -93,6 +98,9 @@ export const usePedidoForm = () => {
     ubicacion: "",
     observaciones: "",
     visibilidad: true,
+    precio_por_items: null,
+    precio_por_promociones: null,
+    precio_total: null,
   } as Pedido & { hora: string });
 
   const [formErrors, setFormErrors] = useState<
@@ -143,7 +151,7 @@ if (!horaRegex.test(values.hora ?? ""))
     setIsSaving(true);
     
     try {
-      if (values.pedido_id === null) {
+     if (!values.pedido_id) {
         // En crear pedido también debes enviar el DNI
         await crearPedido(values); 
         showSnackbar("Pedido creado con éxito!", "success");
@@ -151,14 +159,14 @@ if (!horaRegex.test(values.hora ?? ""))
         await actualizarPedido(
           values.pedido_id,
           values,
-          usuario.dni // <-- ¡Error 18047 solucionado!
+          usuario.dni 
         );
         showSnackbar("Pedido actualizado con éxito!", "success");
       }
       setOpen(false);
     } catch (error) {
       console.error(error);
-      showSnackbar("Error al guardar el pedido", "error");
+      showSnackbar("Error al guardar el pedido" , "error");
     } finally {
       setIsSaving(false);
     }

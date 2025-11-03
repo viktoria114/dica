@@ -8,6 +8,7 @@ export const usePedidoModal = (
   onFormSubmitSuccess: (pedido: Pedido) => void
 ) => {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<string>("crear");
   // 1. Usamos tu hook de formulario
   const form = usePedidoForm();
   const { formValues, setFormValues, handleSubmit } = form;
@@ -49,16 +50,19 @@ export const usePedidoModal = (
   // 4. Funciones para controlar el modal
   const abrirModalDetalle = (pedido: Pedido) => {
     setFormValues(pedido);
+    setMode("editar");
     setOpen(true);
   };
 
   const abrirModalNuevo = () => {
     setFormValues({} as Pedido); // Resetea el formulario
+    setMode("crear");
     setOpen(true);
   };
 
   const cerrarModal = () => {
     setFormValues({} as Pedido);
+    setMode("crear");
     setOpen(false);
   };
 
@@ -83,6 +87,7 @@ export const usePedidoModal = (
   return {
     open,
     form,
+    mode,
     selectedMenus,
     setSelectedMenus,
     selectedPromos,

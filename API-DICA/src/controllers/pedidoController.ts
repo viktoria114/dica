@@ -329,14 +329,14 @@ export const actualizarPedido = async (req: Request, res: Response) => {
       if (!Number.isInteger(promo.cantidad) || promo.cantidad <= 0) {
         await client.query('ROLLBACK');
         return res.status(400).json({
-          message: `Cantidad inválida para id_promocion=${promo.id_menu}`,
+          message: `Cantidad inválida para id_promocion=${promo.id_promocion}`,
         });
       }
 
-      const precioRes = await client.query('SELECT id, nombre, precio FROM promociones WHERE id = $1', [promo.id_menu]);
+      const precioRes = await client.query('SELECT id, nombre, precio FROM promociones WHERE id = $1', [promo.id_promocion]);
       if (precioRes.rows.length === 0) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ message: `La promoción con id=${promo.id_menu} no existe` });
+        return res.status(400).json({ message: `La promoción con id=${promo.id_promocion} no existe` });
       }
 
       const { id: id_promocion, nombre} = precioRes.rows[0];
@@ -983,10 +983,26 @@ export const actualizarEstadoPedido = async (req: Request, res: Response) => {
           ]);
 
           if (registros.length === 0) {
-            throw new Error(
-              `No hay suficiente stock en registro_stock para el ingrediente ${ing.fk_stock}`,
-            );
-          }
+            // 1. Obtener el nombre del ingrediente (stock)
+    const nombreStockQuery = `
+        SELECT nombre 
+        FROM stock
+        WHERE id = $1;
+    `;
+    const { rows: stockRows } = await client.query(nombreStockQuery, [
+        ing.fk_stock,
+    ]);
+
+    const nombreIngrediente = stockRows.length > 0 ? stockRows[0].nombre : 'Desconocido';
+
+    // 2. Rollback y Devolver un mensaje más descriptivo
+    await client.query('ROLLBACK');
+    return res.status(400).json({
+        message: `No hay suficiente stock disponible para el ingrediente: ${nombreIngrediente}. Por favor, revise el inventario.`,
+        // Opcional: Podrías añadir el ID para debugging
+        ingrediente_id: ing.fk_stock, 
+    });
+}
 
           const registro = registros[0];
           const cantidadDisponible = registro.cantidad_actual;

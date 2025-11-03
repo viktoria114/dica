@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { getPedidosBorrados } from "../../api/pedidos";
+import { getPedidosBorrados, updatePedidoEstado } from "../../api/pedidos";
 import type { Pedido } from "../../types";
 import { useAppDispatch } from "../../store/hooks";
 import { getPedidos } from "../../store/slices/pedidosSlices";
+import { useSnackbar } from "../../contexts/SnackbarContext";
 
 export const usePedidos = () => {
   const dispatch = useAppDispatch();
@@ -11,6 +12,7 @@ export const usePedidos = () => {
   const [pedidosBorrados, setPedidosBorrados] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+   const { showSnackbar } = useSnackbar();
 
   // 1. Estado de la UI y filtros
   const [modo, setModo] = useState<"normal" | "borrados" | "cancelados">(
@@ -122,10 +124,19 @@ export const usePedidos = () => {
 
     const newEstadoId = Number(destination.droppableId);
     const pedidoId = Number(draggableId);
+    const estadoOriginalId = Number(source.droppableId);
 
     // Guardar estado original para rollback
     const pedidoOriginal = pedidos.find((p) => p.pedido_id === pedidoId);
     if (!pedidoOriginal) return;
+
+if (newEstadoId !== estadoOriginalId + 1) {
+  showSnackbar(`Movimiento no permitido: El pedido ${pedidoId} (Estado ${estadoOriginalId}) solo puede ir al Estado ${estadoOriginalId + 1}.`, "warning")
+            console.warn(
+                `Movimiento no permitido: El pedido ${pedidoId} (Estado ${estadoOriginalId}) solo puede ir al Estado ${estadoOriginalId + 1}.`
+            );
+            return;
+}
 
     // Actualización optimista de UI
     setPedidos((prev) =>
@@ -136,11 +147,12 @@ export const usePedidos = () => {
 
     // Llamada a la API
     try {
-      // Deberías tener una función así en tu API
-      // await updatePedidoEstado(pedidoId, newEstadoId);
+      await updatePedidoEstado(pedidoId);
+      showSnackbar("Pedido movido con éxito!", "success");
       console.log(`API CALL: Mover pedido ${pedidoId} a estado ${newEstadoId}`);
     } catch (err) {
       console.error("Error al actualizar estado del pedido", err);
+      showSnackbar("" + err, "error",10000);
       // Rollback en caso de error
       setPedidos((prev) =>
         prev.map((p) =>

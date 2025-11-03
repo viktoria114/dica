@@ -20,7 +20,7 @@ interface ModalBaseProps<T> {
   isSaving?: boolean;
   values?: T;
   modoPapelera?: boolean;
-  modo: "crear" | "editar";
+  modo: string | "crear" | "editar";
   formErrors: Partial<Record<keyof T, string>>;
   borrar?: (id: string) => void; // 👈 genérico
   restaurar?: (id: string) => void; // 👈 genérico

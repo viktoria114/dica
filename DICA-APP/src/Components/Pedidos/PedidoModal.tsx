@@ -34,6 +34,7 @@ export const PedidoModal = ({
   const {
     open,
     form,
+    mode,
     selectedMenus,
     setSelectedMenus,
     selectedPromos,
@@ -152,7 +153,7 @@ export const PedidoModal = ({
   return (
     <>
       <ModalBase<Pedido>
-        modo={"editar"}
+        modo={mode}
         modoPapelera={modoPapelera}
         entityName={`Pedido #${formValues.pedido_id}`}
         open={open}
