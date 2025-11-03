@@ -244,9 +244,10 @@ export const Gastos = () => {
         handleGuardar={() => actualizar(formValues.id!, formValues)}
         handleClose={() => setOpenEdit(false)}
         isSaving={isUpdating}
-        borrar={() => borrar(formValues.id!)}
+        borrar={(id) => borrar(Number(id))}
         isDeleting={isDeleting}
         displayFields={displayFields}
+        idField="id"
       >
         <List>
           {formValues.stockItems?.map((item) => {
