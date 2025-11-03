@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ModalBase } from "../common/ModalBase";
+import { Button, Modal, Box, CircularProgress } from "@mui/material";
+import { useState, useEffect } from "react";
+import { getPagoByPedidoId } from "../../api/pagos";
+import type { Pago } from "../../types";
+import { obtenerLinkTemporalDropbox } from "../../api/pagos";
+import { useDropboxToken } from "../../contexts/DropboxTokenContext";
 import { ItemSelector, type ItemSelectorColumn } from "../common/ItemSelector";
 import type { Pedido, ItemsMenu, Promocion, ItemsYPromociones } from "../../types";
 import type { usePedidoModal } from "../../hooks/Pedidos/usePedidoModal";
@@ -53,6 +59,39 @@ export const PedidoModal = ({
 
   const { restaurarP, isRestoringPedido } = restaurarState;
   const { isDeleting,  handleDelete}= useBorrarPedido(handleBorrarSuccess);
+  const { token: dropboxToken } = useDropboxToken();
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+  const [pago, setPago] = useState<Pago | null>(null);
+
+  useEffect(() => {
+    if (formValues.pedido_id) {
+      getPagoByPedidoId(formValues.pedido_id)
+        .then(setPago)
+        .catch(() => setPago(null));
+    }
+  }, [formValues.pedido_id]);
+
+  const handleViewReceipt = async (path: string) => {
+    if (!dropboxToken) {
+      alert("No se pudo obtener el token de Dropbox. Intente de nuevo más tarde.");
+      return;
+    }
+    setLoadingImage(true);
+    setImageModalOpen(true);
+    try {
+      const url = await obtenerLinkTemporalDropbox(path, dropboxToken);
+      setImageUrl(url);
+    } catch (error) {
+      console.error("Error getting temporary link:", error);
+      alert("Error al obtener el comprobante.");
+      setImageModalOpen(false);
+    } finally {
+      setLoadingImage(false);
+    }
+  };
+
 
   // Lógica de displayFields (la mantienes aquí)
   const displayFields = [
@@ -67,7 +106,8 @@ export const PedidoModal = ({
   ];
 
   return (
-    <ModalBase<Pedido>
+    <>
+      <ModalBase<Pedido>
       modo={"editar"} // El modal es 'detalle' si está en modo papelera
       modoPapelera={modoPapelera}
       entityName={`Pedido #${formValues.pedido_id}`}
@@ -88,6 +128,19 @@ export const PedidoModal = ({
       // Lógica de restauración
       restaurar={() => {if (formValues.pedido_id) { restaurarP(formValues.pedido_id)}}}
       isRestoring={isRestoringPedido}
+      detailsChildren={
+        formValues.estado !== "en construccion" && (
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!pago?.comprobante_pago}
+            onClick={() => handleViewReceipt(pago?.comprobante_pago!)}
+            sx={{ mt: 2 }}
+          >
+            Ver Comprobante
+          </Button>
+        )
+      }
     >
       {/* Los selectores solo se muestran si NO estamos en modo papelera */}
       {!modoPapelera && (
@@ -128,5 +181,34 @@ export const PedidoModal = ({
         </>
       )}
     </ModalBase>
+      <Modal
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        aria-labelledby="image-modal-title"
+        aria-describedby="image-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          {loadingImage ? (
+            <CircularProgress />
+          ) : (
+            <img
+              src={imageUrl || ""}
+              alt="Comprobante de pago"
+              style={{ maxWidth: "100%", maxHeight: "90vh" }}
+            />
+          )}
+        </Box>
+      </Modal>
+    </>
   );
 };

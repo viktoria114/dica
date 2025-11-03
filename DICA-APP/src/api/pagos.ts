@@ -56,9 +56,19 @@ export const eliminarPago = async (id: number): Promise<void> => {
   try {
     await api.delete(`${PAGOS_URL}/${id}`);
   } catch (err: unknown) {
+    throw err;
+  }
+};
+
+// GET Pago by Pedido ID
+export const getPagoByPedidoId = async (id: number): Promise<Pago> => {
+  try {
+    const res = await api.get<Pago>(`${PAGOS_URL}/pedido/${id}`);
+    return res.data;
+  } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
       throw new Error(
-        err.response?.data?.message || "Error al eliminar Pago"
+        err.response?.data?.message || "Error al obtener el pago del pedido"
       );
     }
     throw err;
