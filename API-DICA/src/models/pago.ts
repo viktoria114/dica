@@ -53,6 +53,10 @@ export class Pago {
     }
 
     //Validación del comprobante
+
+    if (comprobantePago == ""){
+      comprobantePago = null
+    }
     if (comprobantePago !== null) {
       if (typeof comprobantePago !== "string" || comprobantePago.trim() === "") {
       throw new Error("El comprobante de pago debe ser una cadena de texto válida o null.");

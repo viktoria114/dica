@@ -12,7 +12,7 @@ const formatDateForBackend = (date: Date): string => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
-  return `${year}/${month}/${day}`;
+  return `${year}-${month}-${day}`;
 };
 
 export const usePagoForm = (onSuccess?: () => void) => {
@@ -56,7 +56,7 @@ export const usePagoForm = (onSuccess?: () => void) => {
             label="Fecha"
             value={value ? new Date(value) : new Date()}
             onChange={(newValue) => handleChange('fk_fecha', newValue)}
-            format="dd/MM/yy"
+            format="dd-MM-yyyy"
           />
         </LocalizationProvider>
       ),
