@@ -154,7 +154,8 @@ export const getMenuDetalles = async (req: Request, res: Response) => {
                         json_build_object(
                             'id_stock', s.id,
                             'nombre_stock', s.nombre,
-                            'cantidad_necesaria', ms.cantidad_necesaria
+                            'cantidad_necesaria', ms.cantidad_necesaria,
+                            'medida', s.medida
                         )
                     ) FILTER (WHERE s.id IS NOT NULL),
                     '[]'
@@ -194,7 +195,8 @@ export const getListaMenu = async (_req: Request, res: Response) => {
                         json_build_object(
                             'id_stock', s.id,
                             'nombre_stock', s.nombre,
-                            'cantidad_necesaria', ms.cantidad_necesaria
+                            'cantidad_necesaria', ms.cantidad_necesaria,
+                            'medida', s.medida
                         )
                     ) FILTER (WHERE s.id IS NOT NULL),
                     '[]'
@@ -231,7 +233,8 @@ export const getListaInvisibleMenu = async (_req: Request, res: Response) => {
                         json_build_object(
                             'id_stock', s.id,
                             'nombre_stock', s.nombre,
-                            'cantidad_necesaria', ms.cantidad_necesaria
+                            'cantidad_necesaria', ms.cantidad_necesaria,
+                            'medida', s.medida
                         )
                     ) FILTER (WHERE s.id IS NOT NULL),
                     '[]'

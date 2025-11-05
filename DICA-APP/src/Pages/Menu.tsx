@@ -71,6 +71,7 @@ export const Menu = () => {
     id: number; // Debe ser 'id' para que el ItemSelector lo maneje
     nombre: string;
     cantidad: number;
+    medida?: string;
   }
 
   const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
@@ -90,6 +91,7 @@ export const Menu = () => {
     id: Number(stockItem.id), // Usa 'id'
     nombre: stockItem.nombre,
     cantidad: 1, // Usa 'cantidad'
+    medida: (stockItem as any).medida || "",
   });
 
   const adaptedStocks = React.useMemo(() => {
@@ -104,6 +106,7 @@ export const Menu = () => {
         id: stockEnForm.id_stock, // 👈 id del item de stock (mapeado de id_stock)
         nombre: stockInfo?.nombre || "Stock Desconocido",
         cantidad: stockEnForm.cantidad_necesaria, // 👈 cantidad (mapeado de cantidad_necesaria)
+        medida: stockInfo?.medida || "",
       };
     });
   }, [formValues.stocks, stock]);
@@ -345,6 +348,7 @@ export const Menu = () => {
           { label: "Categoría", value: formValues.categoria },
           { label: "Precio", value: formValues.precio },
           { label: "Descripción", value: formValues.descripcion },
+          { label: "Stocks Requeridos", value: adaptedStocks.map(s => `${s.nombre} (${s.cantidad}${s.medida})`).join(", ")},
         ]}
       >
         <ItemSelector<BaseAvailableItem, AdaptedStockItem>
