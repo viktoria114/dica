@@ -35,13 +35,9 @@ const headCells: readonly {
 ];
 
 export const EnhancedTableHead: React.FC<Props> = ({
-  onSelectAllClick,
   order,
   orderBy,
-  numSelected,
-  rowCount,
   onRequestSort,
-  modoPapelera,
 }) => {
   const createSortHandler =
     (property: keyof Promocion) => (event: React.MouseEvent<unknown>) => {
@@ -53,15 +49,7 @@ export const EnhancedTableHead: React.FC<Props> = ({
     <TableHead>
       <TableRow>
         <TableCell padding="checkbox">
-          <Checkbox
-           disabled={modoPapelera}
-            color="primary"
-            indeterminate={numSelected > 0 && numSelected < rowCount}
-            checked={rowCount > 0 && numSelected === rowCount}
-            onChange={onSelectAllClick}
-            inputProps={{ "aria-label": "select all items" }}
-             sx={{color:"secondary.main"}}
-          />
+         
         </TableCell>
 
         {headCells.map((headCell) => (
