@@ -73,7 +73,30 @@ export interface CrearMenuPayload {
   stocks: { id_stock: number; cantidad_necesaria: number }[];
 }
 
+export const actualizarMenu = async (
+  id: number,
+  payload: CrearMenuPayload
+): Promise<{ message: string }> => {
+  try {
+    // Usamos PUT o PATCH (PUT es más común para reemplazar la entidad completa)
+    const res = await api.put<{ message: string }>(
+      `${MENU_URL}/${id}`, // Incluye el ID en la URL
+      payload
+    );
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al actualizar el Menú"
+      );
+    }
+    throw err;
+  }
+};
+
 export const crearMenu = async (payload: CrearMenuPayload): Promise<{ id: number; message: string }> => {
+  console.log(payload);
+  
   try {
     const res = await api.post<{ id: number; message: string }>(
       `${MENU_URL}`,

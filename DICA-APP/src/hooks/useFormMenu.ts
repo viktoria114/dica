@@ -3,7 +3,7 @@ import type { FieldConfig } from "../Components/common/FormBase";
 import type { ItemsMenu } from "../types";
 import { useSnackbar } from "../contexts/SnackbarContext";
 import { useAppDispatch } from "../store/hooks";
-import { crearMenuThunk, getMenus } from "../store/slices/menuSlice";
+import { actualizarMenuThunk, crearMenuThunk, getMenus } from "../store/slices/menuSlice";
 
 const menuFields: FieldConfig<ItemsMenu>[] = [
   { name: "nombre", label: "Nombre", type: "text" },
@@ -61,26 +61,44 @@ export const useMenuForm = (onSuccess?: () => void) => {
     if (Object.keys(errors).length > 0) return;
 
     setIsSaving(true);
+
+    const apiPayload = {
+      nombre: values.nombre,
+      precio: values.precio,
+      descripcion: values.descripcion,
+      categoria: values.categoria,
+      stocks: values.stocks || [],
+    };
+
+    const isEditing = values.id && values.id !== 0; 
+    
     try {
-      await dispatch(
-        crearMenuThunk({
-          nombre: values.nombre,
-          precio: values.precio,
-          descripcion: values.descripcion,
-          categoria: values.categoria,
-          stocks: values.stocks || [],
-        })
-      ).unwrap();
+        let action;
+        let successMessage;
 
-      // Refrescar lista global
-      await dispatch(getMenus());
+        if (isEditing) {
+            // 💡 EDICIÓN: Usamos actualizarMenuThunk y le pasamos el objeto completo (incluyendo el ID)
+            action = actualizarMenuThunk({ ...values, ...apiPayload });
+            successMessage = "Menú actualizado con éxito!";
+        } else {
+            // 💡 CREACIÓN: Usamos crearMenuThunk
+            action = crearMenuThunk(apiPayload);
+            successMessage = "Menú creado con éxito!";
+        }
 
-      showSnackbar("Menú creado con éxito!", "success");
-      setOpen(false);
-      onSuccess?.();
+        await dispatch(action).unwrap();
+
+        // Refrescar lista global
+        await dispatch(getMenus());
+
+        showSnackbar(successMessage, "success");
+        setOpen(false);
+        onSuccess?.();
     } catch (error) {
-      if (error instanceof Error) showSnackbar(error.message, "error");
-      else showSnackbar("Error desconocido al crear menú", "error");
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Error desconocido al procesar el menú";
+      showSnackbar(errorMessage, "error");
     } finally {
       setIsSaving(false);
     }

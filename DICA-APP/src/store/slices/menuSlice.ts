@@ -9,6 +9,7 @@ import {
   restaurarMenu,
   crearMenu,
   type CrearMenuPayload,
+  actualizarMenu,
 } from "../../api/menu";
 
 // 🧠 Estado inicial
@@ -33,13 +34,41 @@ const initialState: MenuState = {
 //
 
 // Obtener todos los menús
-export const getMenus = createAsyncThunk("menus/getMenus", async (_, thunkAPI) => {
-  try {
-    return await fetchMenus();
-  } catch (error) {
-    return thunkAPI.rejectWithValue((error as Error).message);
+export const getMenus = createAsyncThunk(
+  "menus/getMenus",
+  async (_, thunkAPI) => {
+    try {
+      return await fetchMenus();
+    } catch (error) {
+      return thunkAPI.rejectWithValue((error as Error).message);
+    }
   }
-});
+);
+
+export const actualizarMenuThunk = createAsyncThunk(
+  "menu/actualizarMenu",
+  async (payload: ItemsMenu, { rejectWithValue }) => {
+    try {
+      // ✅ Si es actualización, necesitamos el ID para la llamada a la API
+      const id = payload.id;
+
+      // Creamos el payload de la API, excluyendo el ID, visibilidad y otros campos no requeridos por el backend para el cuerpo
+      const apiPayload: CrearMenuPayload = {
+        nombre: payload.nombre,
+        precio: payload.precio,
+        descripcion: payload.descripcion,
+        categoria: payload.categoria,
+        stocks: payload.stocks || [],
+      };
+
+      const response = await actualizarMenu(id, apiPayload);
+      return response.message;
+    } catch (error) {
+      // Manejo de errores
+      return rejectWithValue(error);
+    }
+  }
+);
 
 // Obtener menús invisibles
 export const getMenusInvisibles = createAsyncThunk(
@@ -111,19 +140,25 @@ const menuSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(getMenus.fulfilled, (state, action: PayloadAction<ItemsMenu[]>) => {
-        state.loading = false;
-        state.menus = action.payload;
-      })
+      .addCase(
+        getMenus.fulfilled,
+        (state, action: PayloadAction<ItemsMenu[]>) => {
+          state.loading = false;
+          state.menus = action.payload;
+        }
+      )
       .addCase(getMenus.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
 
       // 🕵️‍♀️ Menús invisibles
-      .addCase(getMenusInvisibles.fulfilled, (state, action: PayloadAction<ItemsMenu[]>) => {
-        state.menusInvisibles = action.payload;
-      })
+      .addCase(
+        getMenusInvisibles.fulfilled,
+        (state, action: PayloadAction<ItemsMenu[]>) => {
+          state.menusInvisibles = action.payload;
+        }
+      )
 
       // ➕ Crear menú
       .addCase(crearMenuThunk.fulfilled, (state, action) => {
@@ -134,20 +169,43 @@ const menuSlice = createSlice({
         state.error = action.payload as string;
       })
 
-      // 🗑️ Eliminar menú
-      .addCase(eliminarMenuThunk.fulfilled, (state, action: PayloadAction<number>) => {
-        state.menus = state.menus.filter((menu) => menu.id !== action.payload);
+      .addCase(actualizarMenuThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(actualizarMenuThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        // Opcional: Si tu API devuelve el menú actualizado, puedes actualizar la lista aquí.
+        // Como luego haces un `dispatch(getMenus())` en el hook, solo necesitamos limpiar el estado.
+      })
+      .addCase(actualizarMenuThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       })
 
+      // 🗑️ Eliminar menú
+      .addCase(
+        eliminarMenuThunk.fulfilled,
+        (state, action: PayloadAction<number>) => {
+          state.menus = state.menus.filter(
+            (menu) => menu.id !== action.payload
+          );
+        }
+      )
+
       // 🔁 Restaurar menú
-      .addCase(restaurarMenuThunk.fulfilled, (state, action: PayloadAction<ItemsMenu>) => {
-        // Lo quitamos de la lista de invisibles
-        state.menusInvisibles = state.menusInvisibles.filter(
-          (menu) => menu.id !== action.payload.id
-        );
-        // Lo agregamos a los visibles
-        state.menus.push(action.payload);
-      });
+      .addCase(
+        restaurarMenuThunk.fulfilled,
+        (state, action: PayloadAction<ItemsMenu>) => {
+          // Lo quitamos de la lista de invisibles
+          state.menusInvisibles = state.menusInvisibles.filter(
+            (menu) => menu.id !== action.payload.id
+          );
+          // Lo agregamos a los visibles
+          state.menus.push(action.payload);
+        }
+      );
   },
 });
 
