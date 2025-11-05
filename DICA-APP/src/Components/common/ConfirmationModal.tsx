@@ -78,7 +78,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
       {/* 2. Mensaje */}
       <DialogContent>
-        <DialogContentText id="confirmation-dialog-description">
+        <DialogContentText id="confirmation-dialog-description" sx={{color:"black"}}>
           {message}
         </DialogContentText>
       </DialogContent>
