@@ -6,9 +6,11 @@ import { error } from "console";
 //Crear pago
 export  const crearPago = async (req: Request, res: Response): Promise<void> => {
     try{
-        const { monto, metodoDePago, comprobantePago, validado, fk_pedido, fk_fecha, hora } = req.body;
+        const { monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora } = req.body;
 
-        const nuevoPago = new Pago(null, monto, metodoDePago, comprobantePago, validado, fk_pedido, fk_fecha, hora)
+        const fecha = new Date(fk_fecha);
+
+        const nuevoPago = new Pago(null, monto, metodo_pago, comprobante_pago, validado, fk_pedido, fecha, hora)
 
         const query = `
             INSERT INTO pagos (monto, metodo_pago, comprobante_pago, validado, fk_pedido, fk_fecha, hora)
