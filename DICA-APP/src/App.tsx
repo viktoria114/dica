@@ -25,9 +25,18 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { StockPage } from "./Pages/Stock";
 import { Pagos } from "./Pages/Pagos";
 import { Estadisticas } from "./Pages/Estadisticas";
+
 import { DropboxTokenProvider } from "./contexts/DropboxTokenContext";
+import { useEffect } from "react";
+import { setVencimientoStock } from "./api/stock";
+
+
 
 function App() {
+  useEffect(() => {
+    setVencimientoStock();
+  }, []);
+
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
@@ -37,9 +46,7 @@ function App() {
         <Route
           element={
             <PrivateRoute>
-              <>
-                <AppLayout /> {/* NavBar + Outlet */}
-              </>
+              <AppLayout />
             </PrivateRoute>
           }
         >

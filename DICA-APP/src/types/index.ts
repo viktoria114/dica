@@ -28,37 +28,36 @@ export interface ItemsMenu {
 }
 
 export interface Ticket {
-nombre: string,
-cantidad: number,
-subtotal: number,
-precio_unitario: number,
+  nombre: string;
+  cantidad: number;
+  subtotal: number;
+  precio_unitario: number;
 }
 
 export interface ItemsYPromociones {
-    id_menu?: number;
-    id_promocion?: number;
-    cantidad: number;
-    nombre: string;
-    precio_unitario: number;
-    [key: string]: unknown;
+  id_menu?: number;
+  id_promocion?: number;
+  cantidad: number;
+  nombre: string;
+  precio_unitario: number;
+  [key: string]: unknown;
 }
 
 export interface Pedido {
-pedido_id: number | null,
-fecha: string | null,
-hora: string | null,
-id_cliente: number | null,
- ubicacion: string,
- observaciones: string,
- visibilidad: boolean,
- fk_estado: number,
- items?: ItemsYPromociones[];
- precio_por_items?: number | null;
- precio_por_promociones?: number | null;
- precio_total?: number | null;
- promociones?: ItemsYPromociones[];
+  pedido_id: number | null;
+  fecha: string | null;
+  hora: string | null;
+  id_cliente: number | null;
+  ubicacion: string;
+  observaciones: string;
+  visibilidad: boolean;
+  fk_estado: number;
+  items?: ItemsYPromociones[];
+  precio_por_items?: number | null;
+  precio_por_promociones?: number | null;
+  precio_total?: number | null;
+  promociones?: ItemsYPromociones[];
 }
-
 
 export interface Stock {
   id: number | null;
@@ -74,7 +73,7 @@ export interface Stock {
 export interface Promocion {
   id: number;
   nombre: string;
-  tipo: 'DESCUENTO' | 'MONTO_FIJO';
+  tipo: "DESCUENTO" | "MONTO_FIJO";
   precio: number;
   visibilidad: boolean;
   items: { id: number; nombre: string; precio: number; cantidad: number }[];
@@ -100,4 +99,14 @@ export interface Pago {
   fk_pedido: number | null;
   fk_fecha: Date | string;
   hora: string;
+}
+
+export interface RegistroStock {
+  id: number | null;
+  cantidad_inicial: number;
+  cantidad_actual: number;
+  fk_stock: number;
+  estado: string;
+  fk_fecha: Date | string;
+  visibilidad: boolean;
 }
