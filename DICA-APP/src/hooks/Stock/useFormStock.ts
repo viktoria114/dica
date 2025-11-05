@@ -94,7 +94,8 @@ export const useFormStock = (
     // 🔎 Validaciones básicas
     if (!values.nombre?.trim()) errores.nombre = "El nombre es obligatorio";
     if (!values.tipo?.trim()) errores.tipo = "El tipo es obligatorio";
-    if (!values.medida?.trim()) errores.medida = "La unidad de medida es obligatoria";
+    if (!values.medida?.trim())
+      errores.medida = "La unidad de medida es obligatoria";
 
     const stockActual = Number(values.stock_actual ?? 0);
     const stockMinimo = Number(values.stock_minimo ?? 0);
@@ -132,9 +133,12 @@ export const useFormStock = (
       // 🔄 Refrescar lista
       dispatch(getStock());
       onSuccess();
-    } catch (error) {
-      if (error instanceof Error) showSnackbar(error.message, "error");
-      else showSnackbar("Error desconocido", "error");
+    } catch (error: any) {
+      const mensaje =
+        typeof error === "string"
+          ? error
+          : error?.message || "Error desconocido";
+      showSnackbar(mensaje, "error");
     } finally {
       setIsSaving(false);
     }

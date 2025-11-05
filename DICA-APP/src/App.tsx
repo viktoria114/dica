@@ -29,8 +29,7 @@ import { Estadisticas } from "./Pages/Estadisticas";
 import { DropboxTokenProvider } from "./contexts/DropboxTokenContext";
 import { useEffect } from "react";
 import { setVencimientoStock } from "./api/stock";
-
-
+import { SnackbarProvider as NotistackProvider } from "notistack";
 
 function App() {
   useEffect(() => {
@@ -71,11 +70,18 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <DropboxTokenProvider>
-        <SnackbarProvider>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <RouterProvider router={router} />
-          </LocalizationProvider>
-        </SnackbarProvider>
+        <NotistackProvider
+          maxSnack={8}
+          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+          autoHideDuration={15000}
+          preventDuplicate
+        >
+          <SnackbarProvider>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <RouterProvider router={router} />
+            </LocalizationProvider>
+          </SnackbarProvider>
+        </NotistackProvider>
       </DropboxTokenProvider>
     </ThemeProvider>
   );

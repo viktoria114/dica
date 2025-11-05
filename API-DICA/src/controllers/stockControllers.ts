@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import { Stock } from '../models/stock';
 import { RegistroStock } from '../models/registroStock';
 import { pool } from '../config/db';
@@ -19,6 +19,16 @@ export const crearStock = async (
       stock_minimo,
       medida,
     );
+
+    //validacion de nombre unico
+    const consulta = await pool.query(
+      `SELECT * FROM stock WHERE LOWER(nombre) = LOWER($1)`,
+      [nombre],
+    );
+    if (consulta.rows.length > 0) {
+      res.status(400).json({ error: 'El nombre del stock ya existe' });
+      return;
+    }
 
     const query = `
             INSERT INTO stock (nombre, stock_actual, vencimiento, tipo, stock_minimo, visibilidad, medida)
@@ -55,6 +65,16 @@ export const actualizarStock = async (
     const { id } = req.params;
     const { nombre, stock_actual, vencimiento, tipo, stock_minimo, medida } =
       req.body;
+
+    //validacion de nombre unico
+    const consulta = await pool.query(
+      `SELECT * FROM stock WHERE LOWER(nombre) = LOWER($1) AND id <> $2`,
+      [nombre, id],
+    );
+    if (consulta.rows.length > 0) {
+      res.status(400).json({ error: 'El nombre del stock ya existe' });
+      return;
+    }
 
     const query = `
         UPDATE stock
@@ -254,7 +274,8 @@ export const validateLowStock = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const query = 'SELECT * FROM stock WHERE stock_actual < stock_minimo';
+    const query =
+      'SELECT * FROM stock WHERE stock_actual < stock_minimo AND visibilidad = true';
 
     const result = await pool.query(query);
 
@@ -463,6 +484,7 @@ export const eliminarRegistroStock = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
 
@@ -471,49 +493,52 @@ export const eliminarRegistroStock = async (
       return;
     }
 
-    // Buscar registro stock actual
-    const consulta = await pool.query(
+    await client.query('BEGIN');
+
+    // Buscar registro actual
+    const consulta = await client.query(
       `SELECT * FROM registro_stock WHERE id = $1`,
       [id],
     );
     const actual = consulta.rows[0];
 
     if (!actual) {
+      await client.query('ROLLBACK');
       res.status(404).json({ error: 'registro de stock no encontrado' });
       return;
     }
 
-    const query = `
-      DELETE FROM registro_stock
-      WHERE id = $1
-      RETURNING *;
-    `;
+    // Eliminar gasto asociado (antes que el registro stock)
+    await client.query(`DELETE FROM gastos WHERE fk_registro_stock = $1`, [id]);
 
-    const result = await pool.query(query, [id]);
-
-    //USAR "actual" PARA RESTARLE EL STOCK ACTUAL AL TOTAL DEL STOCK CORRESPONDIENTE
-    const stockQuery = `
+    // Actualizar stock total
+    await client.query(
+      `
       UPDATE stock
       SET stock_actual = stock_actual - $1
       WHERE id = $2
-    `;
-    await pool.query(stockQuery, [actual.cantidad_actual, actual.fk_stock]);
+      `,
+      [actual.cantidad_actual, actual.fk_stock],
+    );
 
-    //ELIMINAR GASTO ASOCIADO SI ES QUE EXISTE
-    const gastoQuery = `
-      DELETE FROM gastos
-      WHERE fk_registro_stock = $1
-      RETURNING *;
-    `;
-    await pool.query(gastoQuery, [id]);
+    // Eliminar el registro de stock
+    const result = await client.query(
+      `DELETE FROM registro_stock WHERE id = $1 RETURNING *`,
+      [id],
+    );
+
+    await client.query('COMMIT');
 
     res.status(200).json({
       mensaje: 'Registro de stock eliminado exitosamente.',
       registro: result.rows[0],
     });
   } catch (error: any) {
+    await client.query('ROLLBACK');
     console.error('Error al eliminar registro de stock:', error.message);
     res.status(400).json({ error: error.message });
+  } finally {
+    client.release();
   }
 };
 
@@ -583,5 +608,28 @@ export const setVencimientoStock = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al actualizar stock vencido' });
   } finally {
     client.release();
+  }
+};
+
+// stockControllers.ts
+export const validateExpiredStock = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const query = `
+      SELECT DISTINCT s.id, s.nombre, rs.estado
+      FROM registro_stock rs
+      JOIN stock s ON rs.fk_stock = s.id
+      WHERE LOWER(rs.estado) = 'vencido'
+        AND rs.visibilidad = true
+        AND s.visibilidad = true
+    `;
+
+    const result = await pool.query(query);
+    res.status(200).json(result.rows);
+  } catch (error: any) {
+    console.error('Error al validar stock vencido:', error);
+    res.status(500).json({ message: 'Error al validar stock vencido.' });
   }
 };

@@ -33,6 +33,21 @@ export const fetchValidateLowStock = async (): Promise<Stock[]> => {
   }
 };
 
+//GET Registros vencidos
+export const fetchVencidosStock = async (): Promise<Stock[]> => {
+  try {
+    const res = await api.get<Stock[]>(`${STOCK_URL}/vencidos`);
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al obtener registros vencidos"
+      );
+    }
+    throw err;
+  }
+};
+
 // GET Stock Invisible
 export const fetchStockInvisible = async (): Promise<Stock[]> => {
   try {
@@ -56,7 +71,9 @@ export const fetchCrearStock = async (data: Partial<Stock>): Promise<Stock> => {
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      throw new Error(err.response?.data?.message || "Error al crear Stock");
+      const backendError =
+        err.response?.data?.error || err.response?.data?.message;
+      throw new Error(backendError || "Error al crear Stock");
     }
     throw err;
   }
@@ -69,9 +86,9 @@ export const fetchActualizarStock = async (stock: Stock): Promise<Stock> => {
     return res.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err)) {
-      throw new Error(
-        err.response?.data?.message || "Error al actualizar Stock"
-      );
+      const backendError =
+        err.response?.data?.error || err.response?.data?.message;
+      throw new Error(backendError || "Error al actualizar Stock");
     }
     throw err;
   }
