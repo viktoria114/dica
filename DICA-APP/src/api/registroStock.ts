@@ -1,18 +1,9 @@
 // src/api/registroStock.ts
 import axios from "axios";
 import api from "./api";
+import type { RegistroStock } from "../types";
 
 const STOCK_URL = import.meta.env.VITE_STOCK;
-
-export interface RegistroStock {
-  id: number | null;
-  cantidad_inicial: number;
-  cantidad_actual: number;
-  fk_stock: number;
-  estado: string;
-  fk_fecha: Date | string;
-  visibilidad: boolean;
-}
 
 // GET Registros de un Stock específico
 export const fetchRegistrosStock = async (

@@ -13,7 +13,8 @@ import { useAuth } from "../hooks/useAuth";
 import { useDashboard } from "../hooks/useDashboard";
 import { toggleActivity, getAgentStatus } from "../api/agente";
 import { useSnackbar } from "../contexts/SnackbarContext";
-
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { getStockBajo } from "../store/slices/stockSlice";
 
 export const Inicio = () => {
   const [fecha, setFecha] = useState(new Date());
@@ -22,6 +23,11 @@ export const Inicio = () => {
   const { showSnackbar } = useSnackbar();
   const [isAgentActive, setIsAgentActive] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+
+  const dispatch = useAppDispatch();
+  const { stockBajo } = useAppSelector((state) => state.stock);
+  const [stockNotificacionesMostradas, setStockNotificacionesMostradas] =
+    useState(false);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -50,6 +56,34 @@ export const Inicio = () => {
     minute: "2-digit",
   });
 
+  useEffect(() => {
+    const verificarStockBajo = async () => {
+      try {
+        await dispatch(getStockBajo()).unwrap();
+      } catch (error) {
+        console.error("Error al verificar stock bajo:", error);
+      }
+    };
+
+    verificarStockBajo();
+  }, [dispatch]);
+
+  // 👇 AGREGAR ESTE useEffect PARA MOSTRAR NOTIFICACIONES
+  useEffect(() => {
+    if (stockBajo.length > 0 && !stockNotificacionesMostradas) {
+      // Mostrar una notificación por cada producto con stock bajo
+      stockBajo.forEach((producto, index) => {
+        setTimeout(() => {
+          showSnackbar(
+            `⚠️ Stock bajo: ${producto.nombre} - Actual: ${producto.stock_actual} ${producto.medida} | Mínimo: ${producto.stock_minimo} ${producto.medida}`,
+            "warning",
+            6000 // 6 segundos de duración
+          );
+        }, index * 1000); // Retraso de 1 segundo entre cada notificación
+      });
+      setStockNotificacionesMostradas(true);
+    }
+  }, [stockBajo, stockNotificacionesMostradas, showSnackbar]);
   const fechaTexto = fecha.toLocaleDateString("es-AR", {
     weekday: "long",
     day: "numeric",
@@ -59,7 +93,6 @@ export const Inicio = () => {
 
   const capitalizar = (texto: string) =>
     texto.charAt(0).toUpperCase() + texto.slice(1);
-
 
   const chats = [
     "3804832010: Hola me da 3 de choclo?",
@@ -116,8 +149,6 @@ export const Inicio = () => {
 
   return (
     <Grid container spacing={2} justifyContent="center">
-
-
       {/* Contenido central */}
       <Grid item md={12}>
         <Container>
@@ -196,8 +227,6 @@ export const Inicio = () => {
           </Box>
         </Container>
       </Grid>
-
-
     </Grid>
   );
 };

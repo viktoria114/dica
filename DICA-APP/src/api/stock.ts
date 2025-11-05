@@ -18,6 +18,21 @@ export const fetchStock = async (): Promise<Stock[]> => {
   }
 };
 
+// GET Stock bajo (stock_actual < stock_minimo)
+export const fetchValidateLowStock = async (): Promise<Stock[]> => {
+  try {
+    const res = await api.get<Stock[]>(`${STOCK_URL}/verificar`);
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al verificar stock bajo"
+      );
+    }
+    throw err;
+  }
+};
+
 // GET Stock Invisible
 export const fetchStockInvisible = async (): Promise<Stock[]> => {
   try {

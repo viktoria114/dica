@@ -7,12 +7,14 @@ import {
   fetchActualizarStock,
   fetchBorrarStock,
   fetchRestaurarStock,
+  fetchValidateLowStock,
 } from "../../api/stock";
 
 // 🧩 Estado inicial
 interface StockState {
   stock: Stock[];
   stockInvisibles: Stock[];
+  stockBajo: Stock[];
   loading: boolean;
   error: string | null;
   modoPapelera: boolean;
@@ -21,6 +23,7 @@ interface StockState {
 const initialState: StockState = {
   stock: [],
   stockInvisibles: [],
+  stockBajo: [],
   loading: false,
   error: null,
   modoPapelera: false,
@@ -48,6 +51,18 @@ export const getStockInvisible = createAsyncThunk(
     } catch (err: unknown) {
       if (err instanceof Error) return rejectWithValue(err.message);
       return rejectWithValue("Error desconocido al obtener el stock invisible");
+    }
+  }
+);
+
+export const getStockBajo = createAsyncThunk(
+  "stock/getStockBajo",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await fetchValidateLowStock();
+    } catch (err: unknown) {
+      if (err instanceof Error) return rejectWithValue(err.message);
+      return rejectWithValue("Error desconocido al verificar stock bajo");
     }
   }
 );
@@ -149,6 +164,10 @@ const stockSlice = createSlice({
       // ✅ Eliminar stock
       .addCase(borrarStock.fulfilled, (state, action) => {
         state.stock = state.stock.filter((s) => s.id !== action.payload);
+      })
+
+      .addCase(getStockBajo.fulfilled, (state, action) => {
+        state.stockBajo = action.payload;
       })
 
       // ✅ Restaurar stock
