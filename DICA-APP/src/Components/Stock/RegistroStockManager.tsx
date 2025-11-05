@@ -23,15 +23,12 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import {
-  fetchRegistrosStock,
-  fetchCrearRegistroStock,
-  fetchActualizarRegistroStock,
-  fetchEliminarRegistroStock,
-} from "../../api/registroStock";
 import type { RegistroStock } from "../../types";
 import { useSnackbar } from "../../contexts/SnackbarContext";
 import axios from "axios";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { getStock } from "../../store/slices/stockSlice";
+import { actualizarRegistroStock, crearRegistroStock, eliminarRegistroStock, getRegistrosStock } from "../../store/slices/registroStockSlice";
 
 interface RegistroStockManagerProps {
   stockId: number;
@@ -42,8 +39,8 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
   stockId,
   stockNombre,
 }) => {
-  const [registros, setRegistros] = useState<RegistroStock[]>([]);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { registros, loading } = useAppSelector((state) => state.registroStock);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRegistro, setEditingRegistro] = useState<RegistroStock | null>(
     null
@@ -60,19 +57,15 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
 
   // Cargar registros al montar
   const cargarRegistros = useCallback(async () => {
-    setLoading(true);
     try {
-      const data = await fetchRegistrosStock(stockId);
-      setRegistros(data);
+      await dispatch(getRegistrosStock(stockId));
     } catch (error) {
       // Detecta si es un error HTTP 404 (no hay registros)
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-        setRegistros([]); // Simplemente lista vacía
+        showSnackbar("No se encontraron registros", "warning");
       } else if (error instanceof Error) {
         showSnackbar(error.message, "warning");
       }
-    } finally {
-      setLoading(false);
     }
   }, [stockId, showSnackbar]);
 
@@ -132,18 +125,23 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
     try {
       if (editingRegistro) {
         // Actualizar
-        await fetchActualizarRegistroStock(editingRegistro.id!, {
-          ...formValues,
-          fk_stock: stockId,
-        });
+        await dispatch(actualizarRegistroStock({
+          id: editingRegistro.id!,
+          payload: {
+            ...formValues,
+            fk_stock: stockId,
+          },
+        }));
         showSnackbar("Registro actualizado correctamente", "success");
+        await dispatch(getStock());
       } else {
         // Crear
-        await fetchCrearRegistroStock({
+        await dispatch(crearRegistroStock({
           ...formValues,
           cantidad: formValues.cantidad_inicial,
           fk_stock: stockId,
-        });
+        }));
+        await dispatch(getStock());
         showSnackbar("Registro creado correctamente", "success");
       }
       await cargarRegistros();
@@ -162,8 +160,9 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
     if (!confirmar) return;
 
     try {
-      await fetchEliminarRegistroStock(registroId);
+      await dispatch(eliminarRegistroStock(registroId));
       showSnackbar("Registro eliminado correctamente", "success");
+      await dispatch(getStock());
       await cargarRegistros();
     } catch (error) {
       if (error instanceof Error) {
