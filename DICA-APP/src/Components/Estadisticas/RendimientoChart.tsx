@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import{ useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { getRendimientoEmpleados } from '../../api/reportes';
 import { DateRangeFilter } from './DateRangeFilter';

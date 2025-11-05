@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
-import { Button, Grid } from '@mui/material';
+import { Button, Grid, Container } from '@mui/material';
 
 interface DateRangeFilterProps {
   onFilter: (filters: { fecha_inicio: Date | null; fecha_fin: Date | null }) => void;
@@ -18,6 +18,7 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ onFilter }) =>
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+      <Container sx={{p:1}}>
       <Grid container spacing={2} alignItems="center">
         <Grid item xs={12} sm={4}>
           <DatePicker
@@ -41,6 +42,7 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ onFilter }) =>
           </Button>
         </Grid>
       </Grid>
+      </Container>
     </LocalizationProvider>
   );
 };
