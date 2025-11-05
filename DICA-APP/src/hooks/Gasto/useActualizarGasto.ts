@@ -19,11 +19,18 @@ export const useActualizarGasto = (onSuccess?: () => void) => {
   const actualizar = async (id: number, values: Partial<Gasto>) => {
     setIsUpdating(true);
     try {
-      const formattedValues = {
+      const payload: any = {
         ...values,
         fecha: values.fecha ? formatDateForBackend(new Date(values.fecha)) : undefined,
       };
-      await dispatch(modificarGastos({ id, payload: formattedValues as Gasto }));
+
+      if (values.categoria === 'insumos' && values.stockItems && values.stockItems.length > 0) {
+        payload.fk_stock = values.stockItems[0].id_stock;
+        payload.cantidad = values.stockItems[0].cantidad;
+      }
+      delete payload.stockItems;
+
+      await dispatch(modificarGastos({ id, payload: payload as Gasto }));
       showSnackbar('Gasto actualizado con éxito!', 'success');
       onSuccess?.();
     } catch (error) {

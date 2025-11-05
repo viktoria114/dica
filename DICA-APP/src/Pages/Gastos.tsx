@@ -61,6 +61,8 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
     formErrors,
     handleChange,
     handleSubmit,
+    validate,
+    setFormErrors
   } = useGastoForm(() => refreshGastos(year, month), stock);
 
   const fieldsWithStock = React.useMemo(() => { return gastoFields }, [gastoFields]);
@@ -73,6 +75,14 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
   const [isStockSelectorOpen, setStockSelectorOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"crear" | "borrar" | null>(null);
+
+  const handleUpdate = () => {
+    const errors = validate(formValues);
+    setFormErrors(errors);
+    if (Object.keys(errors).length === 0) {
+      actualizar(formValues.id!, formValues);
+    }
+  };
 
   const handleDeleteRequest = () => {
     setConfirmAction("borrar");
@@ -98,6 +108,12 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
     setConfirmOpen(false);
     setConfirmAction(null);
   };
+
+  React.useEffect(() => {
+    if (formValues.categoria !== 'insumos' && formValues.stockItems && formValues.stockItems.length > 0) {
+      setFormValues(prev => ({ ...prev, stockItems: [] }));
+    }
+  }, [formValues.categoria, formValues.stockItems, setFormValues]);
 
   React.useEffect(() => {
     refreshGastos(year, month);
@@ -273,7 +289,7 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
         values={formValues}
         formErrors={formErrors}
         handleChange={handleChange}
-        handleGuardar={() => actualizar(formValues.id!, formValues)}
+        handleGuardar={handleUpdate}
         handleClose={() => setOpenEdit(false)}
         isSaving={isUpdating}
         borrar={handleDeleteRequest}

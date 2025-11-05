@@ -138,5 +138,7 @@ export const useGastoForm = (onSuccess?: () => void, stock: any[] = []) => {
     formErrors,
     handleChange,
     handleSubmit,
+    validate,
+    setFormErrors
   };
 };
