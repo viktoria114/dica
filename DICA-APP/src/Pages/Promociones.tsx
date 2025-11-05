@@ -179,10 +179,7 @@ export const Promociones = () => {
               backdropFilter: "blur(10px)",
             }}
           >
-            <EnhancedTableToolbar
-              numSelected={selected.length}
-              modoPapelera={modoPapelera}
-            />
+           
             <TableContainer>
               <Table sx={{ minWidth: 750 }} size={dense ? "small" : "medium"}>
                 <EnhancedTableHead
@@ -213,13 +210,7 @@ export const Promociones = () => {
                         sx={{ cursor: modoPapelera ? "default" : "pointer" }}
                       >
                         <TableCell padding="checkbox">
-                          <Checkbox
-                            color="primary"
-                            disabled={modoPapelera}
-                            checked={isItemSelected}
-                            inputProps={{ "aria-labelledby": labelId }}
-                            sx={{ color: "secondary.main" }}
-                          />
+                          
                         </TableCell>
                         <TableCell
                           component="th"

@@ -256,25 +256,18 @@ const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
                     return (
                       <TableRow
                         hover
-                        onClick={(event) => {
-                          if (!modoPapelera) handleClick(event, row.id);
-                        }}
-                        role="checkbox"
-                        aria-checked={isItemSelected}
-                        tabIndex={-1}
-                        key={row.id}
-                        selected={isItemSelected}
-                        sx={{ cursor: modoPapelera ? "default" : "pointer" }}
+                        //onClick={(event) => {
+                        //  if (!modoPapelera) handleClick(event, row.id);
+                      //  }}
+                        //role="checkbox"
+                        //aria-checked={isItemSelected}
+                      //   tabIndex={-1}
+                      //   key={row.id}
+                        //selected={isItemSelected}
+                       // sx={{ cursor: modoPapelera ? "default" : "pointer" }}
                       >
                         <TableCell padding="checkbox">
-                          <Checkbox
-                            color="primary"
-                            disabled={modoPapelera}
-                            checked={isItemSelected}
-                            inputProps={{ "aria-labelledby": labelId }}
-                            sx={{ color: "secondary.main" }}
-                          />
-                        </TableCell>
+                                                 </TableCell>
                         <TableCell
                           component="th"
                           id={labelId}

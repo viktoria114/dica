@@ -64,7 +64,7 @@ export const EnhancedTableToolbar: React.FC<Props> = ({
         </Typography>
       ) : (
         <Typography sx={{ flex: "1 1 100%" }} variant="h6" component="div">
-          Selecciona algunos items para crear un pedido!
+          Prueba los filtros de menú!
         </Typography>
       )}
 
