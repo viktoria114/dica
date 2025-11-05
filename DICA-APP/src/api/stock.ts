@@ -88,3 +88,17 @@ export const fetchRestaurarStock = async (id: number): Promise<Stock> => {
     throw err;
   }
 };
+
+// POST /vencidos
+export const setVencimientoStock = async (): Promise<void> => {
+  try {
+    await api.post(`${STOCK_URL}/vencidos`);
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      throw new Error(
+        err.response?.data?.message || "Error al setear vencimiento de stock"
+      );
+    }
+    throw err;
+  }
+};
