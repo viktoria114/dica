@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Menu.tsx
 import * as React from "react";
 import Box from "@mui/material/Box";
@@ -7,7 +8,6 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
-import Checkbox from "@mui/material/Checkbox";
 import { Button, Container, LinearProgress } from "@mui/material";
 import { SearchBar } from "../Components/common/SearchBar";
 import type { ItemsMenu } from "../types";
@@ -19,7 +19,12 @@ import InfoIcon from "@mui/icons-material/Info";
 import { useCallback, useState } from "react";
 import { ModalBase } from "../Components/common/ModalBase";
 import { useMenuForm } from "../hooks/useFormMenu";
-import { ItemSelector, type BaseAvailableItem, type ItemSelectorColumn } from "../Components/common/ItemSelector";
+import {
+  ItemSelector,
+  type BaseAvailableItem,
+  type ItemSelectorColumn,
+} from "../Components/common/ItemSelector";
+import { useStock } from "../hooks/Stock/useStock";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -59,25 +64,19 @@ export const Menu = () => {
   const [dense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const rowsPerPageOptions: number[] = [5, 10, 25];
-    const [openEdit, setOpenEdit] = useState(false);
-    
-const allAvailableStocks: BaseAvailableItem[] = [
-    { id: 1, nombre: "Harina" },
-    { id: 2, nombre: "Queso" },
-    { id: 3, nombre: "Jamón" },
-    { id: 4, nombre: "Tomate" },
-  ];
+  const [openEdit, setOpenEdit] = useState(false);
+  const { stock } = useStock();
 
-interface AdaptedStockItem {
-    id: number;
+  interface AdaptedStockItem {
+    id: number; // Debe ser 'id' para que el ItemSelector lo maneje
     nombre: string;
     cantidad: number;
   }
 
-const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
+  const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
     { key: "nombre", label: "Item de Stock", editable: false, width: 6 },
     {
-      key: "cantidad",
+      key: "cantidad", // 👈 Cambiado de "cantidad_necesaria" a "cantidad"
       label: "Cantidad Necesaria",
       editable: true,
       type: "number",
@@ -85,49 +84,41 @@ const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
     },
   ];
 
-
   const stockItemFactory = (
     stockItem: BaseAvailableItem
   ): AdaptedStockItem => ({
-    id: Number(stockItem.id),
+    id: Number(stockItem.id), // Usa 'id'
     nombre: stockItem.nombre,
-    cantidad: 1, // Cantidad por defecto al agregar
+    cantidad: 1, // Usa 'cantidad'
   });
 
   const adaptedStocks = React.useMemo(() => {
     // Si no hay stocks en el form o no han cargado los disponibles, devuelve vacío
-    if (!formValues.stocks || !allAvailableStocks.length) {
+    if (!formValues.stocks || !stock) {
       return [];
     }
-    
+
     return formValues.stocks.map((stockEnForm) => {
-      // Busca el 'nombre' del stock en la lista completa
-      const stockInfo = allAvailableStocks.find(
-        (a) => a.id === stockEnForm.id_stock
-      );
-      
+      const stockInfo = stock.find((a: any) => a.id === stockEnForm.id_stock);
       return {
-        id: stockEnForm.id_stock,
+        id: stockEnForm.id_stock, // 👈 id del item de stock (mapeado de id_stock)
         nombre: stockInfo?.nombre || "Stock Desconocido",
-        cantidad: stockEnForm.cantidad_necesaria,
+        cantidad: stockEnForm.cantidad_necesaria, // 👈 cantidad (mapeado de cantidad_necesaria)
       };
     });
-  }, [formValues.stocks, allAvailableStocks]);
+  }, [formValues.stocks, stock]);
 
   // --- 6. ADAPTADOR DE "VUELTA" (Handler) ---
   // Recibe `AdaptedStockItem[]` del ItemSelector y lo transforma
   // de nuevo a `{ id_stock, cantidad_necesaria }[]` antes de guardarlo en el form.
   const handleStockChange = (newAdaptedStocks: AdaptedStockItem[]) => {
     const newStocksForForm = newAdaptedStocks.map((a) => ({
-      id_stock: a.id,
-      cantidad_necesaria: a.cantidad,
-    }));
-    
-    // Usamos el 'handleChange' del hook useMenuForm
+      id_stock: a.id, // 👈 Mapea 'id' de ItemSelector a 'id_stock' del Form
+      cantidad_necesaria: a.cantidad, // 👈 Mapea 'cantidad' de ItemSelector a 'cantidad_necesaria' del Form
+    })); // Usamos el 'handleChange' del hook useMenuForm
+
     handleChange("stocks", newStocksForForm);
   };
-
-
   React.useEffect(() => {
     setFilteredRows(menus);
   }, [menus]);
@@ -204,6 +195,8 @@ const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
     setOpenEdit(true);
   };
 
+  console.log(stock, adaptedStocks);
+
   return (
     <>
       {loading && <LinearProgress color="inherit" />}
@@ -250,7 +243,6 @@ const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
                 />
                 <TableBody>
                   {visibleRows.map((row, index) => {
-                    const isItemSelected = selected.includes(row.id);
                     const labelId = `enhanced-table-checkbox-${index}`;
 
                     return (
@@ -258,16 +250,15 @@ const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
                         hover
                         //onClick={(event) => {
                         //  if (!modoPapelera) handleClick(event, row.id);
-                      //  }}
+                        //  }}
                         //role="checkbox"
                         //aria-checked={isItemSelected}
-                      //   tabIndex={-1}
-                      //   key={row.id}
+                        //   tabIndex={-1}
+                        //   key={row.id}
                         //selected={isItemSelected}
-                       // sx={{ cursor: modoPapelera ? "default" : "pointer" }}
+                        // sx={{ cursor: modoPapelera ? "default" : "pointer" }}
                       >
-                        <TableCell padding="checkbox">
-                                                 </TableCell>
+                        <TableCell padding="checkbox"></TableCell>
                         <TableCell
                           component="th"
                           id={labelId}
@@ -327,7 +318,7 @@ const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
       >
         <ItemSelector<BaseAvailableItem, AdaptedStockItem>
           label="Items de Stock Requeridos"
-          availableItems={allAvailableStocks}
+          availableItems={stock}
           selectedItems={adaptedStocks}
           onChange={handleStockChange}
           itemFactory={stockItemFactory}
@@ -358,7 +349,7 @@ const stockColumns: ItemSelectorColumn<AdaptedStockItem>[] = [
       >
         <ItemSelector<BaseAvailableItem, AdaptedStockItem>
           label="Items de Stock Requeridos"
-          availableItems={allAvailableStocks}
+          availableItems={stock}
           selectedItems={adaptedStocks}
           onChange={handleStockChange}
           itemFactory={stockItemFactory}
