@@ -33,7 +33,6 @@ export const usePagoForm = (onSuccess?: () => void) => {
       type: 'select',
       options: [
         { value: 'Efectivo', label: 'Efectivo' },
-        { value: 'Tarjeta', label: 'Tarjeta' },
         { value: 'Transferencia', label: 'Transferencia' },
       ],
     },
