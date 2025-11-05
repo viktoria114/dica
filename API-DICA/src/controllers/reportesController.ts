@@ -81,6 +81,54 @@ export const getVentasDiarias = async (req: Request, res: Response) => {
   }
 };
 
+// En tu archivo de reportes del backend, junto a getProductosMasVendidos
+
+export const getPromocionesMasPedidas = async (req: Request, res: Response) => {
+  try {
+    const { fecha_inicio, fecha_fin } = req.query;
+
+    let query = `
+      SELECT 
+        p.nombre,
+        COUNT(pp.id_promocion) AS veces_usada
+      FROM pedidos_promociones pp
+      JOIN promociones p ON pp.id_promocion = p.id
+      JOIN pedidos ped ON pp.id_pedido = ped.id
+      JOIN dim_fecha df ON ped.fecha::DATE = df.fecha
+    `;
+
+    const values = [];
+    let paramIndex = 1;
+    let whereClauses = [];
+
+    // Lógica de filtro por fecha (similar a getProductosMasVendidos)
+    if (fecha_inicio) {
+      whereClauses.push(`df.fecha >= $${paramIndex++}`);
+      values.push(fecha_inicio);
+    }
+    if (fecha_fin) {
+      whereClauses.push(`df.fecha <= $${paramIndex++}`);
+      values.push(fecha_fin);
+    }
+
+    if (whereClauses.length > 0) {
+      query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    query += `
+      GROUP BY p.nombre
+      ORDER BY veces_usada DESC
+      LIMIT 10;
+    `;
+
+    const { rows } = await pool.query(query, values);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener las promociones más pedidas' });
+  }
+};
+
 export const getProductosMasVendidos = async (req: Request, res: Response) => {
   try {
     const { fecha_inicio, fecha_fin } = req.query;
@@ -207,5 +255,51 @@ export const getReporteGastos = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al obtener el reporte de gastos' });
+  }
+};
+
+export const getVentasPorCategoria = async (req: Request, res: Response) => {
+  try {
+    const { fecha_inicio, fecha_fin } = req.query;
+
+    let query = `
+      SELECT 
+        m.categoria,
+        SUM(pm.cantidad * pm.precio_unitario) AS monto_vendido,
+        SUM(pm.cantidad) AS total_unidades
+      FROM pedidos_menu pm
+      JOIN menu m ON pm.fk_menu = m.id
+      JOIN pedidos p ON pm.fk_pedido = p.id
+      JOIN dim_fecha df ON p.fecha::DATE = df.fecha
+    `;
+
+    const values = [];
+    let paramIndex = 1;
+    let whereClauses = ["m.visibilidad = TRUE"]; // Solo productos visibles
+
+    // Lógica de filtro por fecha
+    if (fecha_inicio) {
+      whereClauses.push(`df.fecha >= $${paramIndex++}`);
+      values.push(fecha_inicio);
+    }
+    if (fecha_fin) {
+      whereClauses.push(`df.fecha <= $${paramIndex++}`);
+      values.push(fecha_fin);
+    }
+
+    if (whereClauses.length > 0) {
+      query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    query += `
+      GROUP BY m.categoria
+      ORDER BY monto_vendido DESC;
+    `;
+
+    const { rows } = await pool.query(query, values);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener las ventas por categoría' });
   }
 };

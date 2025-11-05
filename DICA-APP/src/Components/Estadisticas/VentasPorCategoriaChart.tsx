@@ -1,19 +1,19 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
-import { getReporteGastos } from '../../api/reportes';
+import { getVentasPorCategoria } from '../../api/reportes';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Box, Typography } from '@mui/material';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-interface GastosChartProps {
+interface VentasPorCategoriaChartProps {
     fechaInicio: Date | null;
     fechaFin: Date | null;
 }
 
 const formatDate = (date: Date | null) => {
+    // (Misma función formatDate que ya tienes)
     if (!date) return null;
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -21,22 +21,20 @@ const formatDate = (date: Date | null) => {
     return `${year}-${month}-${day}`;
 };
 
-// Paleta de colores más profesional
 const BACKGROUND_COLORS = [
-    'rgba(255, 99, 132, 0.7)',  // Rojo
-    'rgba(54, 162, 235, 0.7)',  // Azul
-    'rgba(255, 206, 86, 0.7)',  // Amarillo
-    'rgba(75, 192, 192, 0.7)',  // Turquesa
-    'rgba(153, 102, 255, 0.7)', // Púrpura
-    'rgba(255, 159, 64, 0.7)',  // Naranja
+    'rgba(60, 179, 113, 0.7)', // Verde medio
+    'rgba(255, 165, 0, 0.7)',  // Naranja
+    'rgba(100, 149, 237, 0.7)',// Azul Acero
+    'rgba(238, 130, 238, 0.7)',// Violeta
+    'rgba(128, 0, 0, 0.7)',    // Borgoña
+    'rgba(0, 128, 128, 0.7)',  // Teal
 ];
 
 
-export const GastosChart: React.FC<GastosChartProps> = ({ fechaInicio, fechaFin }) => {
+export const VentasPorCategoriaChart: React.FC<VentasPorCategoriaChartProps> = ({ fechaInicio, fechaFin }) => {
     const [chartData, setChartData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Formatear las fechas solo cuando cambian
     const formattedFilters = useMemo(() => {
         return {
             fecha_inicio: formatDate(fechaInicio),
@@ -48,15 +46,15 @@ export const GastosChart: React.FC<GastosChartProps> = ({ fechaInicio, fechaFin 
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            // Usamos la función de API existente
-            const data = await getReporteGastos(formattedFilters);
+            const data = await getVentasPorCategoria(formattedFilters); 
 
             const chartJsData = {
                 labels: data.map((item: any) => item.categoria),
                 datasets: [
                     {
-                        label: 'Total Gastado ($)',
-                        data: data.map((item: any) => item.total_gastos),
+                        label: 'Monto Vendido ($)',
+                        // Usamos monto_vendido para la distribución de ingresos
+                        data: data.map((item: any) => parseFloat(item.monto_vendido)), 
                         backgroundColor: data.map((_, index) => BACKGROUND_COLORS[index % BACKGROUND_COLORS.length]),
                         borderColor: '#ffffff',
                         borderWidth: 2,
@@ -64,26 +62,21 @@ export const GastosChart: React.FC<GastosChartProps> = ({ fechaInicio, fechaFin 
                 ],
             };
             setChartData(chartJsData);
-
         } catch (error) {
-            console.error('Error fetching reporte gastos:', error);
+            console.error('Error fetching ventas por categoria:', error);
             setChartData(null);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Ejecutar la llamada a la API cada vez que cambian las fechas
     useEffect(() => {
         fetchData();
     }, [formattedFilters.fecha_inicio, formattedFilters.fecha_fin]);
 
-    if (isLoading) {
-        return <Typography variant="h6" color="textSecondary">Cargando distribución de gastos...</Typography>;
-    }
 
     if (!chartData || chartData.labels.length === 0) {
-        return <Typography variant="h6" color="textSecondary">No hay gastos registrados para el período seleccionado.</Typography>;
+        return <Typography variant="h6" color="textSecondary">No hay datos de ventas por categoría para el período.</Typography>;
     }
     
     const options = {
@@ -94,18 +87,15 @@ export const GastosChart: React.FC<GastosChartProps> = ({ fechaInicio, fechaFin 
             },
             title: {
                 display: true,
-                text: 'Distribución de Gastos por Categoría',
-                font: {
-                    size: 16
-                }
+                text: 'Distribución de Ingresos por Categoría de Menú'
             }
         },
-        cutout: '75%', // Hace que sea un gráfico de dona (doughnut)
+        cutout: '60%', 
     };
 
     return (
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', height: '400px' }}>
-            <Box sx={{ maxWidth: '400px', margin: 'auto' }}>
+            <Box sx={{ maxWidth: '450px', margin: 'auto' }}>
                 <Doughnut data={chartData} options={options} />
             </Box>
         </Box>
