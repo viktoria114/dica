@@ -28,7 +28,6 @@ interface Props {
 }
 
 export const PedidosVolumenChart: React.FC<Props> = ({ data }) => {
-  // Ordenar las fechas (claves del objeto) para la visualización cronológica
   const sortedDates = Object.keys(data).sort();
   const dataValues = sortedDates.map(date => data[date]);
 
@@ -38,9 +37,9 @@ export const PedidosVolumenChart: React.FC<Props> = ({ data }) => {
       {
         label: "Volumen de Pedidos",
         data: dataValues,
-        borderColor: "#D7E8E0", // Un color que represente a los pedidos
+        borderColor: "#D7E8E0", 
         backgroundColor: "#7fddb1ff",
-        tension: 0.3, // Suaviza la línea
+        tension: 0.3, 
       },
     ],
   };

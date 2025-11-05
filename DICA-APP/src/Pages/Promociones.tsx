@@ -7,16 +7,15 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
-import Checkbox from "@mui/material/Checkbox";
 import { Button, Container, LinearProgress, List, ListItem, ListItemText } from "@mui/material";
 import { SearchBar } from "../Components/common/SearchBar";
 import type { Promocion } from "../types";
 import { EnhancedTableHead } from "../Components/Promociones/EnhancedTableHead";
-import { EnhancedTableToolbar } from "../Components/Promociones/EnhancedTableToolbar";
 import { Paginacion } from "../Components/common/Paginacion";
 import { usePromociones } from "../hooks/Promocion/usePromociones";
 import InfoIcon from "@mui/icons-material/Info";
 import { useCallback, useState } from "react";
+import { ConfirmationModal } from "../Components/common/ConfirmationModal";
 import { ModalBase } from "../Components/common/ModalBase";
 import { usePromocionForm } from "../hooks/Promocion/useFormPromociones";
 import { MenuSelectorModal } from "../Components/Promociones/MenuSelectorModal";
@@ -79,6 +78,41 @@ export const Promociones = () => {
   const [openEdit, setOpenEdit] = useState(false);
   const [originalPromocion, setOriginalPromocion] = useState<Promocion | null>(null);
   const [isMenuSelectorOpen, setMenuSelectorOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"crear" | "borrar" | "restaurar" | null>(null);
+
+  const handleDeleteRequest = () => {
+    setConfirmAction("borrar");
+    setConfirmOpen(true);
+  };
+
+  const handleRestoreRequest = () => {
+    setConfirmAction("restaurar");
+    setConfirmOpen(true);
+  };
+
+  const handleCreateRequest = () => {
+    setConfirmAction("crear");
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmAction === "borrar") {
+      borrarPromocionHandler(formValues.id);
+    } else if (confirmAction === "restaurar") {
+      restaurar(formValues.id);
+    } else if (confirmAction === "crear") {
+      handleSubmit(formValues);
+    }
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
+
+  const handleCloseConfirm = () => {
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
+
 
 
   React.useEffect(() => {
@@ -264,7 +298,7 @@ export const Promociones = () => {
         values={formValues}
         formErrors={formErrors}
         handleChange={handleChange}
-        handleGuardar={handleSubmit}
+        handleGuardar={handleCreateRequest}
         handleClose={() => setOpen(false)}
         isSaving={isSaving}
       >
@@ -292,9 +326,9 @@ export const Promociones = () => {
         handleGuardar={() => actualizar(formValues.id, originalPromocion!, formValues)}
         handleClose={() => setOpenEdit(false)}
         isSaving={isUpdating}
-        borrar={() => borrarPromocionHandler(formValues.id)}
+        borrar={handleDeleteRequest}
         isDeleting={isDeleting}
-        restaurar={() => restaurar(formValues.id)}
+        restaurar={handleRestoreRequest}
         isRestoring={isRestoring}
         modoPapelera={modoPapelera}
         idField="id"
@@ -328,6 +362,41 @@ export const Promociones = () => {
         selectedItems={formValues.items ?? []}
         onChange={(newItems) => handleChange("items", newItems)}
         formValues={formValues}
+      />
+
+      <ConfirmationModal
+        open={confirmOpen}
+        onClose={handleCloseConfirm}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmAction === "crear"
+            ? "Confirmar Creación"
+            : confirmAction === "borrar"
+            ? "Confirmar Eliminación"
+            : "Confirmar Restauración"
+        }
+        message={
+          confirmAction === "crear"
+            ? "¿Está seguro de que desea crear esta promoción?"
+            : confirmAction === "borrar"
+            ? `¿Está seguro de que desea eliminar la promoción "${formValues.nombre}"?`
+            : `¿Está seguro de que desea restaurar la promoción "${formValues.nombre}"?`
+        }
+        confirmText={
+          confirmAction === "crear"
+            ? "Sí, Crear"
+            : confirmAction === "borrar"
+            ? "Sí, Eliminar"
+            : "Sí, Restaurar"
+        }
+        cancelText="Cancelar"
+        confirmButtonColor={
+          confirmAction === "crear"
+            ? "primary"
+            : confirmAction === "borrar"
+            ? "error"
+            : "success"
+        }
       />
     </>
   );

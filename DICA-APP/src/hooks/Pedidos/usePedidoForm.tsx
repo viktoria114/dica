@@ -155,6 +155,8 @@ if (!horaRegex.test(values.hora ?? ""))
         // En crear pedido también debes enviar el DNI
         await crearPedido(values); 
         showSnackbar("Pedido creado con éxito!", "success");
+        window.location.reload();
+
       } else {
         await actualizarPedido(
           values.pedido_id,
@@ -162,6 +164,7 @@ if (!horaRegex.test(values.hora ?? ""))
           usuario.dni 
         );
         showSnackbar("Pedido actualizado con éxito!", "success");
+        window.location.reload();
       }
       setOpen(false);
     } catch (error) {

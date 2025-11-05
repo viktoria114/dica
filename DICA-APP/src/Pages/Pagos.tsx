@@ -27,6 +27,7 @@ import { useBorrarPago } from "../hooks//Pago/useBorrarPago";
 import { obtenerLinkTemporalDropbox } from "../api/pagos";
 import { useDropboxToken } from "../contexts/DropboxTokenContext";
 import { usePagos } from "../hooks/Pago/usePagos.ts";
+import { ConfirmationModal } from "../Components/common/ConfirmationModal";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -76,6 +77,33 @@ export const Pagos = ({ year, month }: { year: number, month: number }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"crear" | "borrar" | null>(null);
+
+  const handleDeleteRequest = () => {
+    setConfirmAction("borrar");
+    setConfirmOpen(true);
+  };
+
+  const handleCreateRequest = () => {
+    setConfirmAction("crear");
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmAction === "borrar") {
+      borrar(formValues.id!);
+    } else if (confirmAction === "crear") {
+      handleSubmit(formValues);
+    }
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
+
+  const handleCloseConfirm = () => {
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
 
   useEffect(() => {
     refreshPagos(year, month);
@@ -250,7 +278,7 @@ const displayFields = useMemo(() => {
         values={formValues}
         formErrors={formErrors}
         handleChange={handleChange}
-        handleGuardar={handleSubmit}
+        handleGuardar={handleCreateRequest}
         handleClose={() => setOpen(false)}
         isSaving={isSaving}
       />
@@ -266,7 +294,7 @@ const displayFields = useMemo(() => {
         handleGuardar={() => actualizar(formValues.id!, formValues)}
         handleClose={() => setOpenEdit(false)}
         isSaving={isUpdating}
-        borrar={() => borrar(formValues.id!)}
+        borrar={handleDeleteRequest}
         isDeleting={isDeleting}
         displayFields={displayFields}
         idField="id"
@@ -310,6 +338,33 @@ const displayFields = useMemo(() => {
           )}
         </Box>
       </Modal>
+
+      <ConfirmationModal
+        open={confirmOpen}
+        onClose={handleCloseConfirm}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmAction === "crear"
+            ? "Confirmar Creación"
+            : "Confirmar Eliminación"
+        }
+        message={
+          confirmAction === "crear"
+            ? `¿Está seguro de que desea crear el pago?`
+            : `¿Está seguro de que desea eliminar el pago?`
+        }
+        confirmText={
+          confirmAction === "crear"
+            ? "Sí, Crear"
+            : "Sí, Eliminar"
+        }
+        cancelText="Cancelar"
+        confirmButtonColor={
+          confirmAction === "crear"
+            ? "primary"
+            : "error"
+        }
+      />
     </>
   );
 };

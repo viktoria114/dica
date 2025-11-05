@@ -73,7 +73,7 @@ export const actualizarPedido = async (
   const payload = {
     // Campos simples
     fk_empleado: fk_empleado,
-    fk_cliente: pedido.id_cliente, 
+    id_cliente: pedido.id_cliente, 
     fk_estado: pedido.fk_estado,
     fecha: pedido.fecha,
     hora: pedido.hora,

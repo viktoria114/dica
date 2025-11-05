@@ -134,7 +134,6 @@ export const actualizarMenu = async (req: Request, res: Response) => {
 };
 
 export const getMenuDetalles = async (req: Request, res: Response) => {
-    const client: PoolClient = await pool.connect();
     try {
         const { id } = req.params;
 
@@ -142,69 +141,112 @@ export const getMenuDetalles = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Se requiere el id del menú" });
         }
 
-        await client.query("BEGIN");
-
-        // Obtener datos del menú
-        const menuQuery = `
-            SELECT id, nombre, precio, descripcion, categoria, visibilidad
-            FROM menu
-            WHERE id = $1;
+        const query = `
+            SELECT 
+                m.id,
+                m.nombre,
+                m.precio,
+                m.descripcion,
+                m.categoria,
+                m.visibilidad,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'id_stock', s.id,
+                            'nombre_stock', s.nombre,
+                            'cantidad_necesaria', ms.cantidad_necesaria,
+                            'medida', s.medida
+                        )
+                    ) FILTER (WHERE s.id IS NOT NULL),
+                    '[]'
+                ) AS stocks
+            FROM menu m
+            LEFT JOIN menu_stock ms ON ms.fk_menu = m.id
+            LEFT JOIN stock s ON s.id = ms.fk_stock
+            WHERE m.id = $1
+            GROUP BY m.id, m.nombre, m.precio, m.descripcion, m.categoria, m.visibilidad;
         `;
-        const { rows: menuRows } = await client.query(menuQuery, [id]);
 
-        if (menuRows.length === 0) {
-            await client.query("ROLLBACK");
+        const { rows } = await pool.query(query, [id]);
+
+        if (rows.length === 0) {
             return res.status(404).json({ message: "Menú no encontrado" });
         }
 
-        const menu = menuRows[0];
-
-        // Obtener los stocks asociados
-        const stockQuery = `
-            SELECT ms.fk_stock AS id_stock,
-                   s.nombre AS nombre_stock,
-                   ms.cantidad_necesaria
-            FROM menu_stock ms
-            INNER JOIN stock s ON s.id = ms.fk_stock
-            WHERE ms.fk_menu = $1;
-        `;
-        const { rows: stockRows } = await client.query(stockQuery, [id]);
-
-        await client.query("COMMIT");
-
-        return res.status(200).json({
-            id: menu.id,
-            nombre: menu.nombre,
-            precio: menu.precio,
-            descripcion: menu.descripcion,
-            categoria: menu.categoria,
-            visibilidad: menu.visibilidad,
-            stocks: stockRows
-        });
-
+        return res.status(200).json(rows[0]);
     } catch (error) {
-        await client.query("ROLLBACK");
         console.error(error);
         return res.status(500).json({ message: "Error al obtener el detalle del menú" });
-    } finally {
-        client.release();
     }
 };
 
 export const getListaMenu = async (_req: Request, res: Response) => {
     try {
-        const query = `SELECT * FROM menu WHERE visibilidad = true ORDER BY id ASC;`;
+        const query = `
+            SELECT 
+                m.id,
+                m.nombre,
+                m.precio,
+                m.descripcion,
+                m.categoria,
+                m.visibilidad,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'id_stock', s.id,
+                            'nombre_stock', s.nombre,
+                            'cantidad_necesaria', ms.cantidad_necesaria,
+                            'medida', s.medida
+                        )
+                    ) FILTER (WHERE s.id IS NOT NULL),
+                    '[]'
+                ) AS stocks
+            FROM menu m
+            LEFT JOIN menu_stock ms ON ms.fk_menu = m.id
+            LEFT JOIN stock s ON s.id = ms.fk_stock
+            WHERE m.visibilidad = true
+            GROUP BY m.id, m.nombre, m.precio, m.descripcion, m.categoria, m.visibilidad
+            ORDER BY m.id ASC;
+        `;
+
         const { rows } = await pool.query(query);
-        res.json(rows);
+        return res.status(200).json(rows);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error al obtener el menú visible" });
     }
 };
 
+
 export const getListaInvisibleMenu = async (_req: Request, res: Response) => {
     try {
-        const query = `SELECT * FROM menu WHERE visibilidad = false ORDER BY id ASC;`;
+        const query = `
+            SELECT 
+                m.id,
+                m.nombre,
+                m.precio,
+                m.descripcion,
+                m.categoria,
+                m.visibilidad,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'id_stock', s.id,
+                            'nombre_stock', s.nombre,
+                            'cantidad_necesaria', ms.cantidad_necesaria,
+                            'medida', s.medida
+                        )
+                    ) FILTER (WHERE s.id IS NOT NULL),
+                    '[]'
+                ) AS stocks
+            FROM menu m
+            LEFT JOIN menu_stock ms ON ms.fk_menu = m.id
+            LEFT JOIN stock s ON s.id = ms.fk_stock
+            WHERE m.visibilidad = false
+            GROUP BY m.id, m.nombre, m.precio, m.descripcion, m.categoria, m.visibilidad
+            ORDER BY m.id ASC;
+        `;
+
         const { rows } = await pool.query(query);
         res.json(rows);
     } catch (error) {

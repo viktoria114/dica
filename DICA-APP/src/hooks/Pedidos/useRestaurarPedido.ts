@@ -17,6 +17,7 @@ export function useRestaurarPedido(onSuccess: () => void) {
       await restaurarPedido(id);
       showSnackbar("Pedido restaurado correctamente", "success");
       onSuccess();
+      window.location.reload();
     } catch (err) {
       if (err instanceof Error) showSnackbar(err.message, "error");
       else showSnackbar("Error desconocido al restaurar el pedido", "error");

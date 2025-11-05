@@ -150,15 +150,15 @@ export const Estadisticas = () => {
           centered
           sx={{
             "& .MuiTab-root": {
-              color: "gray", // O 'grey.600' para usar colores del tema MUI
-              fontWeight: 500, // Hace que el texto se vea un poco más fuerte
+              color: "gray", 
+              fontWeight: 500,
             },
             "& .Mui-selected": {
-              color: (theme) => `${theme.palette.primary.main} !important`, // Usa el color primario del tema
-              fontWeight: 700, // Hace el texto seleccionado más visible
+              color: (theme) => `${theme.palette.primary.main} !important`, 
+              fontWeight: 700,
             },
             "& .MuiTabs-indicator": {
-              backgroundColor: (theme) => theme.palette.primary.main, // Usa el color primario
+              backgroundColor: (theme) => theme.palette.primary.main, 
             },
           }}
         >
@@ -219,18 +219,18 @@ export const Estadisticas = () => {
             <DashboardCard
               label="Pedidos Abiertos"
               value={pedidosAbiertos}
-              color="primary.main" // Color de aviso
+              color="primary.main" 
             />
 
             <DashboardCard
               label="Pedidos Cerrados/Completados"
               value={pedidosCerrados}
-              color="#c7c174ff" // Color de éxito
+              color="#c7c174ff" 
             />
           </Box>
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 12 }}>
               <PedidosVolumenChart data={volumenPorDia} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -238,12 +238,12 @@ export const Estadisticas = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <RendimientoChart
-                fechaInicio={fechaInicio} // <-- Pasar prop
-                fechaFin={fechaFin} // <-- Pasar prop
+                fechaInicio={fechaInicio} 
+                fechaFin={fechaFin} 
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <PedidosPorEstadoChart data={volumenPorEstado} />
             </Grid>
           </Grid>
