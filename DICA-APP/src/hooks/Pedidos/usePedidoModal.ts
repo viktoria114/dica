@@ -79,6 +79,7 @@ export const usePedidoModal = (
     try {
       await handleSubmit(pedidoCompleto);
       onFormSubmitSuccess(pedidoCompleto);
+      setOpen(false)
     } catch (error) {
       console.error("Error en handleSubmitModal wrapper:", error);
     }

@@ -1,14 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
-import {
-  Tabs,
-  Tab,
-  Box,
-  Typography,
-  Grid,
-  Container,
-} from "@mui/material";
+import { Tabs, Tab, Box, Typography, Grid, Container } from "@mui/material";
 import { usePagos } from "../hooks/Pago/usePagos";
 import { getVentasDiarias } from "../api/reportes";
 import { DateRangeFilter } from "../Components/Estadisticas/DateRangeFilter";
@@ -27,6 +20,8 @@ import { FlujoDeCajaChart } from "../Components/Estadisticas/FlujoDeCajaChart";
 import { useFlujoDeCajaEstadisticas } from "../hooks/useFlujoDeCajaEstadisticas";
 import { useGastos } from "../hooks/Gasto/useGastos";
 import { ProductosChart } from "../Components/Estadisticas/ProductosChart";
+import { PromocionesChart } from "../Components/Estadisticas/PromocionesChart";
+import { VentasPorCategoriaChart } from "../Components/Estadisticas/VentasPorCategoriaChart";
 
 const formatDate = (date: Date | null) => {
   if (!date) return null;
@@ -61,8 +56,7 @@ export const Estadisticas = () => {
 
   const { pagos, refreshPagos } = usePagos();
   const { allPedidos } = usePedidos();
-    const {gastos} = useGastos()
-
+  const { gastos } = useGastos();
 
   const handleFilter = async (filters: {
     fecha_inicio: Date | null;
@@ -142,12 +136,8 @@ export const Estadisticas = () => {
     volumenPorDiaSemana,
   } = usePedidosEstadisticas(allPedidos, fechaInicio, fechaFin);
 
-
-  const {
-        flujoPorDia,
-        totalGastos,
-        gastosPorCategoria,
-    } = useFlujoDeCajaEstadisticas(pagos, gastos, fechaInicio, fechaFin);
+  const { flujoPorDia, totalGastos, gastosPorCategoria } =
+    useFlujoDeCajaEstadisticas(pagos, gastos, fechaInicio, fechaFin);
   return (
     <Container>
       <Box sx={{ width: "100%" }}>
@@ -176,9 +166,7 @@ export const Estadisticas = () => {
           <Tab label="Pedidos" />
           <Tab label="Ingresos" />
           <Tab label="Productos" />
-          <Tab label="Rendimiento" />
-          <Tab label="Gastos" />
-        </Tabs>
+          </Tabs>
 
         <TabPanel value={value} index={0}>
           <Box display="flex" justifyContent="center" gap={8} mb={8}>
@@ -213,7 +201,7 @@ export const Estadisticas = () => {
                 fechaFin={fechaFin}
               />
             </Grid>
-             <Grid size={{md:3.5}}></Grid>
+            <Grid size={{ md: 3.5 }}></Grid>
             <Grid size={{ xs: 12, md: 5 }}>
               <MetodosDePagoChart data={pagosFiltrados} />
             </Grid>
@@ -221,109 +209,107 @@ export const Estadisticas = () => {
         </TabPanel>
 
         <TabPanel value={value} index={1}>
-          
-            <Box display="flex" justifyContent="center" gap={6  } mb={8}>
-              <DashboardCard
-                label="Total de Pedidos"
-                value={totalPedidos}
-                color="#c7c174ff"
-              />
+          <Box display="flex" justifyContent="center" gap={6} mb={8}>
+            <DashboardCard
+              label="Total de Pedidos"
+              value={totalPedidos}
+              color="#c7c174ff"
+            />
 
-              <DashboardCard
-                label="Pedidos Abiertos"
-                value={pedidosAbiertos}
-                color="primary.main" // Color de aviso
-              />
+            <DashboardCard
+              label="Pedidos Abiertos"
+              value={pedidosAbiertos}
+              color="primary.main" // Color de aviso
+            />
 
-              <DashboardCard
-                label="Pedidos Cerrados/Completados"
-                value={pedidosCerrados}
-                color="#c7c174ff" // Color de éxito
-              />
-            </Box>
-          
+            <DashboardCard
+              label="Pedidos Cerrados/Completados"
+              value={pedidosCerrados}
+              color="#c7c174ff" // Color de éxito
+            />
+          </Box>
+
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 6 }}>
               <PedidosVolumenChart data={volumenPorDia} />
             </Grid>
-             <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <PedidosPorDiaSemanaChart data={volumenPorDiaSemana} />
             </Grid>
-             <Grid size={{ xs: 12, md: 6 }}>
-              <RendimientoChart 
-        fechaInicio={fechaInicio} // <-- Pasar prop
-        fechaFin={fechaFin}       // <-- Pasar prop
-        />
+            <Grid size={{ xs: 12, md: 6 }}>
+              <RendimientoChart
+                fechaInicio={fechaInicio} // <-- Pasar prop
+                fechaFin={fechaFin} // <-- Pasar prop
+              />
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
               <PedidosPorEstadoChart data={volumenPorEstado} />
             </Grid>
-           
-           
           </Grid>
         </TabPanel>
 
         <TabPanel value={value} index={2}>
-        {/* Indicadores KPI de Ingresos y Egresos */}
-       <Box display="flex" justifyContent="center" gap={6  } mb={8}>
-                <DashboardCard
-                    label="Total Ingresos (Filtrado)"
-                    value={`$${totalVentasMonto}`} // De tu hook de ventas
-                    color="success.main"
-                />
-           
-                <DashboardCard
-                    label="Total Egresos (Gastos)"
-                    value={`$${totalGastos.toFixed(0)}`}
-                    color="error.main"
-                />
-          
-                <DashboardCard
-                    label="Balance Neto Estimado"
-                    value={`$${(parseFloat(totalVentasMonto) - totalGastos).toFixed(0)}`}
-                    color="info.main"
-                />
-           </Box>
-        
-        {/* Flujo de Caja Temporal */}
-        <Grid container spacing={2}>
-          <Grid size={{sm:0.6}}></Grid>
-            <Grid size={{sm:11}}>
-                <FlujoDeCajaChart data={flujoPorDia} />
-            </Grid>
-        
+          {/* Indicadores KPI de Ingresos y Egresos */}
+          <Box display="flex" justifyContent="center" gap={6} mb={8}>
+            <DashboardCard
+              label="Total Ingresos (Filtrado)"
+              value={`$${totalVentasMonto}`} // De tu hook de ventas
+              color="success.main"
+            />
 
-        {/* Distribución de Gastos */}
-        <Grid size={{sm:3}}></Grid>
-            <Grid size={{sm:6}}>
-                <GastosChart
-        fechaInicio={fechaInicio} 
-        fechaFin={fechaFin}
-    />
+            <DashboardCard
+              label="Total Egresos (Gastos)"
+              value={`$${totalGastos.toFixed(0)}`}
+              color="error.main"
+            />
+
+            <DashboardCard
+              label="Balance Neto Estimado"
+              value={`$${(parseFloat(totalVentasMonto) - totalGastos).toFixed(
+                0
+              )}`}
+              color="info.main"
+            />
+          </Box>
+
+          {/* Flujo de Caja Temporal */}
+          <Grid container spacing={2}>
+            <Grid size={{ sm: 0.6 }}></Grid>
+            <Grid size={{ sm: 11 }}>
+              <FlujoDeCajaChart data={flujoPorDia} />
             </Grid>
-        </Grid>
-    </TabPanel>
+
+            {/* Distribución de Gastos */}
+            <Grid size={{ sm: 3 }}></Grid>
+            <Grid size={{ sm: 6 }}>
+              <GastosChart fechaInicio={fechaInicio} fechaFin={fechaFin} />
+            </Grid>
+          </Grid>
+        </TabPanel>
 
         <TabPanel value={value} index={3}>
-<ProductosChart  fechaInicio={fechaInicio}
-            fechaFin={fechaFin}> </ProductosChart>
+          <Grid container spacing={2}>
+            <Grid size={{ sm: 6 }}>
+              <ProductosChart fechaInicio={fechaInicio} fechaFin={fechaFin}>
+                {" "}
+              </ProductosChart>
+            </Grid>
 
+            <Grid size={{ sm: 6 }}>
+              <VentasPorCategoriaChart
+                fechaInicio={fechaInicio}
+                fechaFin={fechaFin}
+              ></VentasPorCategoriaChart>
+            </Grid>
+<Grid size={{ sm: 2.5 }}></Grid>
+            <Grid size={{ sm: 6 }}>
+              <PromocionesChart fechaInicio={fechaInicio} fechaFin={fechaFin} />
+            </Grid>
+          </Grid>
         </TabPanel>
-        <TabPanel value={value} index={4}>
-          <RendimientoChart
-            data={[]}
-            fechaInicio={fechaInicio}
-            fechaFin={fechaFin}
-          />
-        </TabPanel>
-        <TabPanel value={value} index={5}>
-          <GastosChart
-            data={[]}
-            fechaInicio={fechaInicio}
-            fechaFin={fechaFin}
-          />
-        </TabPanel>
+
+       
       </Box>
     </Container>
   );

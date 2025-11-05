@@ -169,7 +169,7 @@ export const ItemSelector = <
             mb: 2,
           }}
         >
-          <Typography variant="h6">{label}</Typography>
+          <Typography variant="h6" sx={{color:"black"}}>{label}</Typography>
           <IconButton
             onClick={handleOpenModal}
             color="primary"
@@ -182,7 +182,7 @@ export const ItemSelector = <
         {/* Lista de Items Seleccionados */}
         <Grid container direction="column" spacing={1}>
           {selectedItems.length === 0 ? (
-            <Typography variant="body2" color="textSecondary" sx={{ p: 1 }}>
+            <Typography variant="body2" color="textSecondary" sx={{ p: 1, color:"black" }}>
               No hay elementos seleccionados.
             </Typography>
           ) : (
@@ -230,6 +230,7 @@ export const ItemSelector = <
                         }
                         variant="outlined"
                         size="small"
+                        sx={{color:"black"}}
                       />
                     ) : (
                       // Campos no editables
@@ -238,10 +239,11 @@ export const ItemSelector = <
                           variant="caption"
                           color="textSecondary"
                           component="div"
+                          sx={{color:"black"}}
                         >
                           {col.label}
                         </Typography>
-                        <Typography variant="body1">
+                        <Typography  sx={{color:"black"}} variant="body1">
                           {String(item[col.key] ?? "N/A")}
                         </Typography>
                       </Box>
@@ -276,6 +278,7 @@ export const ItemSelector = <
         <DialogContent>
           {/* Barra de búsqueda */}
           <TextField
+          focused
             label={searchPlaceholder}
             variant="outlined"
             fullWidth
@@ -292,7 +295,7 @@ export const ItemSelector = <
                 onClick={() => handleAdd(item)}
                 disabled={selectedItems.some((i) => i.id === item.id)}
               >
-                <ListItemText
+                <ListItemText sx={{color:"black"}}
                   primary={item.nombre}
                   secondary={item.precio ? `$${item.precio}` : null} // Muestra precio si existe
                 />

@@ -126,8 +126,8 @@ export const Inicio = () => {
           color: "#E5C58B",
         },
         {
-          label: "Tiempo Promedio",
-          value: formatTiempoPromedio(dashboardData.tiempo_promedio),
+          label: "Pedidos Cancelados",
+          value: dashboardData.pedidos_cancelados,
           color: "#8B1D1D",
         },
       ]

@@ -1,13 +1,14 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo } from 'react';
 import { Bar } from 'react-chartjs-2';
-import { getRendimientoEmpleados } from '../../api/reportes';
+import { getPromocionesMasPedidas } from '../../api/reportes'; 
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Box, Typography } from '@mui/material';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-interface RendimientoChartProps {
+interface PromocionesChartProps {
     fechaInicio: Date | null;
     fechaFin: Date | null;
 }
@@ -20,11 +21,10 @@ const formatDate = (date: Date | null) => {
     return `${year}-${month}-${day}`;
 };
 
-export const RendimientoChart: React.FC<RendimientoChartProps> = ({ fechaInicio, fechaFin }) => {
+export const PromocionesChart: React.FC<PromocionesChartProps> = ({ fechaInicio, fechaFin }) => {
     const [chartData, setChartData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 1. Formatear las fechas solo cuando cambian
     const formattedFilters = useMemo(() => {
         return {
             fecha_inicio: formatDate(fechaInicio),
@@ -36,52 +36,51 @@ export const RendimientoChart: React.FC<RendimientoChartProps> = ({ fechaInicio,
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const data = await getRendimientoEmpleados(formattedFilters);
+            // Asumiendo que la data es: [{ nombre: 'Promo 2x1', veces_usada: 45 }, ...]
+            const data = await getPromocionesMasPedidas(formattedFilters); 
 
             const chartJsData = {
-                labels: data.map((item: any) => item.nombre_completo),
+                labels: data.map((item: any) => item.nombre),
                 datasets: [
                     {
-                        label: 'Pedidos Gestionados',
-                        data: data.map((item: any) => item.total_pedidos_gestionados),
-                        backgroundColor: "#D7E8E0", // Un color claro para las barras
-        borderColor: "#6ce2abff",
+                        label: 'Veces Aplicada',
+                        data: data.map((item: any) => item.veces_usada), 
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1,
                     },
                 ],
             };
             setChartData(chartJsData);
-
         } catch (error) {
-            console.error('Error fetching rendimiento empleados:', error);
+            console.error('Error fetching promociones mas pedidas:', error);
             setChartData(null);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // 2. Ejecutar la llamada a la API cada vez que cambian las fechas
     useEffect(() => {
         fetchData();
-    }, [formattedFilters.fecha_inicio, formattedFilters.fecha_fin]); // Dependencias del useEffect
+    }, [formattedFilters.fecha_inicio, formattedFilters.fecha_fin]);
 
     if (isLoading) {
-        return <Typography variant="h6" color="textSecondary">Cargando rendimiento de empleados...</Typography>;
+        return <Typography variant="h6" color="textSecondary">Cargando promociones más pedidas...</Typography>;
     }
 
     if (!chartData || chartData.labels.length === 0) {
-        return <Typography variant="h6" color="textSecondary">No hay datos de rendimiento para el período seleccionado.</Typography>;
+        return <Typography variant="h6" color="textSecondary">No hay datos de promociones para el período seleccionado.</Typography>;
     }
 
     const options = {
         responsive: true,
         plugins: {
             legend: {
-                position: 'top' as const,
+                display: false,
             },
             title: {
                 display: true,
-                text: 'Rendimiento de Empleados (Pedidos Gestionados)'
+                text: 'Ranking de Promociones Más Vendidas'
             }
         },
         scales: {
@@ -89,17 +88,15 @@ export const RendimientoChart: React.FC<RendimientoChartProps> = ({ fechaInicio,
                 beginAtZero: true,
                 title: {
                     display: true,
-                    text: 'Cantidad de Pedidos'
+                    text: 'Vendida'
                 }
             }
         }
     };
 
     return (
-        <Box sx={{ p: 2 }}>
-            <Box sx={{ maxWidth: '800px', height: '400px', margin: 'auto' }}>
-                <Bar data={chartData} options={options} />
-            </Box>
+        <Box sx={{ p: 2, height: '400px' }}>
+            <Bar data={chartData} options={options} />
         </Box>
     );
 };

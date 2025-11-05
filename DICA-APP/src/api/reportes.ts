@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "./api";
 
 export const getIngresosDiarios = async (params?: any) => {
@@ -22,5 +23,15 @@ export const getRendimientoEmpleados = async (params?: any) => {
 
 export const getReporteGastos = async (params?: any) => {
   const response = await api.get("/reportes/reporte-gastos", { params });
+  return response.data;
+};
+
+export const getPromocionesMasPedidas = async (params?: any) => {
+  const response = await api.get("/reportes/promociones-mas-pedidas", { params });
+  return response.data;
+};
+
+export const getVentasPorCategoria = async (params?: any) => {
+  const response = await api.get("/reportes/ventas-por-categoria", { params });
   return response.data;
 };

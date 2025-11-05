@@ -10,7 +10,7 @@ interface Props {
   data: Record<string, number>; // El objeto volumenPorEstado del hook
 }
 
-const COLORS = ["#00BFFF", "#32CD32", "#FFD700", "#FF4500", "#8A2BE2", "#20B2AA"];
+const COLORS = ["#6ce2abff", "#6cc56cff", "#ddcb61ff", "#ec8c69ff", "#b07ae4ff", "#20B2AA"];
 
 export const PedidosPorEstadoChart: React.FC<Props> = ({ data }) => {
   const labels = Object.keys(data);

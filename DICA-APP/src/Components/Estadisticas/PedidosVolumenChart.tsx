@@ -38,8 +38,8 @@ export const PedidosVolumenChart: React.FC<Props> = ({ data }) => {
       {
         label: "Volumen de Pedidos",
         data: dataValues,
-        borderColor: "#00BFFF", // Un color que represente a los pedidos
-        backgroundColor: "rgba(0, 191, 255, 0.5)",
+        borderColor: "#D7E8E0", // Un color que represente a los pedidos
+        backgroundColor: "#7fddb1ff",
         tension: 0.3, // Suaviza la línea
       },
     ],

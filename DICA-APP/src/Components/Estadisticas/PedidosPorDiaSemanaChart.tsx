@@ -38,8 +38,8 @@ export const PedidosPorDiaSemanaChart: React.FC<Props> = ({ data }) => {
       {
         label: "Pedidos Totales",
         data: dataValues,
-        backgroundColor: "rgba(75, 192, 192, 0.6)", // Un color claro para las barras
-        borderColor: "rgba(75, 192, 192, 1)",
+        backgroundColor: "#D7E8E0", // Un color claro para las barras
+        borderColor: "#6ce2abff",
         borderWidth: 1,
       },
     ],
