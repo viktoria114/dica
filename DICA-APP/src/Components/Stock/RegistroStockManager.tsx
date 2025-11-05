@@ -204,7 +204,7 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
           <CircularProgress />
         </Box>
       ) : registros.length === 0 ? (
-        <Typography color="textSecondary" align="center" sx={{ py: 3 }}>
+        <Typography color="text.primary" align="center" sx={{ py: 3 }}>
           No hay registros de stock para este producto.
         </Typography>
       ) : (
@@ -282,11 +282,16 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
             <TextField
               label="Cantidad Inicial"
               type="number"
-              value={formValues.cantidad_inicial}
+              value={
+                formValues.cantidad_inicial === 0
+                  ? ""
+                  : formValues.cantidad_inicial
+              }
               onChange={(e) =>
                 setFormValues({
                   ...formValues,
-                  cantidad_inicial: Number(e.target.value),
+                  cantidad_inicial:
+                    e.target.value === "" ? 0 : Number(e.target.value),
                 })
               }
               error={!!formErrors.cantidad_inicial}
@@ -299,11 +304,16 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
             <TextField
               label="Cantidad Actual"
               type="number"
-              value={formValues.cantidad_actual}
+              value={
+                formValues.cantidad_actual === 0
+                  ? ""
+                  : formValues.cantidad_actual
+              }
               onChange={(e) =>
                 setFormValues({
                   ...formValues,
-                  cantidad_actual: Number(e.target.value),
+                  cantidad_actual:
+                    e.target.value === "" ? 0 : Number(e.target.value),
                 })
               }
               error={!!formErrors.cantidad_actual}
