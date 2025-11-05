@@ -7,7 +7,7 @@ const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD;
 export interface DashboardData {
   pedidos_activos: number;
   pedidos_completados: number;
-  tiempo_promedio: string;
+ pedidos_cancelados: number;
 }
 
 export const fetchDashboardData = async (): Promise<DashboardData> => {

@@ -23,6 +23,7 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ onFilter }) =>
         <Grid size={{sm:3}}></Grid>
         <Grid item xs={12} sm={4}>
           <DatePicker
+            sx={{bgcolor:"#0e270d48"}}
             label="Fecha de inicio"
             value={fecha_inicio}
             onChange={setFechaInicio}
@@ -31,6 +32,7 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ onFilter }) =>
         </Grid>
         <Grid item xs={12} sm={4}>
           <DatePicker
+           sx={{bgcolor:"#0e270d48"}}
             label="Fecha de fin"
             value={fecha_fin}
             onChange={setFechaFin}
