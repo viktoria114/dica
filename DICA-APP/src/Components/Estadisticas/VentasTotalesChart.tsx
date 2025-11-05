@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Components/Estadisticas/GraficoVentasTotales.tsx
 import { Line } from "react-chartjs-2";
 import {
@@ -20,9 +21,7 @@ interface Props {
 
 
 
-export const GraficoVentasTotales: React.FC<Props> = ({ data, fechaInicio, fechaFin }) => {
-    console.log(data);
-    
+export const GraficoVentasTotales: React.FC<Props> = ({ data, fechaInicio, fechaFin }) => {    
 
     const totalDuration = 10000;
 const delayBetweenPoints = totalDuration / data.length;
@@ -109,8 +108,8 @@ const animation = {
         label: "Total de Ventas",
         // Mapeamos los labels ordenados para obtener el dato (monto)
         data: sortedFechas.map(fecha => resumen[fecha]),
-        borderColor: "#ff9e80",
-        backgroundColor: "rgba(255, 159, 128, 0.2)",
+        borderColor: "#495e57ff",
+        backgroundColor: "#495e577c",
         tension: 0.3,
         fill: true,
 

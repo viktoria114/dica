@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Components/Estadisticas/VentasPorHoraRadar.tsx
 
 import React from "react";
@@ -57,22 +58,23 @@ export const VentasPorHoraRadar: React.FC<Props> = ({ data, fechaInicio, fechaFi
     return true;
   });
 
+
   // 4. Procesamos los datos filtrados para sumar por HORA
   for (const pago of filteredData) {
-    // Extraemos la hora del string "HH:MM:SS"
-    const hora = parseInt(pago.hora.split(":")[0]); // "23:44:38" -> 23
+    const horaString = pago.hora; // ej: "23:44:38"
+    const horaNum = parseInt(horaString.split(":")[0]); // ej: 23
+    const tieneHora = ventasPorHora.hasOwnProperty(horaNum); // ej: true
+    const montoNum = parseFloat(pago.monto); // ej: 5000
+    const montoValido = !isNaN(montoNum); // ej: true
 
-    // Verificamos si es una de las horas que nos interesa
-    if (ventasPorHora.hasOwnProperty(hora)) {
-      const monto = parseFloat(pago.monto);
-      if (!isNaN(monto)) {
-        ventasPorHora[hora] += monto;
-      }
+    if (tieneHora && montoValido) {
+      ventasPorHora[horaNum] += montoNum;
     }
   }
 
   // 5. Convertimos el objeto de ventas en un array ordenado
   const dataValues = horasTarget.map(hora => ventasPorHora[hora]);
+
 
   // 6. Configuramos los datos para Chart.js
   const chartData = {
@@ -82,12 +84,12 @@ export const VentasPorHoraRadar: React.FC<Props> = ({ data, fechaInicio, fechaFi
         label: "Ventas Totales por Hora",
         data: dataValues, // [1500, 2300, 5000, ...]
         fill: true,
-        backgroundColor: "rgba(255, 159, 128, 0.2)", // Mismo color que el otro gráfico
-        borderColor: "#ff9e80",
-        pointBackgroundColor: "#ff9e80",
-        pointBorderColor: "#fff",
+borderColor: "#495e57ff",
+        backgroundColor: "#495e577c",
+        pointBackgroundColor: "#000000ff",
+        pointBorderColor: "#23522dff",
         pointHoverBackgroundColor: "#fff",
-        pointHoverBorderColor: "#ff9e80",
+        pointHoverBorderColor: "#36493dff",
       },
     ],
   };

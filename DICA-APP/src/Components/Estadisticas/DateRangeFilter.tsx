@@ -18,8 +18,9 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ onFilter }) =>
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-      <Container sx={{p:1}}>
+      <Container sx={{p:1, mt:2}}>
       <Grid container spacing={2} alignItems="center">
+        <Grid size={{sm:3}}></Grid>
         <Grid item xs={12} sm={4}>
           <DatePicker
             label="Fecha de inicio"
