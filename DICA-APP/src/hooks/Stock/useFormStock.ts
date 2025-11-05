@@ -5,7 +5,47 @@ import { useSnackbar } from "../../contexts/SnackbarContext";
 import type { Stock } from "../../types";
 import type { FieldConfig } from "../../Components/common/FormBase";
 
-const fields: FieldConfig<Stock>[] = [/* ...igual que antes... */];
+
+const fields: FieldConfig<Stock>[] = [
+  { name: "nombre", label: "Nombre del producto" },
+  {
+    name: "tipo",
+    label: "Tipo",
+    type: "select",
+    options: [
+      { value: "PERECEDERO", label: "Perecedero" },
+      { value: "NO PERECEDERO", label: "No perecedero" },
+    ],
+  },
+  {
+    name: "stock_actual",
+    label: "Stock actual",
+    type: "number",
+    disabled: true,
+  } as FieldConfig<Stock>,
+  {
+    name: "vencimiento",
+    label: "Días para vencimiento",
+    type: "number",
+  },
+  {
+    name: "stock_minimo",
+    label: "Stock mínimo",
+    type: "number",
+  },
+  {
+    name: "medida",
+    label: "Unidad de medida",
+    type: "select",
+    options: [
+      { value: "KG", label: "Kilogramos (KG)" },
+      { value: "G", label: "Gramos (G)" },
+      { value: "L", label: "Litros (L)" },
+      { value: "ML", label: "Mililitros (ML)" },
+      { value: "U", label: "Unidades (U)" },
+    ],
+  },
+];
 
 export const useFormStock = (
   initialValues: Stock | null,
