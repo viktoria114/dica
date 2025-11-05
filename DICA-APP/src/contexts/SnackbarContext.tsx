@@ -1,25 +1,31 @@
-
-import React, { createContext, useState, useContext} from 'react';
-import type { ReactNode } from 'react';
-import CommonSnackbar from '../Components/common/Snackbar';
-
-interface SnackbarState {
-  open: boolean;
-  message: string;
-  severity: 'success' | 'error' | 'warning';
-  autoHideDuration?: number | null;
-}
+import React, { createContext, useContext } from "react";
+import type { ReactNode } from "react";
+import {
+  useSnackbar as useNotistackSnackbar,
+  type VariantType,
+  closeSnackbar,
+} from "notistack";
+import { ThemeProvider } from "@mui/material/styles";
+import { Alert, IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import theme from "../services/theme";
 
 interface SnackbarContextType {
-  showSnackbar: (message: string, severity: 'success' | 'error' | 'warning', autoHideDuration?: number | null) => void;
+  showSnackbar: (
+    message: string,
+    severity: "success" | "error" | "warning",
+    autoHideDuration?: number | null
+  ) => void;
 }
 
-const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
+const SnackbarContext = createContext<SnackbarContextType | undefined>(
+  undefined
+);
 
 export const useSnackbar = () => {
   const context = useContext(SnackbarContext);
   if (!context) {
-    throw new Error('useSnackbar must be used within a SnackbarProvider');
+    throw new Error("useSnackbar must be used within a SnackbarProvider");
   }
   return context;
 };
@@ -28,27 +34,56 @@ interface SnackbarProviderProps {
   children: ReactNode;
 }
 
-export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({ children }) => {
-  const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: '', severity: 'success' });
+export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
+  children,
+}) => {
+  const { enqueueSnackbar } = useNotistackSnackbar();
 
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning', autoHideDuration?: number | null) => {
-    setSnackbar({ open: true, message, severity, autoHideDuration });
-  };
+  const showSnackbar = (
+    message: string,
+    severity: "success" | "error" | "warning",
+    autoHideDuration?: number | null
+  ) => {
+    const variant: VariantType = severity;
 
-  const handleClose = () => {
-    setSnackbar({ ...snackbar, open: false });
+    enqueueSnackbar(message, {
+      variant,
+      autoHideDuration: autoHideDuration ?? 6000,
+      preventDuplicate: true,
+      content: (key, msg) => (
+        <Alert
+          severity={severity}
+          variant="filled"
+          sx={{
+            borderRadius: 2,
+            fontFamily: "Roboto, sans-serif",
+            boxShadow: 3,
+            minWidth: "280px",
+            display: "flex",
+            alignItems: "center",
+          }}
+          action={
+            <IconButton
+              size="small"
+              aria-label="close"
+              color="inherit"
+              onClick={() => closeSnackbar(key)}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          }
+        >
+          {msg}
+        </Alert>
+      ),
+    });
   };
 
   return (
-    <SnackbarContext.Provider value={{ showSnackbar }}>
-      {children}
-      <CommonSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        handleClose={handleClose}
-        autoHideDuration={snackbar.autoHideDuration}
-      />
-    </SnackbarContext.Provider>
+    <ThemeProvider theme={theme}>
+      <SnackbarContext.Provider value={{ showSnackbar }}>
+        {children}
+      </SnackbarContext.Provider>
+    </ThemeProvider>
   );
 };

@@ -13,6 +13,7 @@ import {
   crearRegistroStock,
   actualizarRegistroStock,
   eliminarRegistroStock,
+  validateExpiredStock,
 } from '../controllers/stockControllers';
 
 const router = Router();
@@ -31,5 +32,6 @@ router.put('/:id', actualizarStock); //PutStock - Actualizar
 router.post('/registro', crearRegistroStock); //PostRegistroStock
 router.put('/registro/:id', actualizarRegistroStock); //PutRegistroStock - Actualizar
 router.delete('/registro/:id', eliminarRegistroStock); //DeleteRegistroStock
+router.get('/vencidos', validateExpiredStock); //Verificar stock vencido
 
 export default router;

@@ -6,14 +6,14 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-
 import { InfoCard } from "../Components/Inicio/InfoCard";
 import { DashboardCard } from "../Components/Inicio/DashboardCard";
 import { useAuth } from "../hooks/useAuth";
 import { useDashboard } from "../hooks/useDashboard";
 import { toggleActivity, getAgentStatus } from "../api/agente";
 import { useSnackbar } from "../contexts/SnackbarContext";
-
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { getStockBajo, getStockVencido } from "../store/slices/stockSlice";
 
 export const Inicio = () => {
   const [fecha, setFecha] = useState(new Date());
@@ -23,6 +23,20 @@ export const Inicio = () => {
   const [isAgentActive, setIsAgentActive] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
+  const dispatch = useAppDispatch();
+  const { stockBajo, stockVencido } = useAppSelector((state) => state.stock);
+
+  // 🔔 Banderas separadas de notificaciones
+  const [notificadoBajo, setNotificadoBajo] = useState(false);
+  const [notificadoVencido, setNotificadoVencido] = useState(false);
+
+  // ⏰ Actualiza la hora
+  useEffect(() => {
+    const timer = setInterval(() => setFecha(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 🔌 Estado del agente
   useEffect(() => {
     const fetchStatus = async () => {
       try {
@@ -33,22 +47,64 @@ export const Inicio = () => {
         showSnackbar("Error al obtener el estado del agente", "error");
       }
     };
-
     fetchStatus();
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setFecha(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer); // cleanup al desmontar
-  }, []);
+  }, [showSnackbar]);
 
   const hora = fecha.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  // ⚙️ Verificar stock bajo al cargar
+  useEffect(() => {
+    const verificarStockBajo = async () => {
+      try {
+        await dispatch(getStockBajo()).unwrap();
+      } catch (error) {
+        console.error("Error al verificar stock bajo:", error);
+      }
+    };
+    verificarStockBajo();
+  }, [dispatch]);
+
+  // ⚙️ Verificar stock vencido al cargar
+  useEffect(() => {
+    const verificarStockVencido = async () => {
+      try {
+        await dispatch(getStockVencido()).unwrap();
+      } catch (error) {
+        console.error("Error al verificar stock vencido:", error);
+      }
+    };
+    verificarStockVencido();
+  }, [dispatch]);
+
+  //  Mostrar notificación de stock bajo
+  useEffect(() => {
+    if (stockBajo.length > 0 && !notificadoBajo) {
+      stockBajo.forEach((producto: any) => {
+        showSnackbar(
+          `Stock bajo: ${producto.nombre} - Actual: ${producto.stock_actual} ${producto.medida} | Mínimo: ${producto.stock_minimo} ${producto.medida}`,
+          "warning",
+          15000
+        );
+      });
+      setNotificadoBajo(true);
+    }
+  }, [stockBajo, notificadoBajo, showSnackbar]);
+
+  // Mostrar notificación de stock vencido
+  useEffect(() => {
+    if (stockVencido.length > 0 && !notificadoVencido) {
+      stockVencido.forEach((producto: any) => {
+        // Si el backend devuelve solo nombres, producto es string
+        const nombre =
+          typeof producto === "string" ? producto : producto.nombre;
+        showSnackbar(`Stock vencido: ${nombre}`, "error", 15000);
+      });
+      setNotificadoVencido(true);
+    }
+  }, [stockVencido, notificadoVencido, showSnackbar]);
 
   const fechaTexto = fecha.toLocaleDateString("es-AR", {
     weekday: "long",
@@ -59,16 +115,6 @@ export const Inicio = () => {
 
   const capitalizar = (texto: string) =>
     texto.charAt(0).toUpperCase() + texto.slice(1);
-
-
-  const chats = [
-    "3804832010: Hola me da 3 de choclo?",
-    "3804834036: quería pedir dos lomitos completos (uno sin lechuga)",
-    "3804954726: También agregale extra queso.",
-    "38047823904: cancelame el pedido",
-    "380498343: ¿Me podrías dar 7 ... ",
-    "3804911045: Hola, ¿me podés mandar 3 lomitos completos?",
-  ];
 
   const formatTiempoPromedio = (tiempo: string | null) => {
     if (!tiempo) return "N/A";
@@ -116,22 +162,15 @@ export const Inicio = () => {
 
   return (
     <Grid container spacing={2} justifyContent="center">
-
-
-      {/* Contenido central */}
       <Grid item md={12}>
         <Container>
           <Box display="flex" justifyContent="right" gap={1} mt={2}>
-            <Typography
-              variant="h6"
-              fontWeight="bold" /* sx={{ textDecoration: 'underline' }}*/
-            >
+            <Typography variant="h6" fontWeight="bold">
               {hora}
             </Typography>
-            <Typography variant="h6" /* sx={{ textDecoration: 'underline' }} */>
-              {capitalizar(fechaTexto)}
-            </Typography>
+            <Typography variant="h6">{capitalizar(fechaTexto)}</Typography>
           </Box>
+
           <Typography
             display="flex"
             justifyContent="center"
@@ -160,13 +199,14 @@ export const Inicio = () => {
                 title={isAgentActive ? "Apagar DicaBot" : "Encender DicaBot"}
                 items={[
                   "Dica-Bot comenzará a funcionar",
-                  "Atendera mensajes entrantes",
-                  "Creara nuevos pedidos",
+                  "Atenderá mensajes entrantes",
+                  "Creará nuevos pedidos",
                 ]}
                 isActive={isAgentActive}
                 isToggling={isToggling}
               />
             </Box>
+
             <InfoCard
               title="News Sprint 3"
               items={[
@@ -196,8 +236,6 @@ export const Inicio = () => {
           </Box>
         </Container>
       </Grid>
-
-
     </Grid>
   );
 };

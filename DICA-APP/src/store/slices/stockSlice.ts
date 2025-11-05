@@ -7,12 +7,16 @@ import {
   fetchActualizarStock,
   fetchBorrarStock,
   fetchRestaurarStock,
+  fetchValidateLowStock,
+  fetchVencidosStock,
 } from "../../api/stock";
 
 // 🧩 Estado inicial
 interface StockState {
   stock: Stock[];
   stockInvisibles: Stock[];
+  stockBajo: Stock[];
+  stockVencido: Stock[];
   loading: boolean;
   error: string | null;
   modoPapelera: boolean;
@@ -21,6 +25,8 @@ interface StockState {
 const initialState: StockState = {
   stock: [],
   stockInvisibles: [],
+  stockBajo: [],
+  stockVencido: [],
   loading: false,
   error: null,
   modoPapelera: false,
@@ -52,14 +58,55 @@ export const getStockInvisible = createAsyncThunk(
   }
 );
 
+// 🔹 Obtener stock bajo
+export const getStockBajo = createAsyncThunk(
+  "stock/getStockBajo",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await fetchValidateLowStock();
+    } catch (err: unknown) {
+      if (err instanceof Error) return rejectWithValue(err.message);
+      return rejectWithValue("Error desconocido al verificar stock bajo");
+    }
+  }
+);
+
+// 🔹 Obtener stock vencido
+export const getStockVencido = createAsyncThunk(
+  "stock/getStockVencido",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await fetchVencidosStock();
+    } catch (err: unknown) {
+      if (err instanceof Error) return rejectWithValue(err.message);
+      return rejectWithValue("Error desconocido al verificar stock vencido");
+    }
+  }
+);
+
 // 🔹 Crear stock
 export const crearStock = createAsyncThunk(
   "stock/crearStock",
   async (data: Partial<Stock>, { rejectWithValue }) => {
     try {
-      return await fetchCrearStock(data);
-    } catch (err: unknown) {
-      if (err instanceof Error) return rejectWithValue(err.message);
+      const response = await fetchCrearStock(data);
+
+      // si el backend devuelve algo como { error: '...' }, lo rechazamos
+      if (response?.error) {
+        return rejectWithValue(response.error);
+      }
+
+      return response;
+    } catch (err: any) {
+      // si fetchCrearStock lanza un error con response
+      if (err.response?.data?.error) {
+        return rejectWithValue(err.response.data.error);
+      }
+
+      if (err instanceof Error) {
+        return rejectWithValue(err.message);
+      }
+
       return rejectWithValue("Error al crear el stock");
     }
   }
@@ -149,6 +196,14 @@ const stockSlice = createSlice({
       // ✅ Eliminar stock
       .addCase(borrarStock.fulfilled, (state, action) => {
         state.stock = state.stock.filter((s) => s.id !== action.payload);
+      })
+
+      .addCase(getStockBajo.fulfilled, (state, action) => {
+        state.stockBajo = action.payload;
+      })
+
+      .addCase(getStockVencido.fulfilled, (state, action) => {
+        state.stockVencido = action.payload;
       })
 
       // ✅ Restaurar stock

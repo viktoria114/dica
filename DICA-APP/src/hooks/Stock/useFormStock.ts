@@ -103,9 +103,12 @@ export const useFormStock = (
       }
 
       onSuccess();
-    } catch (error) {
-      if (error instanceof Error) showSnackbar(error.message, "error");
-      else showSnackbar("Error desconocido", "error");
+    } catch (error: any) {
+      const mensaje =
+        typeof error === "string"
+          ? error
+          : error?.message || "Error desconocido";
+      showSnackbar(mensaje, "error");
     } finally {
       setIsSaving(false);
     }
