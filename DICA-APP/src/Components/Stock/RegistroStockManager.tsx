@@ -28,7 +28,7 @@ import { useSnackbar } from "../../contexts/SnackbarContext";
 import axios from "axios";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { getStock } from "../../store/slices/stockSlice";
-import { actualizarRegistroStock, crearRegistroStock, eliminarRegistroStock, getRegistrosStock } from "../../store/slices/registroStockSlice";
+import { actualizarRegistroStock, crearRegistroStock, eliminarRegistroStock, getRegistrosStock, limpiarRegistrosStock } from "../../store/slices/registroStockSlice";
 
 interface RegistroStockManagerProps {
   stockId: number;
@@ -70,6 +70,7 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
   }, [stockId, showSnackbar]);
 
   useEffect(() => {
+     dispatch(limpiarRegistrosStock());
     cargarRegistros();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stockId]);
@@ -133,6 +134,7 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
           },
         }));
         showSnackbar("Registro actualizado correctamente", "success");
+        
         await dispatch(getStock());
       } else {
         // Crear
@@ -141,10 +143,12 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
           cantidad: formValues.cantidad_inicial,
           fk_stock: stockId,
         }));
+        await dispatch(getRegistrosStock(stockId));
         await dispatch(getStock());
         showSnackbar("Registro creado correctamente", "success");
       }
       await cargarRegistros();
+      
       handleCloseModal();
     } catch (error) {
       if (error instanceof Error) {
@@ -163,6 +167,7 @@ export const RegistroStockManager: React.FC<RegistroStockManagerProps> = ({
       await dispatch(eliminarRegistroStock(registroId));
       showSnackbar("Registro eliminado correctamente", "success");
       await dispatch(getStock());
+      await dispatch(getRegistrosStock(stockId));
       await cargarRegistros();
     } catch (error) {
       if (error instanceof Error) {
