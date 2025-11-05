@@ -2,30 +2,40 @@ import {
   Box,
   Container,
   Typography,
-  Paper,
   Grid,
-  Divider,
   CircularProgress,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { PedidoItem } from "../Components/Inicio/PedidoItem";
+
 import { InfoCard } from "../Components/Inicio/InfoCard";
 import { DashboardCard } from "../Components/Inicio/DashboardCard";
 import { useAuth } from "../hooks/useAuth";
 import { useDashboard } from "../hooks/useDashboard";
+import { toggleActivity, getAgentStatus } from "../api/agente";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ChatItem = ({ texto }: any) => (
-  <>
-    <Typography mt={2}>{texto}</Typography>
-    <Divider sx={{ p: 0.5, borderColor: "primary.main", borderBottomWidth: 1 }} />
-  </>
-);
 
 export const Inicio = () => {
   const [fecha, setFecha] = useState(new Date());
   const { usuario } = useAuth();
   const { dashboardData, loading, error } = useDashboard();
+  const { showSnackbar } = useSnackbar();
+  const [isAgentActive, setIsAgentActive] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const { isActive } = await getAgentStatus();
+        setIsAgentActive(isActive);
+      } catch (error) {
+        console.error(error);
+        showSnackbar("Error al obtener el estado del agente", "error");
+      }
+    };
+
+    fetchStatus();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -50,16 +60,6 @@ export const Inicio = () => {
   const capitalizar = (texto: string) =>
     texto.charAt(0).toUpperCase() + texto.slice(1);
 
-  const pedidos = [
-    {
-      id: 9012,
-      nombre: "Viktoria A.",
-      lugar: "Av Ramírez de Velazco 3",
-      precio: 13500,
-    },
-    { id: 3490, nombre: "Fede Salomón", lugar: "Catamarca 483", precio: 21000 },
-    { id: 1042, nombre: "Valentino", lugar: "Local", precio: 5000 },
-  ];
 
   const chats = [
     "3804832010: Hola me da 3 de choclo?",
@@ -100,23 +100,26 @@ export const Inicio = () => {
       ]
     : [];
 
+  const handleToggle = async () => {
+    setIsToggling(true);
+    try {
+      await toggleActivity();
+      setIsAgentActive((prev) => !prev);
+      showSnackbar("Estado del agente cambiado con éxito", "success");
+    } catch (error) {
+      console.error(error);
+      showSnackbar("Error al cambiar el estado del agente", "error");
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
   return (
-    <Grid container spacing={2}>
-      {/* Lateral izquierdo */}
-      <Grid item md={2}>
-        <Paper sx={{ m: 4, p: 4, borderRadius: 8 }}>
-          <Typography variant="h5">Pedidos 24</Typography>
-          <Divider
-            sx={{ p: 0.5, borderColor: "primary.main", borderBottomWidth: 1 }}
-          />
-          {pedidos.map((p) => (
-            <PedidoItem key={p.id} {...p} />
-          ))}
-        </Paper>
-      </Grid>
+    <Grid container spacing={2} justifyContent="center">
+
 
       {/* Contenido central */}
-      <Grid item md={10}>
+      <Grid item md={12}>
         <Container>
           <Box display="flex" justifyContent="right" gap={1} mt={2}>
             <Typography
@@ -152,15 +155,18 @@ export const Inicio = () => {
               backgroundSize: "cover",
             }}
           >
-            <InfoCard
-              title="Abrir Negocio"
-              items={[
-                "Dica-Bot comenzará a funcionar",
-                "Se registrarán los cambios",
-                "Se calculan las estadísticas",
-                "Los pedidos fluyen",
-              ]}
-            />
+            <Box onClick={handleToggle}>
+              <InfoCard
+                title={isAgentActive ? "Apagar DicaBot" : "Encender DicaBot"}
+                items={[
+                  "Dica-Bot comenzará a funcionar",
+                  "Atendera mensajes entrantes",
+                  "Creara nuevos pedidos",
+                ]}
+                isActive={isAgentActive}
+                isToggling={isToggling}
+              />
+            </Box>
             <InfoCard
               title="News Sprint 3"
               items={[

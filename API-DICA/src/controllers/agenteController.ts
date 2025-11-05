@@ -144,12 +144,16 @@ export const gestionarVerificacion = async (req: Request, res: Response): Promis
     }
 };
 
+export const getAgentStatus = async (req: Request, res: Response) => {
+    res.status(200).json({ isActive: config.agent_service });
+}
+
 export const toggleActivity = async (req: Request, res: Response) => {
     config.agent_service = !config.agent_service
 
     if(config.agent_service){
-      res.status(200).json("Servicio de agente encendido correctamente")
+      res.status(200).json({message: "Servicio de agente encendido correctamente"})
     }else{
-      res.status(200).json("Servicio de agente apagado correctamente")
+      res.status(200).json({message: "Servicio de agente apagado correctamente"})
     }
 }
