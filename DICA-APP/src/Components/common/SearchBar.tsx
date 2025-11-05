@@ -57,7 +57,6 @@ export function SearchBar<T>({
     setSuggestions(filtered);
     onResults(filtered);
   };
-
   return (
     <Box
       sx={{

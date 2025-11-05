@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useSnackbar } from '../../contexts/SnackbarContext';
-import { borrarPedido } from '../../api/pedidos'; 
+import { useAppDispatch } from '../../store/hooks';
+import { borrarPedido, getPedidos } from '../../store/slices/pedidosSlices';
 
 export const useBorrarPedido = (onDeleteSuccess: (id: number) => void) => {
+    const dispatch = useAppDispatch();
     const [isDeleting, setIsDeleting] = useState(false);
     const { showSnackbar } = useSnackbar();
 
@@ -15,8 +17,8 @@ export const useBorrarPedido = (onDeleteSuccess: (id: number) => void) => {
 
         setIsDeleting(true);
         try {
-            await borrarPedido(pedidoId);
-            
+            await dispatch(borrarPedido(pedidoId)).unwrap();
+            await dispatch(getPedidos()); // Refresca la lista de pedidos si es necesario
             // Llama a la función de callback para actualizar la UI (quitarlo de la lista visible)
             onDeleteSuccess(pedidoId); 
 

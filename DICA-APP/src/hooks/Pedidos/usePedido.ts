@@ -1,189 +1,124 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { getPedidosBorrados, updatePedidoEstado } from "../../api/pedidos";
-import type { Pedido } from "../../types";
-import { useAppDispatch } from "../../store/hooks";
-import { getPedidos } from "../../store/slices/pedidosSlices";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import {
+  getPedidos,
+  getPedidosBorrados,
+  updatePedidoEstado,
+} from "../../store/slices/pedidosSlices";
 import { useSnackbar } from "../../contexts/SnackbarContext";
+import type { Pedido } from "../../types";
 
 export const usePedidos = () => {
   const dispatch = useAppDispatch();
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [pedidosBorrados, setPedidosBorrados] = useState<Pedido[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-   const { showSnackbar } = useSnackbar();
-
-  // 1. Estado de la UI y filtros
-  const [modo, setModo] = useState<"normal" | "borrados" | "cancelados">(
-    "normal"
+  const { pedidos, pedidosBorrados, loading, error, updatingEstado } = useAppSelector(
+    (state) => state.pedidos
   );
+  const { showSnackbar } = useSnackbar();
+
+  // 🌈 Estado de UI (solo visual)
+  const [modo, setModo] = useState<"normal" | "borrados" | "cancelados">("normal");
   const [pedidosFiltrados, setPedidosFiltrados] = useState<Pedido[]>([]);
 
-  // 2. Carga inicial de datos
+  // 📦 Carga inicial de datos desde Redux
   const cargarDatos = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const dataPedidos = await dispatch(getPedidos()).unwrap();
-
-      // Cargamos todo en paralelo
-      const [dataBorrados] = await Promise.all([getPedidosBorrados()]);
-
-      // Tu lógica de mapeo
-      const pedidosBackend = dataPedidos.map((p: any) => {
-        const rawDate = p.fecha;
-        let normalizedFecha: string | null = null;
-
-        if (rawDate) {
-          // Si el backend convierte a Date, ya es un objeto Date.
-          // Si aún es un string ISO, new Date() lo convierte a Date.
-          const dateObj = rawDate instanceof Date ? rawDate : new Date(rawDate);
-
-          // Asegúrate de que la fecha sea válida antes de convertirla a string ISO
-          if (!isNaN(dateObj.getTime())) {
-            normalizedFecha = dateObj.toISOString();
-          }
-        }
-
-        return {
-          // --- IDs y Estado ---
-          pedido_id: p.pedido_id ?? null,
-          fk_estado: p.fk_estado ?? p.id_estado ?? 1, // Fallback a 1 (Pendiente) si no viene nada
-
-          // --- Cliente y Ubicación ---
-          id_cliente: p.id_cliente ?? null,
-          ubicacion: p.ubicacion ?? "", // Es mejor un string vacío que null
-
-          // --- Fecha y Hora (¡Importante la conversión!) ---
-          fecha: normalizedFecha,
-          hora: p.hora ?? null,
-
-          // --- Contenido del Pedido ---
-          items: p.items ?? [], // Es mejor un array vacío que undefined
-          promociones: p.promociones ?? [], // Igual aquí
-
-          // --- Precios (Calculados en el backend) ---
-          precio_por_items: p.precio_por_items ?? 0,
-          precio_por_promociones: p.precio_por_promociones ?? 0,
-          precio_total: p.precio_total ?? 0,
-
-          // --- Metadatos ---
-          observaciones: p.observaciones ?? "",
-          visibilidad: p.visibilidad ?? true, // Asumimos true si no se especifica
-        };
-      });
-
-      setPedidos(pedidosBackend);
-      setPedidosBorrados(dataBorrados);
+      await dispatch(getPedidos()).unwrap();
+      await dispatch(getPedidosBorrados()).unwrap();
     } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
+      showSnackbar("Error al cargar pedidos: " + (err as Error).message, "error");
     }
-  }, [dispatch]);
+  }, [dispatch, showSnackbar]);
 
+  // 🚀 Cargar una sola vez al montar
   useEffect(() => {
     cargarDatos();
-  }, [cargarDatos]); // Cargar solo una vez al montar
+  }, [cargarDatos]);
 
-  // 3. Lógica de filtrado y modo
+  // 🎛️ Cambiar modo de vista (normal, borrados, cancelados)
   const cambiarModo = useCallback(
     (nuevoModo: "borrados" | "cancelados" | "normal") => {
       setModo(nuevoModo);
-      setPedidosFiltrados([]); // Resetea el filtro al cambiar de modo
+      setPedidosFiltrados([]); // Resetea filtros
     },
     []
   );
 
+  // 📋 Actualizar filtro manual
   const actualizarPedidosFiltrados = useCallback((filtered: Pedido[]) => {
     setPedidosFiltrados(filtered);
   }, []);
 
-  // 4. Lógica de "qué mostrar" (estado derivado)
+  // 🧮 Determinar qué lista mostrar según el modo
   const pedidosAMostrar = useMemo(() => {
     const base = pedidosFiltrados.length > 0 ? pedidosFiltrados : pedidos;
     switch (modo) {
       case "normal":
         return base;
       case "borrados":
-        // Aquí podrías filtrar `pedidosBorrados` si tuvieras un searchbar en esa vista
         return pedidosBorrados;
       case "cancelados":
-        // El estado base `pedidos` ya contiene los cancelados
         return pedidos.filter((p) => p.fk_estado === 9);
       default:
         return base;
     }
   }, [modo, pedidos, pedidosBorrados, pedidosFiltrados]);
 
-  // 5. Acciones (Mutaciones)
+  // 🧩 Drag & Drop: cambio de estado del pedido
   const handleDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
     if (!destination || destination.droppableId === source.droppableId) return;
+
+    if (updatingEstado) {
+      showSnackbar("Espera a que termine la actualización anterior", "info");
+      return;
+    }
 
     const newEstadoId = Number(destination.droppableId);
     const pedidoId = Number(draggableId);
     const estadoOriginalId = Number(source.droppableId);
 
-    // Guardar estado original para rollback
     const pedidoOriginal = pedidos.find((p) => p.pedido_id === pedidoId);
     if (!pedidoOriginal) return;
 
-if (newEstadoId !== estadoOriginalId + 1) {
-  showSnackbar(`Movimiento no permitido: El pedido ${pedidoId} (Estado ${estadoOriginalId}) solo puede ir al Estado ${estadoOriginalId + 1}.`, "warning")
-            console.warn(
-                `Movimiento no permitido: El pedido ${pedidoId} (Estado ${estadoOriginalId}) solo puede ir al Estado ${estadoOriginalId + 1}.`
-            );
-            return;
-}
+    // 🔒 Solo permitir mover al siguiente estado
+    if (newEstadoId !== estadoOriginalId + 1) {
+      showSnackbar(
+        `Movimiento no permitido: el pedido ${pedidoId} solo puede pasar del estado ${estadoOriginalId} al ${estadoOriginalId + 1}.`,
+        "warning"
+      );
+      return;
+    }
 
-    // Actualización optimista de UI
-    setPedidos((prev) =>
-      prev.map((p) =>
-        p.pedido_id === pedidoId ? { ...p, fk_estado: newEstadoId } : p
-      )
-    );
-
-    // Llamada a la API
     try {
-      await updatePedidoEstado(pedidoId);
+      // 🚀 Llamada Redux (el thunk ya actualiza el store)
+      await dispatch(updatePedidoEstado(pedidoId)).unwrap();
       showSnackbar("Pedido movido con éxito!", "success");
-      console.log(`API CALL: Mover pedido ${pedidoId} a estado ${newEstadoId}`);
     } catch (err) {
       console.error("Error al actualizar estado del pedido", err);
-      showSnackbar("" + err, "error",10000);
-      // Rollback en caso de error
-      setPedidos((prev) =>
-        prev.map((p) =>
-          p.pedido_id === pedidoId
-            ? pedidoOriginal // Revierte al estado original
-            : p
-        )
-      );
-      // Aquí podrías mostrar un toast/alerta de error
+      showSnackbar("" + err, "error", 10000);
     }
   };
 
-  // 6. Función para actualizar un pedido en la lista (después de editar)
+  // 🧱 Actualizar pedido localmente (para edición directa)
   const actualizarPedidoLocal = (pedidoActualizado: Pedido) => {
-    setPedidos((prev) =>
-      prev.map((p) =>
-        p.pedido_id === pedidoActualizado.pedido_id ? pedidoActualizado : p
-      )
-    );
+    // Si usás Redux, idealmente deberías despachar un thunk de actualización.
+    // Pero para actualizaciones locales pequeñas (sin API), se puede manejar así:
+    // (Opcional: podrías crear un "setPedidosLocal" reducer para esto)
+    console.warn("Actualización local sin persistir:", pedidoActualizado);
   };
 
   return {
     loading,
+    updatingEstado,
     error,
     modo,
     pedidosAMostrar,
-    allPedidos: pedidos, // Para la base del SearchBar
+    allPedidos: pedidos,
     cambiarModo,
     actualizarPedidosFiltrados,
     handleDragEnd,
     actualizarPedidoLocal,
-    refetch: cargarDatos, // Para refrescar datos si es necesario
+    refetch: cargarDatos,
   };
 };

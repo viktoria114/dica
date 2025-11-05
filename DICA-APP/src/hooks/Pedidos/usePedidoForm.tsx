@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useSnackbar } from "../../contexts/SnackbarContext";
 import type { Pedido } from "../../types";
 // Asumo que tienes los endpoints actualizados para recibir fk_empleado
-import { crearPedido, actualizarPedido } from "../../api/pedidos"; 
 import { useAuth } from "../useAuth";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
+import { useAppDispatch } from "../../store/hooks";
+import { actualizarPedido, crearPedido, getPedidos } from "../../store/slices/pedidosSlices";
 
 export const pedidoFields: FieldConfig<Pedido>[] = [
   {
@@ -84,6 +85,7 @@ export const pedidoFields: FieldConfig<Pedido>[] = [
 ];
 
 export const usePedidoForm = () => {
+  const dispatch = useAppDispatch();
   const { usuario } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -153,14 +155,16 @@ if (!horaRegex.test(values.hora ?? ""))
     try {
      if (!values.pedido_id) {
         // En crear pedido también debes enviar el DNI
-        await crearPedido(values); 
+        await dispatch(crearPedido(values)).unwrap();
         showSnackbar("Pedido creado con éxito!", "success");
+        await dispatch(getPedidos());
       } else {
-        await actualizarPedido(
-          values.pedido_id,
-          values,
-          usuario.dni 
-        );
+        await dispatch(actualizarPedido({
+          id: values.pedido_id,
+          pedido: values,
+          fk_empleado: usuario.dni
+        })).unwrap();
+        await dispatch(getPedidos());
         showSnackbar("Pedido actualizado con éxito!", "success");
       }
       setOpen(false);

@@ -1,8 +1,9 @@
 // src/hooks/Pedidos/useConfirmarPedido.ts
 import { useState } from "react";
 import type { Pedido } from "../../types";
-import { actualizarPedido } from "../../api/pedidos";
 import { useAuth } from "../useAuth";
+import { useAppDispatch } from "../../store/hooks";
+import { actualizarPedido } from "../../store/slices/pedidosSlices";
 
 type SuccessCallback = (updatedPedido: Pedido) => void;
 
@@ -11,6 +12,7 @@ type SuccessCallback = (updatedPedido: Pedido) => void;
  * Utiliza la función actualizarPedido de la API.
  */
 export const useConfirmarPedido = (onSuccess: SuccessCallback) => {
+  const dispatch = useAppDispatch();
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const EMPLEADO = useAuth(); // ID de un empleado genérico (Debe ser el usuario logueado)
@@ -38,11 +40,11 @@ export const useConfirmarPedido = (onSuccess: SuccessCallback) => {
       }
 
       // 2. Llamar a la función actualizarPedido
-      const updatedPedido = await actualizarPedido(
-        pedido.pedido_id,
-        pedidoActualizado,
-        empleadoDni
-      );
+      const updatedPedido = await dispatch(actualizarPedido({
+        id: pedido.pedido_id,
+        pedido: pedidoActualizado,
+        fk_empleado: empleadoDni
+      })).unwrap();
 
       // 3. Ejecutar el callback de éxito
       onSuccess(updatedPedido);

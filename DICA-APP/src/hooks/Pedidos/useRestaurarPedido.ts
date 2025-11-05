@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { restaurarPedido } from "../../api/pedidos";
 import { useSnackbar } from "../../contexts/SnackbarContext";
+import { useAppDispatch } from "../../store/hooks";
+import { getPedidos, restaurarPedido } from "../../store/slices/pedidosSlices";
 
 export function useRestaurarPedido(onSuccess: () => void) {
+  const dispatch = useAppDispatch();
   const [isRestoringPedido, setIsRestoringPedido] = useState(false);
   const { showSnackbar } = useSnackbar();
 
@@ -14,7 +16,8 @@ export function useRestaurarPedido(onSuccess: () => void) {
 
     try {
       setIsRestoringPedido(true);
-      await restaurarPedido(id);
+      await dispatch(restaurarPedido(id)).unwrap();
+      await dispatch(getPedidos()); // Refresca la lista de pedidos si es necesario
       showSnackbar("Pedido restaurado correctamente", "success");
       onSuccess();
     } catch (err) {
