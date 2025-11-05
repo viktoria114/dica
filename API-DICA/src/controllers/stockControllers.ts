@@ -313,6 +313,13 @@ export const crearRegistroStock = async (
   try {
     const { cantidad, fk_stock } = req.body;
 
+    if (cantidad <= 0) {
+      res
+        .status(400)
+        .json({ error: 'La cantidad debe ser un número positivo.' });
+      return;
+    }
+
     const nuevoRegistro = new RegistroStock(
       null,
       cantidad,
@@ -406,6 +413,18 @@ export const actualizarRegistroStock = async (
       if (nuevaCantidadActual < 0) {
         nuevaCantidadActual = 0; // Evitar que sea negativa REVISAR
       }
+    }
+
+    if (nuevaCantidadActual === 0) {
+      nuevoRegistro.estado = 'agotado';
+    }
+
+    if (nuevoRegistro.estado === 'agotado') {
+      nuevaCantidadActual = 0; // Asegurarse de que cantidad_actual sea 0 si está agotado
+    }
+
+    if (nuevoRegistro.estado === 'vencido') {
+      nuevaCantidadActual = 0; // Asegurarse de que cantidad_actual sea 0 si está vencido
     }
 
     const values = [
