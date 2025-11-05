@@ -7,6 +7,7 @@ import stockReducer from "./slices/stockSlice";
 import pagosReducer from "./slices/pagosSlice";
 import gastosReducer from "./slices/gastosSlice";
 import pedidosReducer from "./slices/pedidosSlices";
+import registroStockReducer from "./slices/registroStockSlice";
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     menu: menuReducer,
     promociones: promocionesReducer,
     stock: stockReducer,
+    registroStock: registroStockReducer,
     pagos: pagosReducer,
     gastos: gastosReducer,
     pedidos: pedidosReducer,
