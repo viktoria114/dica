@@ -33,22 +33,8 @@ interface ModalBaseProps<T> {
   handleEditar?: () => void; // El handler que se dispara al hacer clic en EDITAR/CONFIRMAR
   labelEdit?: string;
   labelsave?: string;
+  width?: string | number;
 }
-
-const modalStyle = {
-  position: "absolute" as const,
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: { sm: 400, xs: "100%" },
-  maxHeight: "90vh",
-  overflowY: "auto",
-  bgcolor: "background.paper",
-  border: "2px solid #495E57",
-  p: 4,
-  boxShadow: 1,
-  borderRadius: 2,
-};
 
 export function ModalBase<T>({
   open,
@@ -74,6 +60,7 @@ export function ModalBase<T>({
   handleEditar,
   labelEdit,
   labelsave,
+  width,
 }: ModalBaseProps<T>) {
   const [isEditMode, setIsEditMode] = useState(modo === "crear");
 
@@ -82,6 +69,21 @@ export function ModalBase<T>({
       setIsEditMode(modo === "crear");
     }
   }, [open, modo]);
+
+  const modalStyle = {
+    position: "absolute" as const,
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: { sm: width || 400, xs: "100%" },
+    maxHeight: "90vh",
+    overflowY: "auto",
+    bgcolor: "background.paper",
+    border: "2px solid #495E57",
+    p: 4,
+    boxShadow: 1,
+    borderRadius: 2,
+  };
 
   return (
     <Modal open={open} onClose={onClose}>

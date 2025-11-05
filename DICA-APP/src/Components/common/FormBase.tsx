@@ -29,7 +29,7 @@ export interface FieldConfig<T> {
 
 interface GenericFormProps<T> {
   entityName: string; // ej: "Empleado", "Cliente"
-  modo: string |"crear" | "editar";
+  modo: string | "crear" | "editar";
   fields?: FieldConfig<T>[];
   formErrors: Partial<Record<keyof T, string>>;
   values: T;
@@ -120,8 +120,11 @@ function GenericForm<T>({
                   type={field.type ?? "text"}
                   value={values[field.name] ?? ""}
                   onChange={(e) => {
-                    if (field.type === 'number') {
-                      const num = e.target.value === '' ? null : parseFloat(e.target.value);
+                    if (field.type === "number") {
+                      const num =
+                        e.target.value === ""
+                          ? null
+                          : parseFloat(e.target.value);
                       onChange?.(field.name, num);
                     } else {
                       onChange?.(field.name, e.target.value);

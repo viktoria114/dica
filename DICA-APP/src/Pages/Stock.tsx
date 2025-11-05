@@ -22,6 +22,7 @@ import { ModalBase } from "../Components/common/ModalBase";
 import { useFormStock } from "../hooks//Stock/useFormStock";
 import { useBorrarStock } from "../hooks//Stock/useBorrarStock";
 import { useRestaurarStock } from "../hooks//Stock/useRestaurarStock";
+import { ModalStock } from "../Components/Stock/StockModal";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -237,46 +238,24 @@ export const StockPage = () => {
         isSaving={isSavingCreate}
       />
 
-      {/* Modal Editar */}
-      <ModalBase
-        open={openEdit}
-        entityName="Stock"
-        modo="editar"
-        fields={editFields} // 👈 Usa editFields (ya filtrados)
-        values={editValues}
-        formErrors={formErrorsEdit}
-        handleChange={handleChangeEdit}
-        handleGuardar={handleGuardarEdit}
-        handleClose={() => setOpenEdit(false)}
-        isSaving={isSavingEdit}
-        idField="id"
-        modoPapelera={modoPapelera}
-        borrar={(id) => borrarStockHandler(Number(id))}
-        restaurar={(id) => restaurar(Number(id))}
-        isDeleting={isDeleting}
-        isRestoring={isRestoring}
-        displayFields={[
-          { label: "Nombre", value: editValues.nombre },
-          {
-            label: "Stock Actual",
-            value: `${editValues.stock_actual} ${editValues.medida}`,
-          },
-          // 👇 Solo mostrar si es PERECEDERO
-          ...(editValues.tipo === "PERECEDERO"
-            ? [
-                {
-                  label: "Días para vencimiento",
-                  value: editValues.vencimiento,
-                },
-              ]
-            : []),
-          { label: "Tipo", value: editValues.tipo },
-          {
-            label: "Stock Mínimo",
-            value: `${editValues.stock_minimo} ${editValues.medida}`,
-          },
-        ]}
-      />
+      {/* MODAL EDITAR */}
+      {selectedStock && (
+        <ModalStock
+          open={openEdit}
+          handleClose={() => setOpenEdit(false)}
+          editValues={editValues}
+          editFields={editFields}
+          formErrorsEdit={formErrorsEdit}
+          handleChangeEdit={handleChangeEdit}
+          handleGuardarEdit={handleGuardarEdit}
+          isSavingEdit={isSavingEdit}
+          modoPapelera={modoPapelera}
+          borrar={borrarStockHandler}
+          restaurar={restaurar}
+          isDeleting={isDeleting}
+          isRestoring={isRestoring}
+        />
+      )}
     </>
   );
 };
