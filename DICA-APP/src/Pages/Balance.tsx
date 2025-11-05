@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, Tab, Box, Typography, Select, MenuItem, FormControl, InputLabel, Button } from '@mui/material';
+import { Tabs, Tab, Box, Select, MenuItem, FormControl, InputLabel, Container } from '@mui/material';
 import { Gastos } from './Gastos';
 import { Pagos } from './Pagos';
 import { Reporte } from './Reporte';
@@ -41,6 +41,7 @@ export const Balance = () => {
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   return (
+    <Container>
     <Box sx={{ width: '100%' }}>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs 
@@ -80,5 +81,6 @@ export const Balance = () => {
         <Reporte year={year} month={month} />
       </TabPanel>
     </Box>
+    </Container>
   );
 };
