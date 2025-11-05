@@ -21,6 +21,7 @@ export const useBorrarPedido = (onDeleteSuccess: (id: number) => void) => {
             onDeleteSuccess(pedidoId); 
 
             showSnackbar(`Pedido #${pedidoId} movido a la papelera con éxito.`, 'success');
+            window.location.reload();
         } catch (error) {
             console.error(error);
             showSnackbar("Error al borrar el pedido.", 'error');

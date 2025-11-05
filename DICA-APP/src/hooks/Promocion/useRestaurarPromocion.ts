@@ -9,11 +9,6 @@ export function useRestaurarPromocion(onSuccess: () => void) {
   const { showSnackbar } = useSnackbar();
 
   const restaurar = async (id: number) => {
-    const confirmar = window.confirm(
-      "¿Estás seguro de que deseas restaurar esta promoción?"
-    );
-    if (!confirmar) return;
-
     try {
       setIsRestoring(true);
       await dispatch(restorePromocion(id)).unwrap();

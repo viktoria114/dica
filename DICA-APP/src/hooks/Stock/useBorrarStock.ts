@@ -10,11 +10,6 @@ export const useBorrarStock = (onSuccess?: () => void) => {
   const { showSnackbar } = useSnackbar();
 
   const borrarStockHandler = async (id: number) => {
-    const confirmar = window.confirm(
-      "¿Estás seguro de que deseas borrar este stock?"
-    );
-    if (!confirmar) return;
-
     setIsDeleting(true);
     try {
       await dispatch(borrarStock(id));

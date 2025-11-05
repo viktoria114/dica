@@ -21,6 +21,7 @@ import { useStock } from "../hooks/Stock/useStock";
 import { useActualizarGasto } from "../hooks//Gasto/useActualizarGasto";
 import { useBorrarGasto } from "../hooks//Gasto/useBorrarGasto";
 import { StockSelectorModal } from "../Components/Gastos/StockSelectorModal";
+import { ConfirmationModal } from "../Components/common/ConfirmationModal";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -70,6 +71,33 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [openEdit, setOpenEdit] = useState(false);
   const [isStockSelectorOpen, setStockSelectorOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"crear" | "borrar" | null>(null);
+
+  const handleDeleteRequest = () => {
+    setConfirmAction("borrar");
+    setConfirmOpen(true);
+  };
+
+  const handleCreateRequest = () => {
+    setConfirmAction("crear");
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmAction === "borrar") {
+      borrar(formValues.id!);
+    } else if (confirmAction === "crear") {
+      handleSubmit(formValues);
+    }
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
+
+  const handleCloseConfirm = () => {
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
 
   React.useEffect(() => {
     refreshGastos(year, month);
@@ -220,7 +248,7 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
         values={formValues}
         formErrors={formErrors}
         handleChange={handleChange}
-        handleGuardar={handleSubmit}
+        handleGuardar={handleCreateRequest}
         handleClose={() => setOpen(false)}
         isSaving={isSaving}
       >
@@ -248,7 +276,7 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
         handleGuardar={() => actualizar(formValues.id!, formValues)}
         handleClose={() => setOpenEdit(false)}
         isSaving={isUpdating}
-        borrar={(id) => borrar(Number(id))}
+        borrar={handleDeleteRequest}
         isDeleting={isDeleting}
         displayFields={displayFields}
         idField="id"
@@ -272,6 +300,33 @@ export const Gastos = ({ year, month }: { year: number, month: number }) => {
         availableStocks={stock}
         selectedItems={formValues.stockItems ?? []}
         onChange={(newItems) => handleChange("stockItems", newItems)}
+      />
+
+      <ConfirmationModal
+        open={confirmOpen}
+        onClose={handleCloseConfirm}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmAction === "crear"
+            ? "Confirmar Creación"
+            : "Confirmar Eliminación"
+        }
+        message={
+          confirmAction === "crear"
+            ? `¿Está seguro de que desea crear el gasto "${formValues.descripcion}"?`
+            : `¿Está seguro de que desea eliminar el gasto "${formValues.descripcion}"?`
+        }
+        confirmText={
+          confirmAction === "crear"
+            ? "Sí, Crear"
+            : "Sí, Eliminar"
+        }
+        cancelText="Cancelar"
+        confirmButtonColor={
+          confirmAction === "crear"
+            ? "primary"
+            : "error"
+        }
       />
     </>
   );

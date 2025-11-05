@@ -46,6 +46,7 @@ export const useConfirmarPedido = (onSuccess: SuccessCallback) => {
 
       // 3. Ejecutar el callback de éxito
       onSuccess(updatedPedido);
+      window.location.reload();
       return updatedPedido;
     } catch (error) {
       console.error("Error al confirmar el pedido:", error);
