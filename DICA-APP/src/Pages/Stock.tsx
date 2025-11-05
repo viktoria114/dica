@@ -23,6 +23,7 @@ import { useFormStock } from "../hooks//Stock/useFormStock";
 import { useBorrarStock } from "../hooks//Stock/useBorrarStock";
 import { useRestaurarStock } from "../hooks//Stock/useRestaurarStock";
 import { ModalStock } from "../Components/Stock/StockModal";
+import { ConfirmationModal } from "../Components/common/ConfirmationModal";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -67,6 +68,40 @@ export const StockPage = () => {
   const [showForm, setShowForm] = React.useState(false);
   const [selectedStock, setSelectedStock] = React.useState<Stock | null>(null);
   const [openEdit, setOpenEdit] = React.useState(false);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [confirmAction, setConfirmAction] = React.useState<"crear" | "borrar" | "restaurar" | null>(null);
+
+  const handleDeleteRequest = () => {
+    setConfirmAction("borrar");
+    setConfirmOpen(true);
+  };
+
+  const handleRestoreRequest = () => {
+    setConfirmAction("restaurar");
+    setConfirmOpen(true);
+  };
+
+  const handleCreateRequest = () => {
+    setConfirmAction("crear");
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmAction === "borrar") {
+      borrarStockHandler(editValues.id!);
+    } else if (confirmAction === "restaurar") {
+      restaurar(editValues.id!);
+    } else if (confirmAction === "crear") {
+      handleGuardarCreate(createValues);
+    }
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
+
+  const handleCloseConfirm = () => {
+    setConfirmOpen(false);
+    setConfirmAction(null);
+  };
 
   React.useEffect(() => {
     setFilteredRows(stock);
@@ -233,7 +268,7 @@ export const StockPage = () => {
         values={createValues}
         formErrors={formErrorsCreate}
         handleChange={handleChangeCreate}
-        handleGuardar={handleGuardarCreate}
+        handleGuardar={handleCreateRequest}
         handleClose={() => setShowForm(false)}
         isSaving={isSavingCreate}
       />
@@ -250,12 +285,47 @@ export const StockPage = () => {
           handleGuardarEdit={handleGuardarEdit}
           isSavingEdit={isSavingEdit}
           modoPapelera={modoPapelera}
-          borrar={borrarStockHandler}
-          restaurar={restaurar}
+          borrar={handleDeleteRequest}
+          restaurar={handleRestoreRequest}
           isDeleting={isDeleting}
           isRestoring={isRestoring}
         />
       )}
+
+      <ConfirmationModal
+        open={confirmOpen}
+        onClose={handleCloseConfirm}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmAction === "crear"
+            ? "Confirmar Creación"
+            : confirmAction === "borrar"
+            ? "Confirmar Eliminación"
+            : "Confirmar Restauración"
+        }
+        message={
+          confirmAction === "crear"
+            ? `¿Está seguro de que desea crear el item "${createValues.nombre}"?`
+            : confirmAction === "borrar"
+            ? `¿Está seguro de que desea eliminar el item "${editValues?.nombre}"?`
+            : `¿Está seguro de que desea restaurar el item "${editValues?.nombre}"?`
+        }
+        confirmText={
+          confirmAction === "crear"
+            ? "Sí, Crear"
+            : confirmAction === "borrar"
+            ? "Sí, Eliminar"
+            : "Sí, Restaurar"
+        }
+        cancelText="Cancelar"
+        confirmButtonColor={
+          confirmAction === "crear"
+            ? "primary"
+            : confirmAction === "borrar"
+            ? "error"
+            : "success"
+        }
+      />
     </>
   );
 };

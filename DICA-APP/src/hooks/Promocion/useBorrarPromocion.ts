@@ -9,11 +9,6 @@ export const useBorrarPromocion = (onSuccess?: () => void) => {
   const { showSnackbar } = useSnackbar();
 
   const borrarPromocionHandler = async (id: number) => {
-    const confirmar = window.confirm(
-      "¿Estás seguro de que deseas borrar esta promoción?"
-    );
-    if (!confirmar) return;
-
     setIsDeleting(true);
     try {
       await dispatch(deletePromocion(id));

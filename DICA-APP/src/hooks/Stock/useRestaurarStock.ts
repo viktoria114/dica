@@ -10,11 +10,6 @@ export function useRestaurarStock(onSuccess: () => void) {
   const { showSnackbar } = useSnackbar();
 
   const restaurar = async (id: number) => {
-    const confirmar = window.confirm(
-      "¿Estás seguro de que deseas restaurar este stock?"
-    );
-    if (!confirmar) return;
-
     try {
       setIsRestoring(true);
       await dispatch(restaurarStock(id));
