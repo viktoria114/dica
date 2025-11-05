@@ -128,10 +128,18 @@ export const crearPromocion = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
+  const client = await pool.connect();
   try {
-    const { nombre, tipo, precio, visibilidad } = req.body;
+    const { nombre, tipo, precio, visibilidad, items } = req.body;
 
-    // Creamos la instancia con validaciones
+    // Validar que 'items' sea un array y no esté vacío
+    if (!Array.isArray(items) || items.length === 0) {
+      res.status(400).json({
+        error: 'La promoción debe incluir al menos un ítem de menú.',
+      });
+      return;
+    }
+
     const nuevaPromocion = new Promocion(
       null,
       nombre,
@@ -140,29 +148,50 @@ export const crearPromocion = async (
       visibilidad,
     );
 
-    // Query para insertar
-    const query = `
+    await client.query('BEGIN');
+
+    const promoQuery = `
       INSERT INTO promociones (nombre, tipo, precio, visibilidad)
       VALUES ($1, $2, $3, $4)
-      RETURNING *;
+      RETURNING id;
     `;
-
-    const values = [
+    const promoValues = [
       nuevaPromocion.nombre,
       nuevaPromocion.tipo,
       nuevaPromocion.precio,
       nuevaPromocion.visibilidad,
     ];
+    const resultadoPromo = await client.query(promoQuery, promoValues);
+    const promoId = resultadoPromo.rows[0].id;
 
-    const resultado = await pool.query(query, values);
+    const itemsQuery = `
+      INSERT INTO promocion_menu (id_promocion, id_menu, cantidad)
+      VALUES ($1, $2, $3);
+    `;
+    for (const item of items) {
+      const itemValues = [promoId, item.id_menu, item.cantidad];
+      await client.query(itemsQuery, itemValues);
+    }
+
+    await client.query('COMMIT');
 
     res.status(201).json({
       mensaje: 'Promoción creada exitosamente',
-      promocion: resultado.rows[0],
+      promocion: {
+        id: promoId,
+        nombre: nuevaPromocion.nombre,
+        tipo: nuevaPromocion.tipo,
+        precio: nuevaPromocion.precio,
+        visibilidad: nuevaPromocion.visibilidad,
+        items,
+      },
     });
   } catch (error: any) {
+    await client.query('ROLLBACK');
     console.error('❌ Error al crear promoción:', error.message);
     res.status(400).json({ error: error.message });
+  } finally {
+    client.release();
   }
 };
 
