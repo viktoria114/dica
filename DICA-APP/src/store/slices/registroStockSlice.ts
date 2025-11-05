@@ -112,6 +112,11 @@ const registroStockSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+
+    // 🧹 Nuevo reducer para limpiar los registros
+    limpiarRegistrosStock: (state) => {
+      state.registros = [];
+    },
   },
   extraReducers: (builder) => {
     // GET
@@ -122,7 +127,7 @@ const registroStockSlice = createSlice({
       })
       .addCase(getRegistrosStock.fulfilled, (state, action) => {
         state.loading = false;
-        state.registros = action.payload;
+        state.registros = action.payload; // ✅ reemplaza, no concatena
       })
       .addCase(getRegistrosStock.rejected, (state, action) => {
         state.loading = false;
@@ -186,5 +191,7 @@ const registroStockSlice = createSlice({
   },
 });
 
-export const { clearMensaje, clearError } = registroStockSlice.actions;
+// ✅ exportá el nuevo reducer
+export const { clearMensaje, clearError, limpiarRegistrosStock } = registroStockSlice.actions;
 export default registroStockSlice.reducer;
+
