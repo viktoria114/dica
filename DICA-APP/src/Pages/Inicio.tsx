@@ -35,11 +35,7 @@ export const Inicio = () => {
     };
 
     fetchStatus();
-
-    const interval = setInterval(fetchStatus, 5000);
-
-    return () => clearInterval(interval);
-  }, [showSnackbar]);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
