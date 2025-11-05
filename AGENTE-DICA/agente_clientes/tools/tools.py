@@ -18,7 +18,7 @@ def get_customer_information(tel: str) -> str:
 
     """
 
-    get_customer_url = f"{api_url}/api/clientes/{tel}"
+    get_customer_url = f"{api_url}/api/clientes/tel/{tel}"
 
     resultado = solicitud_con_token(get_customer_url, "GET")
     return resultado
